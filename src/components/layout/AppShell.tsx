@@ -64,7 +64,12 @@ export function AppShell({ children, route, onRouteChange }: AppShellProps) {
 
           <div className="hidden min-w-0 flex-1 lg:mx-8 lg:block">
             <div className="flex h-11 items-center gap-3 rounded-full bg-white px-4 text-sm font-semibold text-slate-500 shadow-sm">
-              <svg aria-hidden="true" className="h-4 w-4 text-retail-blue" viewBox="0 0 20 20" fill="none">
+              <svg
+                aria-hidden="true"
+                className="h-4 w-4 text-retail-blue"
+                viewBox="0 0 20 20"
+                fill="none"
+              >
                 <path
                   d="M8.5 14a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zm4-1.5 4 4"
                   stroke="currentColor"
@@ -72,7 +77,7 @@ export function AppShell({ children, route, onRouteChange }: AppShellProps) {
                   strokeWidth="2"
                 />
               </svg>
-              <span>Store map workspace</span>
+              <span>Enter SKU or item name to locate on map</span>
             </div>
           </div>
 

@@ -1,7 +1,15 @@
 import { useState } from 'react';
 
+import {
+  BackstockRoom,
+  CardboardBoxIcon,
+  HangingRackMerchandise,
+  TieredDisplayMerchandise,
+  backroomBoxCount,
+} from './StoreMapFixtures';
+
 type RackId = 'rack-a' | 'rack-b';
-type RackStock = Record<RackId, number>;
+type RackInventory = Record<RackId, boolean[]>;
 
 interface RackConfig {
   id: RackId;
@@ -20,7 +28,7 @@ const racks: RackConfig[] = [
     label: 'Rack A',
     mapClassName: 'left-[10%] top-[23%] h-[27%] w-[34%]',
     capacity: 16,
-    startingStock: 14,
+    startingStock: 16,
     readRate: 96,
     scanConfidence: 93,
     dwellMinutes: 4,
@@ -29,18 +37,83 @@ const racks: RackConfig[] = [
     id: 'rack-b',
     label: 'Rack B',
     mapClassName: 'left-[51%] top-[23%] h-[27%] w-[34%]',
-    capacity: 18,
-    startingStock: 16,
+    capacity: 54,
+    startingStock: 54,
     readRate: 82,
     scanConfidence: 77,
     dwellMinutes: 9,
   },
 ];
 
-const initialStock = racks.reduce<RackStock>((stock, rack) => {
-  stock[rack.id] = rack.startingStock;
-  return stock;
-}, {} as RackStock);
+function createRackPositions(rack: RackConfig, fillTo: number): boolean[] {
+  return Array.from({ length: rack.capacity }, (_, index) => index < fillTo);
+}
+
+function createInitialInventory(): RackInventory {
+  return racks.reduce<RackInventory>((inventory, rack) => {
+    inventory[rack.id] = createRackPositions(rack, rack.startingStock);
+    return inventory;
+  }, {} as RackInventory);
+}
+
+const initialInventory = createInitialInventory();
+
+function countActivePositions(positions: boolean[]): number {
+  return positions.filter(Boolean).length;
+}
+
+function chooseRandomIndex(indexes: number[]): number | null {
+  if (indexes.length === 0) {
+    return null;
+  }
+
+  return indexes[Math.floor(Math.random() * indexes.length)] ?? null;
+}
+
+function chooseRandomActiveIndex(positions: boolean[]): number | null {
+  return chooseRandomIndex(positions.flatMap((isActive, index) => (isActive ? [index] : [])));
+}
+
+function chooseRandomDenseRackIndex(positions: boolean[]): number | null {
+  const removableIndexes: number[] = [];
+
+  for (let clusterStart = 0; clusterStart < positions.length; clusterStart += 3) {
+    const leftIndex = clusterStart;
+    const centerIndex = clusterStart + 1;
+    const rightIndex = clusterStart + 2;
+
+    if (positions[leftIndex]) {
+      removableIndexes.push(leftIndex);
+    }
+
+    if (positions[rightIndex]) {
+      removableIndexes.push(rightIndex);
+    }
+
+    if (!positions[leftIndex] && !positions[rightIndex] && positions[centerIndex]) {
+      removableIndexes.push(centerIndex);
+    }
+  }
+
+  return chooseRandomIndex(removableIndexes);
+}
+
+function chooseRandomPullIndex(rackId: RackId, positions: boolean[]): number | null {
+  return rackId === 'rack-b'
+    ? chooseRandomDenseRackIndex(positions)
+    : chooseRandomActiveIndex(positions);
+}
+
+function createFullInventory(): RackInventory {
+  return racks.reduce<RackInventory>((inventory, rack) => {
+    inventory[rack.id] = createRackPositions(rack, rack.capacity);
+    return inventory;
+  }, {} as RackInventory);
+}
+
+function createFullBackroomBoxes(): boolean[] {
+  return Array.from({ length: backroomBoxCount }, () => true);
+}
 
 type InventorySignalLevel = 'healthy' | 'warning' | 'critical';
 
@@ -56,19 +129,6 @@ function inventorySignalLevel(stock: number, capacity: number): InventorySignalL
   }
 
   return 'healthy';
-}
-
-function MerchandiseSpot({ active, className = '' }: { active: boolean; className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`h-3.5 w-3.5 rounded-full ${
-        active
-          ? 'bg-retail-blue shadow-sm ring-1 ring-white'
-          : 'border border-dashed border-slate-300 bg-white/65'
-      } ${className}`}
-    />
-  );
 }
 
 function rfidSignalTone(stock: number, capacity: number): string {
@@ -98,7 +158,7 @@ function RfidSignalGlow({ stock, capacity }: { stock: number; capacity: number }
 }
 
 function RfidScannerIcon({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const iconSize = size === 'sm' ? 'h-5 w-5' : 'h-7 w-7';
+  const iconSize = size === 'sm' ? 'h-4 w-4' : 'h-7 w-7';
 
   return (
     <svg
@@ -133,11 +193,45 @@ function RfidScannerIcon({ size = 'md' }: { size?: 'sm' | 'md' }) {
   );
 }
 
+function SingleItemIcon() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-3 w-3 rounded-full border-2 border-slate-800 bg-retail-blue"
+    />
+  );
+}
+
+function TripleItemIcon() {
+  const lobeClassName =
+    'absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-slate-800 bg-retail-blue';
+
+  return (
+    <span aria-hidden="true" className="relative inline-block h-3.5 w-6">
+      <span className={`${lobeClassName} left-0`} />
+      <span className={`${lobeClassName} right-0`} />
+      <span className="absolute left-1/2 top-1/2 z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-slate-800 bg-retail-blue" />
+    </span>
+  );
+}
+
 function RfidLegend() {
   return (
-    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-retail-blue">
-      <RfidScannerIcon size="sm" />
-      <span>RFID Scanner</span>
+    <div className="space-y-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-retail-blue">
+      <div className="flex items-center gap-1.5">
+        <RfidScannerIcon size="sm" />
+        <span>RFID Scanner</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <SingleItemIcon />
+        <span className="text-slate-400">/</span>
+        <TripleItemIcon />
+        <span>Items</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <CardboardBoxIcon className="h-3.5 w-3.5" />
+        <span>Replenishments</span>
+      </div>
     </div>
   );
 }
@@ -147,7 +241,7 @@ function MetricsPopover({ rack, stock }: { rack: RackConfig; stock: number }) {
   const fillRate = Math.round((stock / rack.capacity) * 100);
 
   return (
-    <div className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 border border-retail-blue/20 bg-white p-3 text-left shadow-retail">
+    <div className="absolute left-1/2 top-full z-[100] mt-2 w-64 -translate-x-1/2 border border-retail-blue/20 bg-white p-3 text-left shadow-retail">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-retail-blue">
@@ -190,81 +284,31 @@ function MetricsPopover({ rack, stock }: { rack: RackConfig; stock: number }) {
   );
 }
 
-function HangingRackModule({ moduleIndex, stock }: { moduleIndex: number; stock: number }) {
-  const firstPosition = moduleIndex * 4;
-
-  return (
-    <div className="relative z-10 h-full min-h-20">
-      <span className="absolute left-1/2 top-2 h-[calc(100%-1rem)] w-1.5 -translate-x-1/2 bg-slate-800" />
-      <span className="absolute left-[13%] right-[13%] top-[26%] h-1.5 bg-slate-800" />
-      <span className="absolute left-[13%] right-[13%] bottom-[26%] h-1.5 bg-slate-800" />
-      <span className="absolute left-[13%] top-[20%] h-4 w-1 bg-slate-800" />
-      <span className="absolute right-[13%] top-[20%] h-4 w-1 bg-slate-800" />
-      <span className="absolute bottom-[20%] left-[13%] h-4 w-1 bg-slate-800" />
-      <span className="absolute bottom-[20%] right-[13%] h-4 w-1 bg-slate-800" />
-
-      <MerchandiseSpot active={stock > firstPosition} className="absolute left-[20%] top-[15%]" />
-      <MerchandiseSpot
-        active={stock > firstPosition + 1}
-        className="absolute right-[20%] top-[15%]"
-      />
-      <MerchandiseSpot
-        active={stock > firstPosition + 2}
-        className="absolute bottom-[15%] left-[20%]"
-      />
-      <MerchandiseSpot
-        active={stock > firstPosition + 3}
-        className="absolute bottom-[15%] right-[20%]"
-      />
-    </div>
-  );
-}
-
-function HangingRackMerchandise({ stock }: { stock: number }) {
-  return (
-    <div className="relative grid h-full grid-cols-4 gap-2 p-2">
-      <span className="absolute left-4 right-4 top-1/2 z-0 h-2 -translate-y-1/2 bg-slate-800" />
-      {Array.from({ length: 4 }, (_, moduleIndex) => (
-        <HangingRackModule key={moduleIndex} moduleIndex={moduleIndex} stock={stock} />
-      ))}
-    </div>
-  );
-}
-
-function DenseRackMerchandise({ stock, capacity }: { stock: number; capacity: number }) {
-  const missing = capacity - stock;
-
-  return (
-    <div className="space-y-3">
-      <div className="h-1.5 bg-slate-700" />
-      <div className="grid grid-cols-9 gap-1.5 p-2">
-        {Array.from({ length: stock }, (_, index) => (
-          <MerchandiseSpot key={`stock-${index}`} active />
-        ))}
-        {Array.from({ length: missing }, (_, index) => (
-          <MerchandiseSpot key={`empty-${index}`} active={false} />
-        ))}
-      </div>
-      <div className="h-1.5 bg-slate-700" />
-    </div>
-  );
-}
-
 interface RackFootprintProps {
   rack: RackConfig;
-  stock: number;
+  occupiedPositions: boolean[];
   isInspecting: boolean;
   onInspect: (rackId: RackId | null) => void;
   onPullItem: (rackId: RackId) => void;
 }
 
-function RackFootprint({ rack, stock, isInspecting, onInspect, onPullItem }: RackFootprintProps) {
+function RackFootprint({
+  rack,
+  occupiedPositions,
+  isInspecting,
+  onInspect,
+  onPullItem,
+}: RackFootprintProps) {
+  const stock = countActivePositions(occupiedPositions);
+
   return (
     <button
       type="button"
       onClick={() => onPullItem(rack.id)}
-      className={`absolute z-20 flex items-center justify-center bg-transparent p-0 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35 ${rack.mapClassName}`}
-      aria-label={`${rack.label}. RFID scanner active. Click to simulate removing one item.`}
+      className={`absolute ${
+        isInspecting ? 'z-50' : 'z-20'
+      } flex items-center justify-center bg-transparent p-0 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35 ${rack.mapClassName}`}
+      aria-label={`${rack.label}. RFID scanner active. Click to simulate removing one random item.`}
     >
       <RfidSignalGlow stock={stock} capacity={rack.capacity} />
 
@@ -283,9 +327,9 @@ function RackFootprint({ rack, stock, isInspecting, onInspect, onPullItem }: Rac
 
         <div className="relative z-10 min-h-[6.4rem] w-full">
           {rack.id === 'rack-a' ? (
-            <HangingRackMerchandise stock={stock} />
+            <HangingRackMerchandise occupiedPositions={occupiedPositions} />
           ) : (
-            <DenseRackMerchandise stock={stock} capacity={rack.capacity} />
+            <TieredDisplayMerchandise occupiedPositions={occupiedPositions} />
           )}
         </div>
       </div>
@@ -294,10 +338,11 @@ function RackFootprint({ rack, stock, isInspecting, onInspect, onPullItem }: Rac
 }
 
 export function StoreMap() {
-  const [stock, setStock] = useState<RackStock>(initialStock);
+  const [inventory, setInventory] = useState<RackInventory>(initialInventory);
+  const [backroomBoxes, setBackroomBoxes] = useState(createFullBackroomBoxes);
   const [inspectedRackId, setInspectedRackId] = useState<RackId | null>(null);
   const [lastAction, setLastAction] = useState(
-    'Hover a rack name for metrics. Click a rack to pull one item.',
+    'Hover a rack name for metrics. Click a rack to pull one random item.',
   );
 
   const pullItem = (rackId: RackId) => {
@@ -307,25 +352,41 @@ export function StoreMap() {
       return;
     }
 
-    setStock((currentStock) => {
-      const nextStock = Math.max(currentStock[rackId] - 1, 0);
-      setLastAction(
-        nextStock === currentStock[rackId]
-          ? `${rack.label} is already empty.`
-          : `Pulled one item from ${rack.label}.`,
-      );
-      return { ...currentStock, [rackId]: nextStock };
+    setInventory((currentInventory) => {
+      const randomActiveIndex = chooseRandomPullIndex(rackId, currentInventory[rackId]);
+
+      if (randomActiveIndex === null) {
+        setLastAction(`${rack.label} is already empty.`);
+        return currentInventory;
+      }
+
+      const nextRackPositions = [...currentInventory[rackId]];
+      nextRackPositions[randomActiveIndex] = false;
+      setLastAction(`Pulled one random item from ${rack.label}.`);
+
+      return { ...currentInventory, [rackId]: nextRackPositions };
     });
   };
 
   const replenish = () => {
-    setStock(
-      racks.reduce<RackStock>((nextStock, rack) => {
-        nextStock[rack.id] = rack.capacity;
-        return nextStock;
-      }, {} as RackStock),
+    const consumedBoxIndex = chooseRandomActiveIndex(backroomBoxes);
+
+    if (consumedBoxIndex === null) {
+      setLastAction('Backroom reserve is empty. Reset demo to restock storage.');
+      return;
+    }
+
+    setInventory(createFullInventory());
+    setBackroomBoxes((currentBoxes) =>
+      currentBoxes.map((isActive, index) => (index === consumedBoxIndex ? false : isActive)),
     );
-    setLastAction('All racks replenished to full capacity.');
+    setLastAction('Sales floor replenished. One backroom box consumed.');
+  };
+
+  const resetDemo = () => {
+    setInventory(createInitialInventory());
+    setBackroomBoxes(createFullBackroomBoxes());
+    setLastAction('Demo reset to starting rack stock and full backroom reserve.');
   };
 
   return (
@@ -357,11 +418,13 @@ export function StoreMap() {
               <RfidLegend />
             </div>
 
+            <BackstockRoom occupiedBoxes={backroomBoxes} />
+
             {racks.map((rack) => (
               <RackFootprint
                 key={rack.id}
                 rack={rack}
-                stock={stock[rack.id]}
+                occupiedPositions={inventory[rack.id]}
                 isInspecting={inspectedRackId === rack.id}
                 onInspect={setInspectedRackId}
                 onPullItem={pullItem}
@@ -398,6 +461,13 @@ export function StoreMap() {
                   onClick={replenish}
                 >
                   Replenish
+                </button>
+                <button
+                  type="button"
+                  className="mx-auto block transition hover:text-retail-blue focus:outline-none focus-visible:underline"
+                  onClick={resetDemo}
+                >
+                  Reset demo
                 </button>
               </div>
             </details>
