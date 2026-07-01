@@ -41,14 +41,16 @@ function MerchandiseSpot({ active, className = '' }: { active: boolean; classNam
       className={`h-3.5 w-3.5 rounded-full ${
         active
           ? 'border-2 border-slate-800 bg-retail-blue shadow-sm'
-          : 'border border-dashed border-slate-300 bg-white/65'
+          : 'border-2 border-slate-800 bg-white/90'
       } ${className}`}
     />
   );
 }
 
 function denseLobeClassName(active: boolean): string {
-  return active ? 'border-slate-800 bg-retail-blue shadow-sm' : 'border-slate-800 bg-white/90';
+  return active
+    ? 'border-2 border-slate-800 bg-retail-blue shadow-sm'
+    : 'border-2 border-slate-800 bg-white/90';
 }
 
 function DenseMerchandiseCluster({
@@ -74,7 +76,7 @@ function DenseMerchandiseCluster({
       {lobes.map((lobe) => (
         <span
           key={lobe.className}
-          className={`absolute top-1/2 rounded-full border-2 ${lobe.className} ${denseLobeClassName(
+          className={`absolute top-1/2 rounded-full ${lobe.className} ${denseLobeClassName(
             lobe.active,
           )}`}
         />
