@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 type RackId = 'rack-a' | 'rack-b';
 type RackStock = Record<RackId, number>;
@@ -296,19 +296,8 @@ function RackFootprint({ rack, stock, isInspecting, onInspect, onPullItem }: Rac
 export function StoreMap() {
   const [stock, setStock] = useState<RackStock>(initialStock);
   const [inspectedRackId, setInspectedRackId] = useState<RackId | null>(null);
-  const [selectedRackId, setSelectedRackId] = useState<RackId | null>(null);
   const [lastAction, setLastAction] = useState(
     'Hover a rack name for metrics. Click a rack to pull one item.',
-  );
-
-  const inspectedRack = useMemo(
-    () => racks.find((rack) => rack.id === inspectedRackId) ?? null,
-    [inspectedRackId],
-  );
-
-  const selectedRack = useMemo(
-    () => racks.find((rack) => rack.id === selectedRackId) ?? null,
-    [selectedRackId],
   );
 
   const pullItem = (rackId: RackId) => {
@@ -318,7 +307,6 @@ export function StoreMap() {
       return;
     }
 
-    setSelectedRackId(rackId);
     setStock((currentStock) => {
       const nextStock = Math.max(currentStock[rackId] - 1, 0);
       setLastAction(
@@ -331,14 +319,6 @@ export function StoreMap() {
   };
 
   const replenish = () => {
-    const targetRack = selectedRack ?? inspectedRack;
-
-    if (targetRack) {
-      setStock((currentStock) => ({ ...currentStock, [targetRack.id]: targetRack.capacity }));
-      setLastAction(`${targetRack.label} replenished to full capacity.`);
-      return;
-    }
-
     setStock(
       racks.reduce<RackStock>((nextStock, rack) => {
         nextStock[rack.id] = rack.capacity;
@@ -350,14 +330,14 @@ export function StoreMap() {
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:gap-24">
         <div>
           <p className="eyebrow">Dashboard</p>
           <h2 className="text-3xl font-black tracking-tight text-retail-ink">Store map</h2>
         </div>
-        <p className="max-w-xl text-sm font-medium text-slate-600">
-          Zoomed apparel layout. Hover a rack name for metrics, click a rack to simulate a shopper
-          pull, then replenish from the action menu.
+        <p className="max-w-none whitespace-nowrap text-sm font-medium text-slate-600">
+          Hover only the rack name to open metrics. Click anywhere on a rack to simulate removing
+          merchandise.
         </p>
       </div>
 
@@ -393,28 +373,34 @@ export function StoreMap() {
         <aside className="space-y-4">
           <div className="panel p-4">
             <p className="eyebrow">Map actions</p>
-            <details className="mt-3 group">
-              <summary className="flex cursor-pointer list-none items-center justify-between border border-slate-300 bg-white px-4 py-3 text-sm font-black text-retail-blue transition hover:bg-retail-blue-light">
-                Action menu
-                <span className="text-xs transition group-open:rotate-180">▼</span>
+            <details className="group mx-auto mt-3 w-fit text-center">
+              <summary className="flex cursor-pointer list-none items-center justify-center gap-3 rounded-full bg-retail-blue px-5 py-2 text-sm font-black text-white shadow-sm transition hover:bg-retail-blue-dark">
+                <span>Action menu</span>
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4 transition-transform group-open:rotate-180"
+                  fill="none"
+                  viewBox="0 0 16 16"
+                >
+                  <path
+                    d="M4 6l4 4 4-4"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                  />
+                </svg>
               </summary>
-              <div className="border-x border-b border-slate-300 bg-white p-2">
-                <button type="button" className="primary-button w-full" onClick={replenish}>
+              <div className="mt-4 space-y-3 text-center text-sm font-semibold text-slate-600">
+                <button
+                  type="button"
+                  className="mx-auto block transition hover:text-retail-blue focus:outline-none focus-visible:underline"
+                  onClick={replenish}
+                >
                   Replenish
                 </button>
               </div>
             </details>
-            <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">
-              Replenish targets the selected rack. If none is selected, it refills both racks.
-            </p>
-          </div>
-
-          <div className="panel p-4">
-            <p className="eyebrow">Interaction</p>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-              Hover only the rack name to open metrics. Click anywhere on a rack to simulate
-              removing merchandise.
-            </p>
           </div>
 
           <div className="panel p-4">
