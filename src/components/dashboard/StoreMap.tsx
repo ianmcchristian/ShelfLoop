@@ -85,7 +85,10 @@ function MetricsPopover({ rack, stock }: { rack: RackConfig; stock: number }) {
           </p>
           <h4 className="mt-1 text-base font-black text-retail-ink">{rack.label}</h4>
         </div>
-        <span className="bg-retail-blue px-2 py-1 text-[0.62rem] font-black text-white">Live</span>
+        <span className="flex items-center gap-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-red-600">
+          <span className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.75)]" />
+          Live
+        </span>
       </div>
 
       <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -121,7 +124,7 @@ function HangingRackModule({ moduleIndex, stock }: { moduleIndex: number; stock:
   const firstPosition = moduleIndex * 4;
 
   return (
-    <div className="relative h-full min-h-20">
+    <div className="relative z-10 h-full min-h-20">
       <span className="absolute left-1/2 top-2 h-[calc(100%-1rem)] w-1.5 -translate-x-1/2 bg-slate-800" />
       <span className="absolute left-[13%] right-[13%] top-[26%] h-1.5 bg-slate-800" />
       <span className="absolute left-[13%] right-[13%] bottom-[26%] h-1.5 bg-slate-800" />
@@ -149,7 +152,8 @@ function HangingRackModule({ moduleIndex, stock }: { moduleIndex: number; stock:
 
 function HangingRackMerchandise({ stock }: { stock: number }) {
   return (
-    <div className="grid h-full grid-cols-4 gap-2 rounded-sm bg-white/70 p-2">
+    <div className="relative grid h-full grid-cols-4 gap-2 rounded-sm bg-white/70 p-2">
+      <span className="absolute left-4 right-4 top-1/2 z-0 h-2 -translate-y-1/2 bg-slate-800" />
       {Array.from({ length: 4 }, (_, moduleIndex) => (
         <HangingRackModule key={moduleIndex} moduleIndex={moduleIndex} stock={stock} />
       ))}
@@ -314,47 +318,6 @@ export function StoreMap() {
                 Top-view apparel rack zone
               </p>
             </div>
-
-            <div className="absolute bottom-[12%] left-[8%] right-[8%] h-[18%] border border-slate-300 bg-slate-50" />
-            <p className="absolute bottom-[19%] left-[11%] z-10 text-[0.65rem] font-black uppercase tracking-[0.18em] text-slate-400">
-              Main aisle
-            </p>
-
-            <div className="absolute right-[7%] top-[61%] h-[25%] w-[25%] border border-slate-300 bg-slate-50 p-3">
-              <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-slate-500">
-                Stockroom cart
-              </p>
-              <div className="mt-5 grid grid-cols-3 gap-1.5">
-                {Array.from({ length: 9 }, (_, index) => (
-                  <span key={index} className="h-4 border border-slate-300 bg-white" />
-                ))}
-              </div>
-            </div>
-
-            <svg
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-10 h-full w-full"
-              preserveAspectRatio="none"
-              viewBox="0 0 1000 560"
-            >
-              <path
-                d="M 795 405 L 795 305 L 675 305"
-                fill="none"
-                stroke="#0071dc"
-                strokeDasharray="9 9"
-                strokeLinecap="round"
-                strokeWidth="4"
-              />
-              <path
-                d="M 795 405 L 795 305 L 300 305"
-                fill="none"
-                opacity="0.35"
-                stroke="#0071dc"
-                strokeDasharray="9 9"
-                strokeLinecap="round"
-                strokeWidth="4"
-              />
-            </svg>
 
             {racks.map((rack) => (
               <RackFootprint
