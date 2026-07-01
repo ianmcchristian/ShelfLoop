@@ -104,19 +104,19 @@ function HangingRackModule({
 
       <MerchandiseSpot
         active={Boolean(occupiedPositions[firstPosition])}
-        className="absolute left-[20%] top-[15%]"
+        className="absolute left-[22%] top-[20%]"
       />
       <MerchandiseSpot
         active={Boolean(occupiedPositions[firstPosition + 1])}
-        className="absolute right-[20%] top-[15%]"
+        className="absolute right-[22%] top-[20%]"
       />
       <MerchandiseSpot
         active={Boolean(occupiedPositions[firstPosition + 2])}
-        className="absolute bottom-[15%] left-[20%]"
+        className="absolute bottom-[20%] left-[22%]"
       />
       <MerchandiseSpot
         active={Boolean(occupiedPositions[firstPosition + 3])}
-        className="absolute bottom-[15%] right-[20%]"
+        className="absolute bottom-[20%] right-[22%]"
       />
     </div>
   );
