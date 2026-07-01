@@ -6,7 +6,6 @@ type RackStock = Record<RackId, number>;
 interface RackConfig {
   id: RackId;
   label: string;
-  category: string;
   mapClassName: string;
   capacity: number;
   startingStock: number;
@@ -19,7 +18,6 @@ const racks: RackConfig[] = [
   {
     id: 'rack-a',
     label: 'Rack A',
-    category: 'Performance polos',
     mapClassName: 'left-[10%] top-[23%] h-[27%] w-[34%]',
     capacity: 16,
     startingStock: 14,
@@ -30,7 +28,6 @@ const racks: RackConfig[] = [
   {
     id: 'rack-b',
     label: 'Rack B',
-    category: 'Folded core tees',
     mapClassName: 'left-[51%] top-[23%] h-[27%] w-[34%]',
     capacity: 18,
     startingStock: 16,
@@ -45,18 +42,20 @@ const initialStock = racks.reduce<RackStock>((stock, rack) => {
   return stock;
 }, {} as RackStock);
 
-function stockTone(stock: number, capacity: number): string {
+type InventorySignalLevel = 'healthy' | 'warning' | 'critical';
+
+function inventorySignalLevel(stock: number, capacity: number): InventorySignalLevel {
   const stockRatio = stock / capacity;
 
-  if (stockRatio < 0.45) {
-    return 'border-red-300 bg-red-50';
+  if (stockRatio < 0.3) {
+    return 'critical';
   }
 
-  if (stockRatio < 0.75) {
-    return 'border-spark bg-yellow-50';
+  if (stockRatio < 0.6) {
+    return 'warning';
   }
 
-  return 'border-retail-blue bg-retail-blue-light';
+  return 'healthy';
 }
 
 function MerchandiseSpot({ active, className = '' }: { active: boolean; className?: string }) {
@@ -72,12 +71,83 @@ function MerchandiseSpot({ active, className = '' }: { active: boolean; classNam
   );
 }
 
+function rfidSignalTone(stock: number, capacity: number): string {
+  const level = inventorySignalLevel(stock, capacity);
+
+  if (level === 'critical') {
+    return 'bg-red-400/25 shadow-[0_0_58px_rgba(239,68,68,0.42)]';
+  }
+
+  if (level === 'warning') {
+    return 'bg-spark/25 shadow-[0_0_58px_rgba(255,194,32,0.42)]';
+  }
+
+  return 'bg-retail-blue/20 shadow-[0_0_58px_rgba(0,113,220,0.34)]';
+}
+
+function RfidSignalGlow({ stock, capacity }: { stock: number; capacity: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute left-1/2 top-[60%] z-0 h-[56%] w-[94%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] blur-2xl transition ${rfidSignalTone(
+        stock,
+        capacity,
+      )}`}
+    />
+  );
+}
+
+function RfidScannerIcon({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  const iconSize = size === 'sm' ? 'h-5 w-5' : 'h-7 w-7';
+
+  return (
+    <svg
+      aria-hidden="true"
+      className={`${iconSize} overflow-hidden text-retail-blue drop-shadow-[0_0_4px_rgba(0,113,220,0.35)]`}
+      fill="none"
+      viewBox="0 0 28 28"
+    >
+      <circle cx="14" cy="14" fill="currentColor" r="3.25" />
+      <circle cx="14" cy="14" opacity="0.38" r="5.75" stroke="currentColor" strokeWidth="1.25" />
+      <circle cx="14" cy="14" opacity="0.52" r="5.75" stroke="currentColor" strokeWidth="1.2">
+        <animate attributeName="r" dur="3.4s" repeatCount="indefinite" values="5.75;12" />
+        <animate attributeName="opacity" dur="3.4s" repeatCount="indefinite" values="0.52;0" />
+      </circle>
+      <circle cx="14" cy="14" opacity="0" r="5.75" stroke="currentColor" strokeWidth="1.2">
+        <animate
+          attributeName="r"
+          begin="1.7s"
+          dur="3.4s"
+          repeatCount="indefinite"
+          values="5.75;12"
+        />
+        <animate
+          attributeName="opacity"
+          begin="1.7s"
+          dur="3.4s"
+          repeatCount="indefinite"
+          values="0.52;0"
+        />
+      </circle>
+    </svg>
+  );
+}
+
+function RfidLegend() {
+  return (
+    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-retail-blue">
+      <RfidScannerIcon size="sm" />
+      <span>RFID Scanner</span>
+    </div>
+  );
+}
+
 function MetricsPopover({ rack, stock }: { rack: RackConfig; stock: number }) {
   const missing = rack.capacity - stock;
   const fillRate = Math.round((stock / rack.capacity) * 100);
 
   return (
-    <div className="absolute left-0 top-full z-50 mt-2 w-64 border border-retail-blue/20 bg-white p-3 text-left shadow-retail">
+    <div className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 border border-retail-blue/20 bg-white p-3 text-left shadow-retail">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-retail-blue">
@@ -114,7 +184,7 @@ function MetricsPopover({ rack, stock }: { rack: RackConfig; stock: number }) {
         {missing > 0
           ? `${missing} open merchandise position${missing === 1 ? '' : 's'} after simulated pulls.`
           : 'Rack is fully replenished.'}{' '}
-        Confidence: {rack.scanConfidence}%.
+        RFID reader active. Confidence: {rack.scanConfidence}%.
       </p>
     </div>
   );
@@ -152,7 +222,7 @@ function HangingRackModule({ moduleIndex, stock }: { moduleIndex: number; stock:
 
 function HangingRackMerchandise({ stock }: { stock: number }) {
   return (
-    <div className="relative grid h-full grid-cols-4 gap-2 rounded-sm bg-white/70 p-2">
+    <div className="relative grid h-full grid-cols-4 gap-2 p-2">
       <span className="absolute left-4 right-4 top-1/2 z-0 h-2 -translate-y-1/2 bg-slate-800" />
       {Array.from({ length: 4 }, (_, moduleIndex) => (
         <HangingRackModule key={moduleIndex} moduleIndex={moduleIndex} stock={stock} />
@@ -167,7 +237,7 @@ function DenseRackMerchandise({ stock, capacity }: { stock: number; capacity: nu
   return (
     <div className="space-y-3">
       <div className="h-1.5 bg-slate-700" />
-      <div className="grid grid-cols-9 gap-1.5 rounded-sm bg-white/80 p-2">
+      <div className="grid grid-cols-9 gap-1.5 p-2">
         {Array.from({ length: stock }, (_, index) => (
           <MerchandiseSpot key={`stock-${index}`} active />
         ))}
@@ -184,55 +254,40 @@ interface RackFootprintProps {
   rack: RackConfig;
   stock: number;
   isInspecting: boolean;
-  isSelected: boolean;
   onInspect: (rackId: RackId | null) => void;
   onPullItem: (rackId: RackId) => void;
 }
 
-function RackFootprint({
-  rack,
-  stock,
-  isInspecting,
-  isSelected,
-  onInspect,
-  onPullItem,
-}: RackFootprintProps) {
+function RackFootprint({ rack, stock, isInspecting, onInspect, onPullItem }: RackFootprintProps) {
   return (
     <button
       type="button"
       onClick={() => onPullItem(rack.id)}
-      className={`absolute z-20 flex flex-col justify-between border-2 p-3 text-left shadow-sm transition hover:shadow-retail focus:outline-none focus:ring-4 focus:ring-retail-blue/25 ${rack.mapClassName} ${stockTone(
-        stock,
-        rack.capacity,
-      )} ${isSelected ? 'ring-4 ring-retail-blue/20' : ''}`}
-      aria-label={`${rack.label}, ${rack.category}. Click to simulate removing one item.`}
+      className={`absolute z-20 flex items-center justify-center bg-transparent p-0 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35 ${rack.mapClassName}`}
+      aria-label={`${rack.label}. RFID scanner active. Click to simulate removing one item.`}
     >
-      <span className="absolute -left-2 top-4 h-7 w-2 border border-slate-400 bg-white" />
-      <span className="absolute -right-2 bottom-4 h-7 w-2 border border-slate-400 bg-white" />
+      <RfidSignalGlow stock={stock} capacity={rack.capacity} />
 
-      <div className="flex items-start justify-between gap-3">
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-2">
         <div
-          className="relative"
+          className="relative flex flex-col items-center"
           onMouseEnter={() => onInspect(rack.id)}
           onMouseLeave={() => onInspect(null)}
         >
-          <p className="w-fit text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-500 underline decoration-transparent underline-offset-4 transition hover:text-retail-blue hover:decoration-retail-blue">
+          <RfidScannerIcon />
+          <p className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-600 underline decoration-transparent underline-offset-4 transition hover:text-retail-blue hover:decoration-retail-blue">
             {rack.label}
           </p>
-          <h3 className="mt-1 text-sm font-black text-retail-ink">{rack.category}</h3>
           {isInspecting ? <MetricsPopover rack={rack} stock={stock} /> : null}
         </div>
-        <span className="border border-slate-300 bg-white px-2 py-1 text-[0.65rem] font-black text-retail-blue">
-          {stock}/{rack.capacity}
-        </span>
-      </div>
 
-      <div className="min-h-[6.4rem]">
-        {rack.id === 'rack-a' ? (
-          <HangingRackMerchandise stock={stock} />
-        ) : (
-          <DenseRackMerchandise stock={stock} capacity={rack.capacity} />
-        )}
+        <div className="relative z-10 min-h-[6.4rem] w-full">
+          {rack.id === 'rack-a' ? (
+            <HangingRackMerchandise stock={stock} />
+          ) : (
+            <DenseRackMerchandise stock={stock} capacity={rack.capacity} />
+          )}
+        </div>
       </div>
     </button>
   );
@@ -318,6 +373,9 @@ export function StoreMap() {
                 Top-view apparel rack zone
               </p>
             </div>
+            <div className="absolute right-8 top-8 z-10">
+              <RfidLegend />
+            </div>
 
             {racks.map((rack) => (
               <RackFootprint
@@ -325,7 +383,6 @@ export function StoreMap() {
                 rack={rack}
                 stock={stock[rack.id]}
                 isInspecting={inspectedRackId === rack.id}
-                isSelected={selectedRackId === rack.id}
                 onInspect={setInspectedRackId}
                 onPullItem={pullItem}
               />

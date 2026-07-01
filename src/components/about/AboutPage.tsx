@@ -17,12 +17,6 @@ const capabilityCards = [
   ],
 ];
 
-const buildNotes = [
-  'Current focus: a clean, interactive top-view map for Rack A and Rack B.',
-  'Next layer: low-profile reader nodes and faint read-field outlines so the map shows why the data exists.',
-  'Future concept: a rack-level RFID explanation diagram, potentially with a lightweight 3D view if it helps tell the story.',
-];
-
 export function AboutPage() {
   return (
     <section className="space-y-5">
@@ -67,18 +61,6 @@ export function AboutPage() {
             </div>
           ))}
         </div>
-      </article>
-
-      <article className="panel p-6">
-        <p className="eyebrow">Build direction</p>
-        <ul className="mt-4 grid gap-3 text-sm font-semibold leading-6 text-slate-600">
-          {buildNotes.map((note) => (
-            <li key={note} className="flex gap-3 border border-slate-200 bg-slate-50 p-4">
-              <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-spark" />
-              <span>{note}</span>
-            </li>
-          ))}
-        </ul>
       </article>
     </section>
   );
