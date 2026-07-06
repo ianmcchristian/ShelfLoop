@@ -2,9 +2,21 @@ import logoUrl from '../../assets/shelfloop-logo.png';
 import type { ReactNode } from 'react';
 import type { RouteId } from '../../routes';
 
+interface LocatorSuggestion {
+  sku: string;
+  name: string;
+  rackLabel: string;
+}
+
 interface AppShellProps {
   children: ReactNode;
+  locatorQuery: string;
+  locatorSuggestions: LocatorSuggestion[];
   route: RouteId;
+  onLocatorClear: () => void;
+  onLocatorQueryChange: (query: string) => void;
+  onLocatorSubmit: () => void;
+  onLocatorSuggestionSelect: (sku: string) => void;
   onRouteChange: (route: RouteId) => void;
 }
 
@@ -47,10 +59,24 @@ function NavIcon({ icon }: { icon: 'map' | 'info' }) {
   );
 }
 
-export function AppShell({ children, route, onRouteChange }: AppShellProps) {
+export function AppShell({
+  children,
+  locatorQuery,
+  locatorSuggestions,
+  route,
+  onLocatorClear,
+  onLocatorQueryChange,
+  onLocatorSubmit,
+  onLocatorSuggestionSelect,
+  onRouteChange,
+}: AppShellProps) {
+  const isLocatorEnabled = route === 'dashboard';
+  const shouldShowLocatorSuggestions =
+    isLocatorEnabled && locatorQuery.trim().length > 0 && locatorSuggestions.length > 0;
+
   return (
     <main className="min-h-screen bg-retail-canvas text-retail-ink">
-      <header className="bg-retail-blue text-white shadow-retail">
+      <header className="relative z-[200] bg-retail-blue text-white shadow-retail">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <ShelfLoopMark />
@@ -62,11 +88,15 @@ export function AppShell({ children, route, onRouteChange }: AppShellProps) {
             </div>
           </div>
 
-          <div className="hidden min-w-0 flex-1 lg:mx-8 lg:block">
-            <div className="flex h-11 items-center gap-3 rounded-full bg-white px-4 text-sm font-semibold text-slate-500 shadow-sm">
+          <div className="relative hidden min-w-0 flex-1 lg:mx-8 lg:block">
+            <div
+              className={`flex h-11 items-center gap-3 rounded-full bg-white px-4 text-sm font-semibold shadow-sm ${
+                isLocatorEnabled ? 'text-retail-ink' : 'text-slate-400 opacity-75'
+              }`}
+            >
               <svg
                 aria-hidden="true"
-                className="h-4 w-4 text-retail-blue"
+                className="h-4 w-4 shrink-0 text-retail-blue"
                 viewBox="0 0 20 20"
                 fill="none"
               >
@@ -77,8 +107,65 @@ export function AppShell({ children, route, onRouteChange }: AppShellProps) {
                   strokeWidth="2"
                 />
               </svg>
-              <span>Enter SKU or item name to locate on map</span>
+              <input
+                aria-label="Enter a SKU and press Enter to ping it on the store map"
+                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-retail-ink outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:text-slate-400"
+                disabled={!isLocatorEnabled}
+                placeholder={
+                  isLocatorEnabled
+                    ? 'Enter SKU, then press Enter to ping it on the map'
+                    : 'Open Dashboard to ping a SKU on the map'
+                }
+                type="search"
+                value={locatorQuery}
+                onChange={(event) => onLocatorQueryChange(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    onLocatorSubmit();
+                  }
+                }}
+              />
+              {isLocatorEnabled && locatorQuery ? (
+                <button
+                  type="button"
+                  className="rounded-full px-2 py-1 text-xs font-black uppercase tracking-[0.12em] text-slate-400 transition hover:bg-retail-blue-light hover:text-retail-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35"
+                  onClick={onLocatorClear}
+                >
+                  Clear
+                </button>
+              ) : null}
             </div>
+
+            {shouldShowLocatorSuggestions ? (
+              <div className="absolute left-0 right-0 top-full z-[220] mt-2 overflow-hidden rounded-2xl border border-retail-blue/15 bg-white text-retail-ink shadow-retail">
+                <p className="border-b border-slate-100 px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">
+                  SKU matches
+                </p>
+                <div className="max-h-64 overflow-y-auto py-1">
+                  {locatorSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.sku}
+                      type="button"
+                      className="flex w-full items-center justify-between gap-4 px-4 py-2.5 text-left transition hover:bg-retail-blue-light focus:bg-retail-blue-light focus:outline-none"
+                      onClick={() => onLocatorSuggestionSelect(suggestion.sku)}
+                    >
+                      <span>
+                        <span className="block text-sm font-black text-retail-blue">
+                          {suggestion.sku}
+                        </span>
+                        <span className="block text-xs font-semibold text-slate-500">
+                          {suggestion.name}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-500">
+                        {suggestion.rackLabel}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <nav aria-label="Primary navigation" className="flex gap-2">

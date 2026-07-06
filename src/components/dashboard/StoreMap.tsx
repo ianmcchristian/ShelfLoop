@@ -2,48 +2,25 @@ import { useState } from 'react';
 
 import {
   BackstockRoom,
-  CardboardBoxIcon,
   HangingRackMerchandise,
   TieredDisplayMerchandise,
   backroomBoxCount,
+  type MerchandiseDotDetails,
+  type MerchandisePositionHighlight,
 } from './StoreMapFixtures';
-
-type RackId = 'rack-a' | 'rack-b';
-type RackInventory = Record<RackId, boolean[]>;
-
-interface RackConfig {
-  id: RackId;
-  label: string;
-  mapClassName: string;
-  capacity: number;
-  startingStock: number;
-  readRate: number;
-  scanConfidence: number;
-  dwellMinutes: number;
-}
-
-const racks: RackConfig[] = [
-  {
-    id: 'rack-a',
-    label: 'Rack A',
-    mapClassName: 'left-[10%] top-[23%] h-[27%] w-[34%]',
-    capacity: 16,
-    startingStock: 16,
-    readRate: 96,
-    scanConfidence: 93,
-    dwellMinutes: 4,
-  },
-  {
-    id: 'rack-b',
-    label: 'Rack B',
-    mapClassName: 'left-[51%] top-[23%] h-[27%] w-[34%]',
-    capacity: 54,
-    startingStock: 54,
-    readRate: 82,
-    scanConfidence: 77,
-    dwellMinutes: 9,
-  },
-];
+import { RfidLegend, RfidScannerIcon } from './StoreMapLegend';
+import { StoreMapSidebar } from './StoreMapSidebar';
+import {
+  findRackItemBySku,
+  getPositionIndexesForSku,
+  getRackItemForPosition,
+  getRackPositionLabel,
+  normalizeSku,
+  racks,
+  type RackConfig,
+  type RackId,
+  type RackInventory,
+} from './storeMapCatalog';
 
 function createRackPositions(rack: RackConfig, fillTo: number): boolean[] {
   return Array.from({ length: rack.capacity }, (_, index) => index < fillTo);
@@ -60,6 +37,55 @@ const initialInventory = createInitialInventory();
 
 function countActivePositions(positions: boolean[]): number {
   return positions.filter(Boolean).length;
+}
+
+function createPositionDetails(rack: RackConfig): MerchandiseDotDetails[] {
+  return Array.from({ length: rack.capacity }, (_, positionIndex) => {
+    const item = getRackItemForPosition(rack, positionIndex);
+
+    return {
+      ...item,
+      rackLabel: `${rack.label} · ${getRackPositionLabel(rack, positionIndex)}`,
+    };
+  });
+}
+
+function createPositionHighlights(
+  positions: boolean[],
+  rack: RackConfig,
+  selectedSku: string,
+): (MerchandisePositionHighlight | null)[] {
+  const normalizedSelectedSku = normalizeSku(selectedSku);
+
+  if (!normalizedSelectedSku) {
+    return [];
+  }
+
+  return positions.map((isActive, index) => {
+    const isSelectedSku =
+      normalizeSku(getRackItemForPosition(rack, index).sku) === normalizedSelectedSku;
+
+    if (!isSelectedSku) {
+      return null;
+    }
+
+    return isActive ? 'available' : 'missing';
+  });
+}
+
+function countSkuPositionStates(
+  inventory: RackInventory,
+  rack: RackConfig,
+  sku: string,
+): { active: number; missing: number; total: number } {
+  const indexes = getPositionIndexesForSku(rack, sku);
+  const active = indexes.filter((index) => inventory[rack.id][index]).length;
+
+  return {
+    active,
+    missing: indexes.length - active,
+    total: indexes.length,
+  };
 }
 
 function chooseRandomIndex(indexes: number[]): number | null {
@@ -157,85 +183,6 @@ function RfidSignalGlow({ stock, capacity }: { stock: number; capacity: number }
   );
 }
 
-function RfidScannerIcon({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const iconSize = size === 'sm' ? 'h-4 w-4' : 'h-7 w-7';
-
-  return (
-    <svg
-      aria-hidden="true"
-      className={`${iconSize} overflow-hidden text-retail-blue drop-shadow-[0_0_4px_rgba(0,113,220,0.35)]`}
-      fill="none"
-      viewBox="0 0 28 28"
-    >
-      <circle cx="14" cy="14" fill="currentColor" r="3.25" />
-      <circle cx="14" cy="14" opacity="0.38" r="5.75" stroke="currentColor" strokeWidth="1.25" />
-      <circle cx="14" cy="14" opacity="0.52" r="5.75" stroke="currentColor" strokeWidth="1.2">
-        <animate attributeName="r" dur="3.4s" repeatCount="indefinite" values="5.75;12" />
-        <animate attributeName="opacity" dur="3.4s" repeatCount="indefinite" values="0.52;0" />
-      </circle>
-      <circle cx="14" cy="14" opacity="0" r="5.75" stroke="currentColor" strokeWidth="1.2">
-        <animate
-          attributeName="r"
-          begin="1.7s"
-          dur="3.4s"
-          repeatCount="indefinite"
-          values="5.75;12"
-        />
-        <animate
-          attributeName="opacity"
-          begin="1.7s"
-          dur="3.4s"
-          repeatCount="indefinite"
-          values="0.52;0"
-        />
-      </circle>
-    </svg>
-  );
-}
-
-function SingleItemIcon() {
-  return (
-    <span
-      aria-hidden="true"
-      className="h-3 w-3 rounded-full border-2 border-slate-800 bg-retail-blue"
-    />
-  );
-}
-
-function TripleItemIcon() {
-  const lobeClassName =
-    'absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-slate-800 bg-retail-blue';
-
-  return (
-    <span aria-hidden="true" className="relative inline-block h-3.5 w-6">
-      <span className={`${lobeClassName} left-0`} />
-      <span className={`${lobeClassName} right-0`} />
-      <span className="absolute left-1/2 top-1/2 z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-slate-800 bg-retail-blue" />
-    </span>
-  );
-}
-
-function RfidLegend() {
-  return (
-    <div className="space-y-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-retail-blue">
-      <div className="flex items-center gap-1.5">
-        <RfidScannerIcon size="sm" />
-        <span>RFID Scanner</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <SingleItemIcon />
-        <span className="text-slate-400">/</span>
-        <TripleItemIcon />
-        <span>Items</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <CardboardBoxIcon className="h-3.5 w-3.5" />
-        <span>Replenishments</span>
-      </div>
-    </div>
-  );
-}
-
 function MetricsPopover({ rack, stock }: { rack: RackConfig; stock: number }) {
   const missing = rack.capacity - stock;
   const fillRate = Math.round((stock / rack.capacity) * 100);
@@ -288,27 +235,54 @@ interface RackFootprintProps {
   rack: RackConfig;
   occupiedPositions: boolean[];
   isInspecting: boolean;
+  isPrecisionPicking: boolean;
+  selectedSku: string;
   onInspect: (rackId: RackId | null) => void;
   onPullItem: (rackId: RackId) => void;
+  onPullPosition: (rackId: RackId, positionIndex: number) => void;
 }
 
 function RackFootprint({
   rack,
   occupiedPositions,
   isInspecting,
+  isPrecisionPicking,
+  selectedSku,
   onInspect,
   onPullItem,
+  onPullPosition,
 }: RackFootprintProps) {
   const stock = countActivePositions(occupiedPositions);
+  const positionHighlights = createPositionHighlights(occupiedPositions, rack, selectedSku);
+  const positionDetails = createPositionDetails(rack);
+  const randomPullLabel = `${rack.label}. ${rack.items.length} unique SKUs. RFID scanner active. Click to simulate removing one random item.`;
+  const precisionPullLabel = `${rack.label}. Precision picking enabled. Click an exact item dot to remove that static position.`;
 
   return (
-    <button
-      type="button"
-      onClick={() => onPullItem(rack.id)}
+    <div
+      aria-label={isPrecisionPicking ? precisionPullLabel : randomPullLabel}
       className={`absolute ${
         isInspecting ? 'z-50' : 'z-20'
-      } flex items-center justify-center bg-transparent p-0 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35 ${rack.mapClassName}`}
-      aria-label={`${rack.label}. RFID scanner active. Click to simulate removing one random item.`}
+      } flex items-center justify-center bg-transparent p-0 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35 ${
+        isPrecisionPicking ? '' : 'cursor-pointer'
+      } ${rack.mapClassName}`}
+      role={isPrecisionPicking ? 'group' : 'button'}
+      tabIndex={isPrecisionPicking ? undefined : 0}
+      onClick={() => {
+        if (!isPrecisionPicking) {
+          onPullItem(rack.id);
+        }
+      }}
+      onKeyDown={(event) => {
+        if (isPrecisionPicking) {
+          return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onPullItem(rack.id);
+        }
+      }}
     >
       <RfidSignalGlow stock={stock} capacity={rack.capacity} />
 
@@ -327,23 +301,83 @@ function RackFootprint({
 
         <div className="relative z-10 min-h-[6.4rem] w-full">
           {rack.id === 'rack-a' ? (
-            <HangingRackMerchandise occupiedPositions={occupiedPositions} />
+            <HangingRackMerchandise
+              occupiedPositions={occupiedPositions}
+              onPickPosition={
+                isPrecisionPicking
+                  ? (positionIndex) => onPullPosition(rack.id, positionIndex)
+                  : undefined
+              }
+              positionDetails={positionDetails}
+              positionHighlights={positionHighlights}
+            />
           ) : (
-            <TieredDisplayMerchandise occupiedPositions={occupiedPositions} />
+            <TieredDisplayMerchandise
+              occupiedPositions={occupiedPositions}
+              onPickPosition={
+                isPrecisionPicking
+                  ? (positionIndex) => onPullPosition(rack.id, positionIndex)
+                  : undefined
+              }
+              positionDetails={positionDetails}
+              positionHighlights={positionHighlights}
+            />
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
-export function StoreMap() {
+interface StoreMapProps {
+  locatorQuery?: string;
+  selectedLocatorSku?: string;
+}
+
+export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMapProps) {
   const [inventory, setInventory] = useState<RackInventory>(initialInventory);
   const [backroomBoxes, setBackroomBoxes] = useState(createFullBackroomBoxes);
   const [inspectedRackId, setInspectedRackId] = useState<RackId | null>(null);
+  const [isPrecisionPicking, setIsPrecisionPicking] = useState(false);
   const [lastAction, setLastAction] = useState(
     'Hover a rack name for metrics. Click a rack to pull one random item.',
   );
+
+  const submittedSku = selectedLocatorSku.trim();
+  const selectedItemMatch = findRackItemBySku(submittedSku);
+  const locatorStatus = (() => {
+    const pendingQuery = locatorQuery.trim();
+
+    if (!submittedSku) {
+      return pendingQuery
+        ? `Press Enter to ping SKU "${pendingQuery}" on the map.`
+        : 'Hover any blue item dot for its SKU. Type a SKU above and press Enter to ping it.';
+    }
+
+    if (!selectedItemMatch) {
+      return `No SKU found for "${submittedSku}". Hover item dots to see valid SKU examples.`;
+    }
+
+    const skuPositions = countSkuPositionStates(
+      inventory,
+      selectedItemMatch.rack,
+      selectedItemMatch.item.sku,
+    );
+
+    if (skuPositions.active === 0) {
+      return `${selectedItemMatch.item.sku} exists on ${selectedItemMatch.rack.label}, but it is currently out of stock there. Red pulse marks its static home.`;
+    }
+
+    if (skuPositions.missing > 0) {
+      return `Pinging ${selectedItemMatch.item.sku} · ${selectedItemMatch.item.name}: ${skuPositions.active}/${skuPositions.total} available in green, ${skuPositions.missing} missing in red.`;
+    }
+
+    return `Pinging ${selectedItemMatch.item.sku} · ${selectedItemMatch.item.name} on ${
+      selectedItemMatch.rack.label
+    } (${skuPositions.active}/${skuPositions.total} static position${
+      skuPositions.total === 1 ? '' : 's'
+    } pulsing green).`;
+  })();
 
   const pullItem = (rackId: RackId) => {
     const rack = racks.find((candidate) => candidate.id === rackId);
@@ -361,10 +395,52 @@ export function StoreMap() {
       }
 
       const nextRackPositions = [...currentInventory[rackId]];
+      const pulledItem = getRackItemForPosition(rack, randomActiveIndex);
       nextRackPositions[randomActiveIndex] = false;
-      setLastAction(`Pulled one random item from ${rack.label}.`);
+      setLastAction(`Pulled ${pulledItem.sku} · ${pulledItem.name} from ${rack.label}.`);
 
       return { ...currentInventory, [rackId]: nextRackPositions };
+    });
+  };
+
+  const pullPosition = (rackId: RackId, positionIndex: number) => {
+    const rack = racks.find((candidate) => candidate.id === rackId);
+
+    if (!rack) {
+      return;
+    }
+
+    setInventory((currentInventory) => {
+      const currentRackPositions = currentInventory[rackId];
+      const positionItem = getRackItemForPosition(rack, positionIndex);
+      const positionLabel = getRackPositionLabel(rack, positionIndex);
+
+      if (!currentRackPositions[positionIndex]) {
+        setLastAction(
+          `${positionItem.sku} is already missing from ${rack.label} · ${positionLabel}.`,
+        );
+        return currentInventory;
+      }
+
+      const nextRackPositions = [...currentRackPositions];
+      nextRackPositions[positionIndex] = false;
+      setLastAction(
+        `Precision picked ${positionItem.sku} · ${positionItem.name} from ${rack.label} · ${positionLabel}.`,
+      );
+
+      return { ...currentInventory, [rackId]: nextRackPositions };
+    });
+  };
+
+  const togglePrecisionPicking = () => {
+    setIsPrecisionPicking((currentMode) => {
+      const nextMode = !currentMode;
+      setLastAction(
+        nextMode
+          ? 'Precision picking enabled. Click an exact item dot to pull that static position.'
+          : 'Precision picking disabled. Rack clicks now pull a random item again.',
+      );
+      return nextMode;
     });
   };
 
@@ -397,8 +473,9 @@ export function StoreMap() {
           <h2 className="text-3xl font-black tracking-tight text-retail-ink">Store map</h2>
         </div>
         <p className="max-w-none whitespace-nowrap text-sm font-medium text-slate-600">
-          Hover only the rack name to open metrics. Click anywhere on a rack to simulate removing
-          merchandise.
+          {isPrecisionPicking
+            ? 'Precision picking is on. Click an exact item dot to remove that static position.'
+            : 'Hover only the rack name to open metrics. Click anywhere on a rack to simulate removing merchandise.'}
         </p>
       </div>
 
@@ -426,58 +503,24 @@ export function StoreMap() {
                 rack={rack}
                 occupiedPositions={inventory[rack.id]}
                 isInspecting={inspectedRackId === rack.id}
+                isPrecisionPicking={isPrecisionPicking}
+                selectedSku={submittedSku}
                 onInspect={setInspectedRackId}
                 onPullItem={pullItem}
+                onPullPosition={pullPosition}
               />
             ))}
           </div>
         </div>
 
-        <aside className="space-y-4">
-          <div className="panel p-4">
-            <p className="eyebrow">Map actions</p>
-            <details className="group mx-auto mt-3 w-fit text-center">
-              <summary className="flex cursor-pointer list-none items-center justify-center gap-3 rounded-full bg-retail-blue px-5 py-2 text-sm font-black text-white shadow-sm transition hover:bg-retail-blue-dark">
-                <span>Action menu</span>
-                <svg
-                  aria-hidden="true"
-                  className="h-4 w-4 transition-transform group-open:rotate-180"
-                  fill="none"
-                  viewBox="0 0 16 16"
-                >
-                  <path
-                    d="M4 6l4 4 4-4"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                  />
-                </svg>
-              </summary>
-              <div className="mt-4 space-y-3 text-center text-sm font-semibold text-slate-600">
-                <button
-                  type="button"
-                  className="mx-auto block transition hover:text-retail-blue focus:outline-none focus-visible:underline"
-                  onClick={replenish}
-                >
-                  Replenish
-                </button>
-                <button
-                  type="button"
-                  className="mx-auto block transition hover:text-retail-blue focus:outline-none focus-visible:underline"
-                  onClick={resetDemo}
-                >
-                  Reset demo
-                </button>
-              </div>
-            </details>
-          </div>
-
-          <div className="panel p-4">
-            <p className="eyebrow">Last event</p>
-            <p className="mt-2 text-sm font-semibold text-slate-600">{lastAction}</p>
-          </div>
-        </aside>
+        <StoreMapSidebar
+          isPrecisionPicking={isPrecisionPicking}
+          lastAction={lastAction}
+          locatorStatus={locatorStatus}
+          onPrecisionPickingToggle={togglePrecisionPicking}
+          onReplenish={replenish}
+          onResetDemo={resetDemo}
+        />
       </div>
     </section>
   );
