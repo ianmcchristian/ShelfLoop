@@ -1,19 +1,23 @@
 interface StoreMapSidebarProps {
   isPrecisionPicking: boolean;
+  isShowcaseRunning: boolean;
   lastAction: string;
   locatorStatus: string;
   onPrecisionPickingToggle: () => void;
   onReplenish: () => void;
   onResetDemo: () => void;
+  onShowcaseToggle: () => void;
 }
 
 export function StoreMapSidebar({
   isPrecisionPicking,
+  isShowcaseRunning,
   lastAction,
   locatorStatus,
   onPrecisionPickingToggle,
   onReplenish,
   onResetDemo,
+  onShowcaseToggle,
 }: StoreMapSidebarProps) {
   return (
     <aside className="space-y-4">
@@ -45,7 +49,8 @@ export function StoreMapSidebar({
                 isPrecisionPicking
                   ? 'bg-retail-blue text-white shadow-sm'
                   : 'bg-retail-blue-light text-retail-blue hover:bg-retail-blue hover:text-white'
-              }`}
+              } disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300`}
+              disabled={isShowcaseRunning}
               onClick={onPrecisionPickingToggle}
             >
               <span
@@ -61,13 +66,22 @@ export function StoreMapSidebar({
             <button
               type="button"
               className="mx-auto block transition hover:text-retail-blue focus:outline-none focus-visible:underline"
+              onClick={onShowcaseToggle}
+            >
+              {isShowcaseRunning ? 'Cancel showcase' : 'Showcase A'}
+            </button>
+            <button
+              type="button"
+              className="mx-auto block transition hover:text-retail-blue focus:outline-none focus-visible:underline disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:text-slate-300"
+              disabled={isShowcaseRunning}
               onClick={onReplenish}
             >
               Replenish
             </button>
             <button
               type="button"
-              className="mx-auto block transition hover:text-retail-blue focus:outline-none focus-visible:underline"
+              className="mx-auto block transition hover:text-retail-blue focus:outline-none focus-visible:underline disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:text-slate-300"
+              disabled={isShowcaseRunning}
               onClick={onResetDemo}
             >
               Reset demo

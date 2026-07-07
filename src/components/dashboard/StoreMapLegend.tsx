@@ -1,12 +1,18 @@
 import { CardboardBoxIcon } from './StoreMapFixtures';
 
-export function RfidScannerIcon({ size = 'md' }: { size?: 'sm' | 'md' }) {
+export function RfidScannerIcon({
+  className = '',
+  size = 'md',
+}: {
+  className?: string;
+  size?: 'sm' | 'md';
+}) {
   const iconSize = size === 'sm' ? 'h-4 w-4' : 'h-7 w-7';
 
   return (
     <svg
       aria-hidden="true"
-      className={`${iconSize} overflow-hidden text-retail-blue drop-shadow-[0_0_4px_rgba(0,113,220,0.35)]`}
+      className={`${iconSize} overflow-hidden text-retail-blue drop-shadow-[0_0_4px_rgba(0,113,220,0.35)] ${className}`}
       fill="none"
       viewBox="0 0 28 28"
     >
