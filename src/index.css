@@ -103,7 +103,7 @@ select {
     opacity: 0.9;
   }
   100% {
-    r: 35px;
+    r: 80px;
     opacity: 0;
   }
 }
@@ -114,11 +114,11 @@ select {
     opacity: 0;
   }
   40% {
-    r: 20px;
+    r: 50px;
     opacity: 0.6;
   }
   100% {
-    r: 40px;
+    r: 90px;
     opacity: 0;
   }
 }
@@ -129,11 +129,11 @@ select {
     opacity: 0;
   }
   70% {
-    r: 25px;
+    r: 60px;
     opacity: 0.3;
   }
   100% {
-    r: 45px;
+    r: 100px;
     opacity: 0;
   }
 }

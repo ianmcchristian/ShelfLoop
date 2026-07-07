@@ -123,20 +123,20 @@ function RFIDPulseWave({ phase }: { phase: ShowcasePhase }) {
   }
 
   return (
-    <div className="pointer-events-none absolute left-[16%] top-[8%] z-[60] -translate-x-1/2">
+    <div className="pointer-events-none absolute left-[27%] top-[23%] z-[60] -translate-x-1/2 -translate-y-1/2">
       <svg
         aria-hidden="true"
-        className="h-32 w-32 overflow-visible"
+        className="h-[400px] w-[400px] overflow-visible"
         viewBox="0 0 100 100"
       >
-        {/* Concentric circles that pulse outward */}
+        {/* Concentric circles that pulse outward from RFID icon */}
         <circle
           cx="50"
           cy="50"
           r="5"
           fill="none"
           stroke="rgba(0,113,220,0.8)"
-          strokeWidth="1.5"
+          strokeWidth="2"
           className="animate-showcase-rfid-pulse-1"
         />
         <circle
@@ -145,7 +145,7 @@ function RFIDPulseWave({ phase }: { phase: ShowcasePhase }) {
           r="5"
           fill="none"
           stroke="rgba(0,113,220,0.5)"
-          strokeWidth="1.5"
+          strokeWidth="2"
           className="animate-showcase-rfid-pulse-2"
         />
         <circle
@@ -154,7 +154,7 @@ function RFIDPulseWave({ phase }: { phase: ShowcasePhase }) {
           r="5"
           fill="none"
           stroke="rgba(0,113,220,0.2)"
-          strokeWidth="1.5"
+          strokeWidth="2"
           className="animate-showcase-rfid-pulse-3"
         />
       </svg>
