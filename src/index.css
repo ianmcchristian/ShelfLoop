@@ -103,7 +103,7 @@ select {
     opacity: 0.9;
   }
   100% {
-    r: 80px;
+    r: 40px;
     opacity: 0;
   }
 }
@@ -114,11 +114,11 @@ select {
     opacity: 0;
   }
   40% {
-    r: 50px;
+    r: 25px;
     opacity: 0.6;
   }
   100% {
-    r: 90px;
+    r: 45px;
     opacity: 0;
   }
 }
@@ -129,11 +129,11 @@ select {
     opacity: 0;
   }
   70% {
-    r: 60px;
+    r: 30px;
     opacity: 0.3;
   }
   100% {
-    r: 100px;
+    r: 50px;
     opacity: 0;
   }
 }
@@ -192,15 +192,15 @@ select {
   }
 
   .animate-showcase-rfid-pulse-1 {
-    animation: showcase-rfid-pulse-1 1.2s ease-out forwards;
+    animation: showcase-rfid-pulse-1 2.4s ease-out forwards;
   }
 
   .animate-showcase-rfid-pulse-2 {
-    animation: showcase-rfid-pulse-2 1.4s ease-out forwards 0.2s;
+    animation: showcase-rfid-pulse-2 2.8s ease-out forwards 0.3s;
   }
 
   .animate-showcase-rfid-pulse-3 {
-    animation: showcase-rfid-pulse-3 1.6s ease-out forwards 0.4s;
+    animation: showcase-rfid-pulse-3 3.2s ease-out forwards 0.6s;
   }
 
   .animate-showcase-dash {
