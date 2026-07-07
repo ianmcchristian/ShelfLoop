@@ -2,20 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   BackstockRoom,
-  HangingRackMerchandise,
-  TieredDisplayMerchandise,
   backroomBoxCount,
-  type MerchandiseDotDetails,
-  type MerchandisePositionHighlight,
 } from './StoreMapFixtures';
-import { RfidLegend, RfidScannerIcon } from './StoreMapLegend';
-import { StoreMapRackFootprint } from './StoreMapRackFootprint';
+import type { MerchandisePositionHighlight } from './StoreMapMerchandise';
+import { RfidLegend } from './StoreMapLegend';
+import { RackFootprint } from './StoreMapRackFootprint';
 import { StoreMapShowcaseLayer } from './StoreMapShowcaseLayer';
 import { StoreMapSidebar } from './StoreMapSidebar';
 import {
   chooseDenseRackStackPickIndex,
   chooseRandomActiveIndex,
-  chooseRandomDenseRackIndex,
 } from './storeMapPicking';
 import {
   isShowcaseRunning,
@@ -33,7 +29,6 @@ import {
   getPositionIndexesForSku,
   getRackItemForPosition,
   getRackPositionLabel,
-  normalizeSku,
   racks,
   type RackConfig,
   type RackId,
@@ -94,7 +89,6 @@ function createFullInventory(): RackInventory {
 
 function createFullBackroomBoxes(): boolean[] {
   return Array.from({ length: backroomBoxCount }, () => true);
-}
 }
 
 interface StoreMapProps {
@@ -274,7 +268,7 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
     }
 
     setInventory((currentInventory) => {
-      const randomActiveIndex = chooseRandomPullIndex(rackId, currentInventory[rackId]);
+      const randomActiveIndex = chooseRandomActiveIndex(currentInventory[rackId]);
 
       if (randomActiveIndex === null) {
         setLastAction(`${rack.label} is already empty.`);
