@@ -106,6 +106,8 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
   );
   const [showcasePhase, setShowcasePhase] = useState<ShowcasePhase>('idle');
   const showcaseTimersRef = useRef<number[]>([]);
+  const showcaseStartTimeRef = useRef<number | null>(null);
+  const showcasePausedTimeRef = useRef<number>(0);
   const isShowcaseActive = isShowcaseRunning(showcasePhase);
   const showcaseRack = racks.find((rack) => rack.id === showcaseRackId) ?? racks[0]!;
   const showcaseItem = getRackItemForPosition(showcaseRack, showcaseRackAItemPosition);
@@ -221,12 +223,34 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
     setLastAction('Showcase A cancelled. Map interactions restored.');
   };
 
+  const resumeShowcase = () => {
+    if (showcaseStartTimeRef.current === null) return;
+
+    const elapsedTime = Date.now() - showcaseStartTimeRef.current - showcasePausedTimeRef.current;
+
+    showcaseTimersRef.current = showcaseTimeline
+      .filter(({ delayMs }) => delayMs > elapsedTime)
+      .map(({ action, delayMs, phase }) =>
+        window.setTimeout(
+          () => {
+            setShowcasePhase(phase);
+            if (action) {
+              runShowcaseAction(action);
+            }
+          },
+          delayMs - elapsedTime,
+        ),
+      );
+  };
+
   const startShowcase = () => {
     clearShowcaseTimers();
     setInspectedRackId(null);
     setIsPrecisionPicking(false);
     setShowcasePhase('shopper-to-rack');
     setLastAction('Showcase A started: shopper approaching Rack A.');
+    showcaseStartTimeRef.current = Date.now();
+    showcasePausedTimeRef.current = 0;
     setInventory((currentInventory) => {
       const nextRackPositions = [...currentInventory[showcaseRackId]];
       nextRackPositions[showcaseRackAItemPosition] = true;
@@ -245,6 +269,18 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
         }
       }, delayMs),
     );
+  };
+
+  const handleMapMouseDown = () => {
+    if (!isShowcaseActive) return;
+    clearShowcaseTimers();
+  };
+
+  const handleMapMouseUp = () => {
+    if (!isShowcaseActive || showcaseStartTimeRef.current === null) return;
+    const pausedDuration = Date.now() - (showcaseStartTimeRef.current + showcasePausedTimeRef.current);
+    showcasePausedTimeRef.current += pausedDuration;
+    resumeShowcase();
   };
 
   const toggleShowcase = () => {
@@ -390,7 +426,12 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
 
       <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
         <div className="panel p-4">
-          <div className="relative min-h-[720px] overflow-hidden border border-slate-300 bg-[#f7f8fa]">
+          <div
+            className="relative min-h-[720px] overflow-hidden border border-slate-300 bg-[#f7f8fa]"
+            onMouseDown={handleMapMouseDown}
+            onMouseUp={handleMapMouseUp}
+            onMouseLeave={handleMapMouseUp}
+          >
             <div className="absolute inset-5 border border-slate-300 bg-white" />
             <div className="absolute left-8 top-8 z-10">
               <p className="text-[0.7rem] font-black uppercase tracking-[0.2em] text-slate-500">
