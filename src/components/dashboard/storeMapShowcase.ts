@@ -12,7 +12,7 @@ export type ShowcasePhase =
   | 'worker-restock';
 
 export const showcaseRackId: RackId = 'rack-a';
-export const showcaseRackAItemPosition = 5;
+export const showcaseRackAItemPosition = 15;
 
 export type ShowcaseAction =
   | 'pick-item'
@@ -30,14 +30,14 @@ interface ShowcaseTimelineStep {
 }
 
 export const showcaseTimeline: ShowcaseTimelineStep[] = [
-  { delayMs: 1_200, phase: 'shopper-pick' },
-  { delayMs: 1_650, phase: 'shopper-exit', action: 'pick-item' },
-  { delayMs: 2_650, phase: 'rfid-scan', action: 'scan-rack' },
-  { delayMs: 4_000, phase: 'task-alert', action: 'assign-task' },
-  { delayMs: 6_500, phase: 'worker-to-box', action: 'dispatch-worker' },
-  { delayMs: 7_800, phase: 'worker-guided', action: 'guide-worker' },
-  { delayMs: 10_000, phase: 'worker-restock', action: 'arrive-at-rack' },
-  { delayMs: 10_900, phase: 'idle', action: 'complete-restock' },
+  { delayMs: 2_500, phase: 'shopper-pick' },
+  { delayMs: 4_000, phase: 'shopper-exit', action: 'pick-item' },
+  { delayMs: 5_000, phase: 'rfid-scan', action: 'scan-rack' },
+  { delayMs: 6_500, phase: 'task-alert', action: 'assign-task' },
+  { delayMs: 9_000, phase: 'worker-to-box', action: 'dispatch-worker' },
+  { delayMs: 10_300, phase: 'worker-guided', action: 'guide-worker' },
+  { delayMs: 12_500, phase: 'worker-restock', action: 'arrive-at-rack' },
+  { delayMs: 13_400, phase: 'idle', action: 'complete-restock' },
 ];
 
 export function isShowcaseRunning(phase: ShowcasePhase): boolean {

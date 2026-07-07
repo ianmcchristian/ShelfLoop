@@ -45,7 +45,7 @@ function ShopperActor({ phase }: { phase: ShowcasePhase }) {
     }
 
     if (phase === 'shopper-pick') {
-      return 'left-[38%] top-[48%]';
+      return 'left-[68%] top-[55%]';
     }
 
     if (phase === 'shopper-exit') {
@@ -88,6 +88,30 @@ function WorkerActor({ phase }: { phase: ShowcasePhase }) {
     >
       <PersonIcon label="Worker" tone="emerald" />
       <ActorLabel>Worker</ActorLabel>
+    </div>
+  );
+}
+
+function ItemPickupPopup({
+  itemName,
+  sku,
+  phase,
+}: {
+  itemName: string;
+  sku: string;
+  phase: ShowcasePhase;
+}) {
+  if (phase !== 'shopper-pick') {
+    return null;
+  }
+
+  return (
+    <div className="pointer-events-none absolute left-[68%] top-[42%] z-[76] -translate-x-1/2 -translate-y-1/2">
+      <div className="w-48 rounded-lg border-2 border-retail-blue bg-white/98 p-3 shadow-lg">
+        <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-retail-blue">Picking</p>
+        <p className="mt-1 font-bold text-retail-ink">{sku}</p>
+        <p className="text-xs text-slate-600">{itemName}</p>
+      </div>
     </div>
   );
 }
@@ -174,6 +198,7 @@ export function StoreMapShowcaseLayer({
   return (
     <div className="pointer-events-none absolute inset-0 z-[70]">
       <GuidancePath phase={phase} />
+      <ItemPickupPopup itemName={targetItemName} sku={targetSku} phase={phase} />
       <ShopperActor phase={phase} />
       <WorkerActor phase={phase} />
       {phase === 'task-alert' ? (

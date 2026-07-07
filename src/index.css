@@ -35,22 +35,22 @@ select {
 @keyframes showcase-shopper-to-rack {
   from {
     left: 5%;
-    top: 48%;
+    top: 55%;
   }
   to {
-    left: 38%;
-    top: 48%;
+    left: 68%;
+    top: 55%;
   }
 }
 
 @keyframes showcase-shopper-exit {
   from {
-    left: 38%;
-    top: 48%;
+    left: 68%;
+    top: 55%;
   }
   to {
     left: 5%;
-    top: 48%;
+    top: 55%;
   }
 }
 
@@ -135,7 +135,7 @@ select {
   }
 
   .animate-showcase-shopper-to-rack {
-    animation: showcase-shopper-to-rack 1.2s ease-in-out forwards;
+    animation: showcase-shopper-to-rack 2.5s ease-in-out forwards;
   }
 
   .animate-showcase-shopper-exit {
