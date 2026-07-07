@@ -97,6 +97,47 @@ select {
   }
 }
 
+@keyframes showcase-rfid-pulse-1 {
+  0% {
+    r: 5px;
+    opacity: 0.9;
+  }
+  100% {
+    r: 35px;
+    opacity: 0;
+  }
+}
+
+@keyframes showcase-rfid-pulse-2 {
+  0% {
+    r: 5px;
+    opacity: 0;
+  }
+  40% {
+    r: 20px;
+    opacity: 0.6;
+  }
+  100% {
+    r: 40px;
+    opacity: 0;
+  }
+}
+
+@keyframes showcase-rfid-pulse-3 {
+  0% {
+    r: 5px;
+    opacity: 0;
+  }
+  70% {
+    r: 25px;
+    opacity: 0.3;
+  }
+  100% {
+    r: 45px;
+    opacity: 0;
+  }
+}
+
 @keyframes showcase-rfid-scan {
   0%,
   100% {
@@ -139,7 +180,7 @@ select {
   }
 
   .animate-showcase-shopper-exit {
-    animation: showcase-shopper-exit 1s ease-in forwards;
+    animation: showcase-shopper-exit 2.5s ease-in-out forwards;
   }
 
   .animate-showcase-worker-to-box {
@@ -148,6 +189,18 @@ select {
 
   .animate-showcase-worker-guided {
     animation: showcase-worker-guided 2.2s ease-in-out forwards;
+  }
+
+  .animate-showcase-rfid-pulse-1 {
+    animation: showcase-rfid-pulse-1 1.2s ease-out forwards;
+  }
+
+  .animate-showcase-rfid-pulse-2 {
+    animation: showcase-rfid-pulse-2 1.4s ease-out forwards 0.2s;
+  }
+
+  .animate-showcase-rfid-pulse-3 {
+    animation: showcase-rfid-pulse-3 1.6s ease-out forwards 0.4s;
   }
 
   .animate-showcase-dash {

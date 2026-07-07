@@ -117,6 +117,51 @@ function ItemPickupPopup({
   );
 }
 
+function RFIDPulseWave({ phase }: { phase: ShowcasePhase }) {
+  if (phase !== 'shopper-exit' && phase !== 'rfid-scan') {
+    return null;
+  }
+
+  return (
+    <div className="pointer-events-none absolute left-[16%] top-[8%] z-[60] -translate-x-1/2">
+      <svg
+        aria-hidden="true"
+        className="h-32 w-32 overflow-visible"
+        viewBox="0 0 100 100"
+      >
+        {/* Concentric circles that pulse outward */}
+        <circle
+          cx="50"
+          cy="50"
+          r="5"
+          fill="none"
+          stroke="rgba(0,113,220,0.8)"
+          strokeWidth="1.5"
+          className="animate-showcase-rfid-pulse-1"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r="5"
+          fill="none"
+          stroke="rgba(0,113,220,0.5)"
+          strokeWidth="1.5"
+          className="animate-showcase-rfid-pulse-2"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r="5"
+          fill="none"
+          stroke="rgba(0,113,220,0.2)"
+          strokeWidth="1.5"
+          className="animate-showcase-rfid-pulse-3"
+        />
+      </svg>
+    </div>
+  );
+}
+
 function GuidancePath({ phase }: { phase: ShowcasePhase }) {
   if (phase !== 'worker-guided' && phase !== 'worker-restock') {
     return null;
@@ -199,6 +244,7 @@ export function StoreMapShowcaseLayer({
   return (
     <div className="pointer-events-none absolute inset-0 z-[70]">
       <GuidancePath phase={phase} />
+      <RFIDPulseWave phase={phase} />
       <ItemPickupPopup itemName={targetItemName} sku={targetSku} phase={phase} />
       <ShopperActor phase={phase} />
       <WorkerActor phase={phase} />
