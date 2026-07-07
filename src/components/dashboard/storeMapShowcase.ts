@@ -30,9 +30,9 @@ interface ShowcaseTimelineStep {
 }
 
 export const showcaseTimeline: ShowcaseTimelineStep[] = [
-  { delayMs: 2_500, phase: 'shopper-pick' },
-  { delayMs: 4_000, phase: 'shopper-exit', action: 'pick-item' },
-  { delayMs: 5_000, phase: 'rfid-scan', action: 'scan-rack' },
+  { delayMs: 2_500, phase: 'shopper-pick', action: 'pick-item' },
+  { delayMs: 4_000, phase: 'shopper-exit' },
+  { delayMs: 4_500, phase: 'rfid-scan', action: 'scan-rack' },
   { delayMs: 6_500, phase: 'task-alert', action: 'assign-task' },
   { delayMs: 9_000, phase: 'worker-to-box', action: 'dispatch-worker' },
   { delayMs: 10_300, phase: 'worker-guided', action: 'guide-worker' },
