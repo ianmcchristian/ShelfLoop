@@ -106,7 +106,7 @@ function ItemPickupPopup({
   }
 
   return (
-    <div className="pointer-events-none absolute left-[49%] top-[34%] z-[76] -translate-x-1/2 -translate-y-1/2">
+    <div className="pointer-events-none absolute left-[40%] top-[24%] z-[76] -translate-x-1/2 -translate-y-1/2">
       <span className="w-max max-w-48 border border-retail-blue/20 bg-white px-2.5 py-2 text-left text-[0.65rem] font-bold leading-4 text-slate-700 shadow-retail block">
         <span className="block font-black uppercase tracking-[0.16em] text-retail-blue">
           {sku}
