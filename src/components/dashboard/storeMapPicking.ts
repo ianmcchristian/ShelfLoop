@@ -15,13 +15,9 @@ export function chooseDenseRackStackPickIndex(
   positionIndex: number,
 ): number | null {
   const stackStart = Math.floor(positionIndex / 3) * 3;
-  const centerIndex = stackStart + 1;
+  const stackIndexes = [stackStart, stackStart + 1, stackStart + 2];
 
-  if (positions[centerIndex]) {
-    return centerIndex;
-  }
-
-  return chooseRandomIndex([stackStart, stackStart + 2].filter((index) => positions[index]));
+  return chooseRandomIndex(stackIndexes.filter((index) => positions[index]));
 }
 
 export function chooseRandomDenseRackIndex(positions: boolean[]): number | null {
