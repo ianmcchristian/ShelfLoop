@@ -34,23 +34,23 @@ select {
 
 @keyframes showcase-shopper-to-rack {
   from {
-    left: 8%;
-    top: 15%;
+    left: 5%;
+    top: 48%;
   }
   to {
-    left: 26%;
-    top: 38%;
+    left: 38%;
+    top: 48%;
   }
 }
 
 @keyframes showcase-shopper-exit {
   from {
-    left: 26%;
-    top: 38%;
+    left: 38%;
+    top: 48%;
   }
   to {
-    left: 7%;
-    top: 12%;
+    left: 5%;
+    top: 48%;
   }
 }
 

@@ -45,7 +45,7 @@ function ShopperActor({ phase }: { phase: ShowcasePhase }) {
     }
 
     if (phase === 'shopper-pick') {
-      return 'left-[26%] top-[38%]';
+      return 'left-[38%] top-[48%]';
     }
 
     if (phase === 'shopper-exit') {
