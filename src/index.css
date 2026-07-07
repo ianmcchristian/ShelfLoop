@@ -38,14 +38,14 @@ select {
     top: 55%;
   }
   to {
-    left: 68%;
+    left: 43%;
     top: 55%;
   }
 }
 
 @keyframes showcase-shopper-exit {
   from {
-    left: 68%;
+    left: 43%;
     top: 55%;
   }
   to {

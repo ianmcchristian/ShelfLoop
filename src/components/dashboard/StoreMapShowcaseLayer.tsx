@@ -45,7 +45,7 @@ function ShopperActor({ phase }: { phase: ShowcasePhase }) {
     }
 
     if (phase === 'shopper-pick') {
-      return 'left-[68%] top-[55%]';
+      return 'left-[43%] top-[55%]';
     }
 
     if (phase === 'shopper-exit') {
@@ -106,7 +106,7 @@ function ItemPickupPopup({
   }
 
   return (
-    <div className="pointer-events-none absolute left-[68%] top-[42%] z-[76] -translate-x-1/2 -translate-y-1/2">
+    <div className="pointer-events-none absolute left-[48%] top-[38%] z-[76] -translate-x-1/2 -translate-y-1/2">
       <div className="w-48 rounded-lg border-2 border-retail-blue bg-white/98 p-3 shadow-lg">
         <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-retail-blue">Picking</p>
         <p className="mt-1 font-bold text-retail-ink">{sku}</p>
