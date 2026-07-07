@@ -1,4 +1,14 @@
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
+
+import {
+  MerchandiseDot,
+  type MerchandiseDotDetails,
+  type MerchandisePositionHighlight,
+} from './StoreMapMerchandise';
+import { getPositionDetails } from './storeMapMerchandiseDetails';
+
+export { TieredDisplayMerchandise } from './TieredDisplayMerchandise';
+export type { MerchandiseDotDetails, MerchandisePositionHighlight } from './StoreMapMerchandise';
 
 const boxesPerStorageColumn = 8;
 
@@ -11,266 +21,6 @@ const backroomStorageColumns = [
 ];
 
 export const backroomBoxCount = backroomStorageColumns.length * boxesPerStorageColumn;
-
-const tieredDisplayTiers = [
-  {
-    id: 'top',
-    className: 'left-[3%] top-[3%] h-[34%] w-[94%]',
-    zClassName: 'z-30',
-    count: 6,
-    firstPosition: 0,
-    gridClassName: 'grid-cols-6',
-    heightPercent: 34,
-    leftPercent: 3,
-    topPercent: 3,
-    widthPercent: 94,
-  },
-  {
-    id: 'middle',
-    className: 'left-[9%] top-[35%] h-[32%] w-[82%]',
-    zClassName: 'z-20',
-    count: 6,
-    firstPosition: 18,
-    gridClassName: 'grid-cols-6',
-    heightPercent: 32,
-    leftPercent: 9,
-    topPercent: 35,
-    widthPercent: 82,
-  },
-  {
-    id: 'base',
-    className: 'left-[13%] top-[64%] h-[32%] w-[74%]',
-    zClassName: 'z-10',
-    count: 6,
-    firstPosition: 36,
-    gridClassName: 'grid-cols-6',
-    heightPercent: 32,
-    leftPercent: 13,
-    topPercent: 64,
-    widthPercent: 74,
-  },
-];
-
-type TieredDisplayTier = (typeof tieredDisplayTiers)[number];
-
-export interface MerchandiseDotDetails {
-  sku: string;
-  name: string;
-  rackLabel: string;
-}
-
-export type MerchandisePositionHighlight = 'available' | 'missing';
-
-interface MerchandiseDotProps {
-  active: boolean;
-  details: MerchandiseDotDetails;
-  className?: string;
-  highlight?: MerchandisePositionHighlight | null;
-  onHoverChange?: (isHovered: boolean) => void;
-  onPick?: () => void;
-  showTooltip?: boolean;
-  sizeClassName?: string;
-}
-
-function getPositionDetails(
-  positionDetails: MerchandiseDotDetails[],
-  positionIndex: number,
-): MerchandiseDotDetails {
-  return (
-    positionDetails[positionIndex] ?? {
-      sku: 'UNKNOWN',
-      name: 'Unknown item',
-      rackLabel: 'Unknown position',
-    }
-  );
-}
-
-function MerchandiseTooltip({
-  className,
-  details,
-  isMissing,
-  style,
-}: {
-  className: string;
-  details: MerchandiseDotDetails;
-  isMissing: boolean;
-  style?: CSSProperties;
-}) {
-  return (
-    <span
-      className={`pointer-events-none w-max max-w-48 border border-retail-blue/20 bg-white px-2.5 py-2 text-left text-[0.65rem] font-bold leading-4 text-slate-700 shadow-retail ${className}`}
-      style={style}
-    >
-      <span
-        className={`block font-black uppercase tracking-[0.16em] ${
-          isMissing ? 'text-red-600' : 'text-retail-blue'
-        }`}
-      >
-        {details.sku}
-      </span>
-      <span className="block whitespace-nowrap text-retail-ink">{details.name}</span>
-      <span className="block text-slate-400">
-        {details.rackLabel}
-        {isMissing ? ' · Not in stock' : ''}
-      </span>
-    </span>
-  );
-}
-
-function MerchandiseDot({
-  active,
-  details,
-  className = '',
-  highlight = null,
-  onHoverChange,
-  onPick,
-  showTooltip = true,
-  sizeClassName = 'h-3.5 w-3.5',
-}: MerchandiseDotProps) {
-  const isAvailableHighlight = highlight === 'available';
-  const isMissingHighlight = highlight === 'missing';
-  const isHighlighted = isAvailableHighlight || isMissingHighlight;
-  const activeClassName = isAvailableHighlight
-    ? 'border-emerald-900 bg-emerald-500 shadow-[0_0_20px_rgba(34,197,94,0.85)]'
-    : 'border-slate-800 bg-retail-blue shadow-sm';
-  const inactiveClassName = isMissingHighlight
-    ? 'border-red-700 bg-white shadow-[0_0_18px_rgba(239,68,68,0.72)]'
-    : 'border-slate-800 bg-white/90';
-  const canPick = Boolean(onPick);
-
-  return (
-    <span
-      aria-label={canPick ? `Pick ${details.sku} from ${details.rackLabel}` : undefined}
-      className={`group/dot ${className} ${
-        canPick
-          ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35'
-          : ''
-      }`}
-      role={canPick ? 'button' : undefined}
-      tabIndex={canPick ? 0 : undefined}
-      onClick={
-        canPick
-          ? (event) => {
-              event.stopPropagation();
-              onPick?.();
-            }
-          : undefined
-      }
-      onMouseEnter={() => onHoverChange?.(true)}
-      onMouseLeave={() => onHoverChange?.(false)}
-      onKeyDown={
-        canPick
-          ? (event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                event.stopPropagation();
-                onPick?.();
-              }
-            }
-          : undefined
-      }
-    >
-      <span
-        className={`relative inline-flex ${sizeClassName} items-center justify-center rounded-full`}
-      >
-        {isHighlighted ? (
-          <>
-            <span
-              className={`pointer-events-none absolute -inset-2 rounded-full animate-ping ${
-                isMissingHighlight ? 'bg-red-400/45' : 'bg-emerald-400/45'
-              }`}
-            />
-            <span
-              className={`pointer-events-none absolute -inset-1 rounded-full blur-sm ${
-                isMissingHighlight ? 'bg-red-300/40' : 'bg-emerald-300/40'
-              }`}
-            />
-          </>
-        ) : null}
-        <span
-          aria-hidden="true"
-          className={`relative block ${sizeClassName} rounded-full border-2 ${
-            active ? activeClassName : inactiveClassName
-          }`}
-        />
-      </span>
-
-      {showTooltip && (active || isMissingHighlight) ? (
-        <MerchandiseTooltip
-          className="absolute bottom-full left-1/2 z-[120] mb-2 hidden -translate-x-1/2 group-hover/dot:block"
-          details={details}
-          isMissing={isMissingHighlight}
-        />
-      ) : null}
-    </span>
-  );
-}
-
-function DenseMerchandiseCluster({
-  centerActive,
-  centerHighlight,
-  details,
-  firstPositionIndex,
-  leftActive,
-  leftHighlight,
-  onHoverPositionChange,
-  onPickPosition,
-  rightActive,
-  rightHighlight,
-}: {
-  centerActive: boolean;
-  centerHighlight: MerchandisePositionHighlight | null;
-  details: MerchandiseDotDetails;
-  firstPositionIndex: number;
-  leftActive: boolean;
-  leftHighlight: MerchandisePositionHighlight | null;
-  onHoverPositionChange?: (positionIndex: number, isHovered: boolean) => void;
-  onPickPosition?: (positionIndex: number) => void;
-  rightActive: boolean;
-  rightHighlight: MerchandisePositionHighlight | null;
-}) {
-  const lobes = [
-    {
-      active: leftActive,
-      className: 'absolute left-0 top-1/2 -translate-y-1/2',
-      highlight: leftHighlight,
-      positionIndex: firstPositionIndex,
-      sizeClassName: 'h-3 w-3',
-    },
-    {
-      active: rightActive,
-      className: 'absolute right-0 top-1/2 -translate-y-1/2',
-      highlight: rightHighlight,
-      positionIndex: firstPositionIndex + 2,
-      sizeClassName: 'h-3 w-3',
-    },
-    {
-      active: centerActive,
-      className: 'absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2',
-      highlight: centerHighlight,
-      positionIndex: firstPositionIndex + 1,
-      sizeClassName: 'h-4 w-4',
-    },
-  ];
-
-  return (
-    <span className="relative block h-4 w-7 justify-self-center">
-      {lobes.map((lobe) => (
-        <MerchandiseDot
-          key={lobe.className}
-          active={lobe.active}
-          className={lobe.className}
-          details={details}
-          highlight={lobe.highlight}
-          onHoverChange={(isHovered) => onHoverPositionChange?.(lobe.positionIndex, isHovered)}
-          onPick={onPickPosition ? () => onPickPosition(lobe.positionIndex) : undefined}
-          showTooltip={false}
-          sizeClassName={lobe.sizeClassName}
-        />
-      ))}
-    </span>
-  );
-}
 
 function HangingRackModule({
   moduleIndex,
@@ -285,10 +35,11 @@ function HangingRackModule({
   positionDetails: MerchandiseDotDetails[];
   positionHighlights: (MerchandisePositionHighlight | null)[];
 }) {
+  const [isTooltipLayerActive, setIsTooltipLayerActive] = useState(false);
   const firstPosition = moduleIndex * 4;
 
   return (
-    <div className="relative z-10 h-full min-h-20">
+    <div className={`relative h-full min-h-20 ${isTooltipLayerActive ? 'z-40' : 'z-10'}`}>
       <span className="absolute left-1/2 top-2 h-[calc(100%-1rem)] w-1.5 -translate-x-1/2 bg-slate-800" />
       <span className="absolute left-[13%] right-[13%] top-[26%] h-1.5 bg-slate-800" />
       <span className="absolute left-[13%] right-[13%] bottom-[26%] h-1.5 bg-slate-800" />
@@ -302,6 +53,7 @@ function HangingRackModule({
         className="absolute left-[32%] top-[31%] -translate-x-1/2 -translate-y-1/2"
         details={getPositionDetails(positionDetails, firstPosition)}
         highlight={positionHighlights[firstPosition] ?? null}
+        onHoverChange={setIsTooltipLayerActive}
         onPick={onPickPosition ? () => onPickPosition(firstPosition) : undefined}
       />
       <MerchandiseDot
@@ -309,6 +61,7 @@ function HangingRackModule({
         className="absolute right-[32%] top-[31%] translate-x-1/2 -translate-y-1/2"
         details={getPositionDetails(positionDetails, firstPosition + 1)}
         highlight={positionHighlights[firstPosition + 1] ?? null}
+        onHoverChange={setIsTooltipLayerActive}
         onPick={onPickPosition ? () => onPickPosition(firstPosition + 1) : undefined}
       />
       <MerchandiseDot
@@ -316,6 +69,7 @@ function HangingRackModule({
         className="absolute bottom-[29%] left-[32%] -translate-x-1/2 translate-y-1/2"
         details={getPositionDetails(positionDetails, firstPosition + 2)}
         highlight={positionHighlights[firstPosition + 2] ?? null}
+        onHoverChange={setIsTooltipLayerActive}
         onPick={onPickPosition ? () => onPickPosition(firstPosition + 2) : undefined}
       />
       <MerchandiseDot
@@ -323,6 +77,7 @@ function HangingRackModule({
         className="absolute bottom-[29%] right-[32%] translate-x-1/2 translate-y-1/2"
         details={getPositionDetails(positionDetails, firstPosition + 3)}
         highlight={positionHighlights[firstPosition + 3] ?? null}
+        onHoverChange={setIsTooltipLayerActive}
         onPick={onPickPosition ? () => onPickPosition(firstPosition + 3) : undefined}
       />
     </div>
@@ -353,126 +108,6 @@ export function HangingRackMerchandise({
           positionHighlights={positionHighlights}
         />
       ))}
-    </div>
-  );
-}
-
-interface TieredDisplayTooltipState {
-  details: MerchandiseDotDetails;
-  isMissing: boolean;
-  leftPercent: number;
-  positionIndex: number;
-  topPercent: number;
-}
-
-function createTieredDisplayTooltip(
-  tier: TieredDisplayTier,
-  clusterIndex: number,
-  positionIndex: number,
-  positionDetails: MerchandiseDotDetails[],
-  positionHighlights: (MerchandisePositionHighlight | null)[],
-): TieredDisplayTooltipState {
-  const relativeLobeIndex = positionIndex - (tier.firstPosition + clusterIndex * 3);
-  const lobeOffsetPercent = [-1.25, 0, 1.25][relativeLobeIndex] ?? 0;
-
-  return {
-    details: getPositionDetails(positionDetails, positionIndex),
-    isMissing: positionHighlights[positionIndex] === 'missing',
-    leftPercent:
-      tier.leftPercent +
-      tier.widthPercent * ((clusterIndex + 0.5) / tier.count) +
-      lobeOffsetPercent,
-    positionIndex,
-    topPercent: tier.topPercent + tier.heightPercent * 0.5,
-  };
-}
-
-export function TieredDisplayMerchandise({
-  occupiedPositions,
-  onPickPosition,
-  positionDetails,
-  positionHighlights = [],
-}: {
-  occupiedPositions: boolean[];
-  onPickPosition?: (positionIndex: number) => void;
-  positionDetails: MerchandiseDotDetails[];
-  positionHighlights?: (MerchandisePositionHighlight | null)[];
-}) {
-  const [hoveredTooltip, setHoveredTooltip] = useState<TieredDisplayTooltipState | null>(null);
-
-  const updateHoveredTooltip = (
-    tier: TieredDisplayTier,
-    clusterIndex: number,
-    positionIndex: number,
-    isHovered: boolean,
-  ) => {
-    if (!isHovered) {
-      setHoveredTooltip((currentTooltip) =>
-        currentTooltip?.positionIndex === positionIndex ? null : currentTooltip,
-      );
-      return;
-    }
-
-    if (!occupiedPositions[positionIndex] && positionHighlights[positionIndex] !== 'missing') {
-      return;
-    }
-
-    setHoveredTooltip(
-      createTieredDisplayTooltip(
-        tier,
-        clusterIndex,
-        positionIndex,
-        positionDetails,
-        positionHighlights,
-      ),
-    );
-  };
-
-  return (
-    <div className="relative h-full min-h-[6.4rem]">
-      {tieredDisplayTiers.map((tier) => (
-        <div
-          key={tier.id}
-          className={`absolute overflow-visible border-2 border-slate-800 bg-white/95 shadow-sm ${tier.zClassName} ${tier.className}`}
-        >
-          <div className={`grid h-full ${tier.gridClassName} items-center gap-1 px-4 py-2`}>
-            {Array.from({ length: tier.count }, (_, index) => {
-              const firstLobeIndex = tier.firstPosition + index * 3;
-
-              return (
-                <DenseMerchandiseCluster
-                  key={`${tier.id}-${index}`}
-                  centerActive={Boolean(occupiedPositions[firstLobeIndex + 1])}
-                  centerHighlight={positionHighlights[firstLobeIndex + 1] ?? null}
-                  details={getPositionDetails(positionDetails, firstLobeIndex)}
-                  firstPositionIndex={firstLobeIndex}
-                  leftActive={Boolean(occupiedPositions[firstLobeIndex])}
-                  leftHighlight={positionHighlights[firstLobeIndex] ?? null}
-                  onHoverPositionChange={(positionIndex, isHovered) =>
-                    updateHoveredTooltip(tier, index, positionIndex, isHovered)
-                  }
-                  onPickPosition={onPickPosition}
-                  rightActive={Boolean(occupiedPositions[firstLobeIndex + 2])}
-                  rightHighlight={positionHighlights[firstLobeIndex + 2] ?? null}
-                />
-              );
-            })}
-          </div>
-        </div>
-      ))}
-
-      {hoveredTooltip ? (
-        <MerchandiseTooltip
-          className="absolute z-[180]"
-          details={hoveredTooltip.details}
-          isMissing={hoveredTooltip.isMissing}
-          style={{
-            left: `${hoveredTooltip.leftPercent}%`,
-            top: `${hoveredTooltip.topPercent}%`,
-            transform: 'translate(-50%, calc(-100% - 0.5rem))',
-          }}
-        />
-      ) : null}
     </div>
   );
 }

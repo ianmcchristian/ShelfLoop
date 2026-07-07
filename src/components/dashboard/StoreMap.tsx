@@ -11,6 +11,11 @@ import {
 import { RfidLegend, RfidScannerIcon } from './StoreMapLegend';
 import { StoreMapSidebar } from './StoreMapSidebar';
 import {
+  chooseDenseRackStackPickIndex,
+  chooseRandomActiveIndex,
+  chooseRandomDenseRackIndex,
+} from './storeMapPicking';
+import {
   findRackItemBySku,
   getPositionIndexesForSku,
   getRackItemForPosition,
@@ -86,42 +91,6 @@ function countSkuPositionStates(
     missing: indexes.length - active,
     total: indexes.length,
   };
-}
-
-function chooseRandomIndex(indexes: number[]): number | null {
-  if (indexes.length === 0) {
-    return null;
-  }
-
-  return indexes[Math.floor(Math.random() * indexes.length)] ?? null;
-}
-
-function chooseRandomActiveIndex(positions: boolean[]): number | null {
-  return chooseRandomIndex(positions.flatMap((isActive, index) => (isActive ? [index] : [])));
-}
-
-function chooseRandomDenseRackIndex(positions: boolean[]): number | null {
-  const removableIndexes: number[] = [];
-
-  for (let clusterStart = 0; clusterStart < positions.length; clusterStart += 3) {
-    const leftIndex = clusterStart;
-    const centerIndex = clusterStart + 1;
-    const rightIndex = clusterStart + 2;
-
-    if (positions[leftIndex]) {
-      removableIndexes.push(leftIndex);
-    }
-
-    if (positions[rightIndex]) {
-      removableIndexes.push(rightIndex);
-    }
-
-    if (!positions[leftIndex] && !positions[rightIndex] && positions[centerIndex]) {
-      removableIndexes.push(centerIndex);
-    }
-  }
-
-  return chooseRandomIndex(removableIndexes);
 }
 
 function chooseRandomPullIndex(rackId: RackId, positions: boolean[]): number | null {
@@ -256,7 +225,10 @@ function RackFootprint({
   const positionHighlights = createPositionHighlights(occupiedPositions, rack, selectedSku);
   const positionDetails = createPositionDetails(rack);
   const randomPullLabel = `${rack.label}. ${rack.items.length} unique SKUs. RFID scanner active. Click to simulate removing one random item.`;
-  const precisionPullLabel = `${rack.label}. Precision picking enabled. Click an exact item dot to remove that static position.`;
+  const precisionPullLabel =
+    rack.itemGrouping === 'triplet'
+      ? `${rack.label}. Precision picking enabled. Click a SKU stack to remove one random item from that stack.`
+      : `${rack.label}. Precision picking enabled. Click an exact item dot to remove that static position.`;
 
   return (
     <div
@@ -314,9 +286,9 @@ function RackFootprint({
           ) : (
             <TieredDisplayMerchandise
               occupiedPositions={occupiedPositions}
-              onPickPosition={
+              onPickStack={
                 isPrecisionPicking
-                  ? (positionIndex) => onPullPosition(rack.id, positionIndex)
+                  ? (firstPositionIndex) => onPullPosition(rack.id, firstPositionIndex)
                   : undefined
               }
               positionDetails={positionDetails}
@@ -414,18 +386,28 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
       const currentRackPositions = currentInventory[rackId];
       const positionItem = getRackItemForPosition(rack, positionIndex);
       const positionLabel = getRackPositionLabel(rack, positionIndex);
+      const pulledPositionIndex =
+        rack.itemGrouping === 'triplet'
+          ? chooseDenseRackStackPickIndex(currentRackPositions, positionIndex)
+          : currentRackPositions[positionIndex]
+            ? positionIndex
+            : null;
 
-      if (!currentRackPositions[positionIndex]) {
+      if (pulledPositionIndex === null) {
         setLastAction(
-          `${positionItem.sku} is already missing from ${rack.label} · ${positionLabel}.`,
+          rack.itemGrouping === 'triplet'
+            ? `${positionItem.sku} stack is already empty on ${rack.label} · ${positionLabel}.`
+            : `${positionItem.sku} is already missing from ${rack.label} · ${positionLabel}.`,
         );
         return currentInventory;
       }
 
       const nextRackPositions = [...currentRackPositions];
-      nextRackPositions[positionIndex] = false;
+      nextRackPositions[pulledPositionIndex] = false;
       setLastAction(
-        `Precision picked ${positionItem.sku} · ${positionItem.name} from ${rack.label} · ${positionLabel}.`,
+        rack.itemGrouping === 'triplet'
+          ? `Precision picked one ${positionItem.sku} · ${positionItem.name} from ${rack.label} · ${positionLabel}.`
+          : `Precision picked ${positionItem.sku} · ${positionItem.name} from ${rack.label} · ${positionLabel}.`,
       );
 
       return { ...currentInventory, [rackId]: nextRackPositions };
@@ -437,7 +419,7 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
       const nextMode = !currentMode;
       setLastAction(
         nextMode
-          ? 'Precision picking enabled. Click an exact item dot to pull that static position.'
+          ? 'Precision picking enabled. Click Rack A dots or Rack B SKU stacks to pull one item.'
           : 'Precision picking disabled. Rack clicks now pull a random item again.',
       );
       return nextMode;
@@ -474,7 +456,7 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
         </div>
         <p className="max-w-none whitespace-nowrap text-sm font-medium text-slate-600">
           {isPrecisionPicking
-            ? 'Precision picking is on. Click an exact item dot to remove that static position.'
+            ? 'Precision picking is on. Click Rack A dots or Rack B SKU stacks to remove merchandise.'
             : 'Hover only the rack name to open metrics. Click anywhere on a rack to simulate removing merchandise.'}
         </p>
       </div>
