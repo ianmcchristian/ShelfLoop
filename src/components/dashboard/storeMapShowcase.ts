@@ -32,12 +32,12 @@ interface ShowcaseTimelineStep {
 export const showcaseTimeline: ShowcaseTimelineStep[] = [
   { delayMs: 2_500, phase: 'shopper-pick', action: 'pick-item' },
   { delayMs: 4_000, phase: 'shopper-exit' },
-  { delayMs: 4_500, phase: 'rfid-scan', action: 'scan-rack' },
-  { delayMs: 6_500, phase: 'task-alert', action: 'assign-task' },
-  { delayMs: 9_000, phase: 'worker-to-box', action: 'dispatch-worker' },
-  { delayMs: 10_300, phase: 'worker-guided', action: 'guide-worker' },
-  { delayMs: 12_500, phase: 'worker-restock', action: 'arrive-at-rack' },
-  { delayMs: 13_400, phase: 'idle', action: 'complete-restock' },
+  { delayMs: 5_500, phase: 'rfid-scan', action: 'scan-rack' },
+  { delayMs: 7_000, phase: 'task-alert', action: 'assign-task' },
+  { delayMs: 9_500, phase: 'worker-to-box', action: 'dispatch-worker' },
+  { delayMs: 10_800, phase: 'worker-guided', action: 'guide-worker' },
+  { delayMs: 13_000, phase: 'worker-restock', action: 'arrive-at-rack' },
+  { delayMs: 13_900, phase: 'idle', action: 'complete-restock' },
 ];
 
 export function isShowcaseRunning(phase: ShowcasePhase): boolean {
