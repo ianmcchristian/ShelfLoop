@@ -15,13 +15,17 @@ import {
 } from './storeMapPicking';
 import {
   isShowcaseRunning,
+  showcaseBackroomGlowBoxIndex,
+  showcaseCheckpoints,
   showcaseRackAItemPosition,
   showcaseRackId,
   showcaseTimeline,
+  shouldShowcaseGlowBackroomBox,
   shouldShowcaseHighlightMissingItem,
   shouldShowcaseScanRack,
   shouldShowcaseTapToLight,
   type ShowcaseAction,
+  type ShowcaseCheckpoint,
   type ShowcasePhase,
 } from './storeMapShowcase';
 import {
@@ -105,7 +109,11 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
     'Hover a rack name for metrics. Click a rack to pull one random item.',
   );
   const [showcasePhase, setShowcasePhase] = useState<ShowcasePhase>('idle');
+  const [showcaseJumpKey, setShowcaseJumpKey] = useState(0);
+  const [isShowcasePaused, setIsShowcasePaused] = useState(false);
   const showcaseTimersRef = useRef<number[]>([]);
+  const showcaseStartedAtMsRef = useRef<number | null>(null);
+  const showcaseElapsedMsRef = useRef(0);
   const isShowcaseActive = isShowcaseRunning(showcasePhase);
   const showcaseRack = racks.find((rack) => rack.id === showcaseRackId) ?? racks[0]!;
   const showcaseItem = getRackItemForPosition(showcaseRack, showcaseRackAItemPosition);
@@ -156,6 +164,30 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
   const clearShowcaseTimers = () => {
     showcaseTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
     showcaseTimersRef.current = [];
+  };
+
+  const scheduleShowcaseTimelineFrom = (elapsedMs: number) => {
+    clearShowcaseTimers();
+    showcaseElapsedMsRef.current = elapsedMs;
+    showcaseStartedAtMsRef.current = performance.now() - elapsedMs;
+
+    const remainingSteps = showcaseTimeline.filter(({ delayMs }) => delayMs > elapsedMs);
+
+    showcaseTimersRef.current = remainingSteps.map(({ action, delayMs, phase }) =>
+      window.setTimeout(() => {
+        setShowcasePhase(phase);
+
+        if (action) {
+          runShowcaseAction(action);
+        }
+
+        if (phase === 'idle') {
+          setIsShowcasePaused(false);
+          showcaseStartedAtMsRef.current = null;
+          showcaseElapsedMsRef.current = 0;
+        }
+      }, delayMs - elapsedMs),
+    );
   };
 
   const consumeBackroomBox = () => {
@@ -217,14 +249,21 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
 
   const cancelShowcase = () => {
     clearShowcaseTimers();
+    showcaseStartedAtMsRef.current = null;
+    showcaseElapsedMsRef.current = 0;
+    setIsShowcasePaused(false);
     setShowcasePhase('idle');
     setLastAction('Showcase A cancelled. Map interactions restored.');
   };
 
   const startShowcase = () => {
     clearShowcaseTimers();
+    showcaseElapsedMsRef.current = 0;
+    showcaseStartedAtMsRef.current = performance.now();
+    setIsShowcasePaused(false);
     setInspectedRackId(null);
     setIsPrecisionPicking(false);
+    setShowcaseJumpKey((k) => k + 1);
     setShowcasePhase('shopper-to-rack');
     setLastAction('Showcase A started: shopper approaching Rack A.');
     setInventory((currentInventory) => {
@@ -236,15 +275,32 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
       currentBoxes.some(Boolean) ? currentBoxes : createFullBackroomBoxes(),
     );
 
-    showcaseTimersRef.current = showcaseTimeline.map(({ action, delayMs, phase }) =>
-      window.setTimeout(() => {
-        setShowcasePhase(phase);
+    scheduleShowcaseTimelineFrom(0);
+  };
 
-        if (action) {
-          runShowcaseAction(action);
-        }
-      }, delayMs),
-    );
+  const jumpToCheckpoint = (checkpoint: ShowcaseCheckpoint) => {
+    clearShowcaseTimers();
+    setInspectedRackId(null);
+    setIsPrecisionPicking(false);
+
+    // Restore backroom if depleted so later phases have boxes to consume
+    setBackroomBoxes((current) => (current.some(Boolean) ? current : createFullBackroomBoxes()));
+
+    // Set item presence to match what this phase expects
+    setInventory((current) => {
+      const nextPositions = [...current[showcaseRackId]];
+      nextPositions[showcaseRackAItemPosition] = !checkpoint.itemMissing;
+      return { ...current, [showcaseRackId]: nextPositions };
+    });
+
+    setIsShowcasePaused(false);
+    setShowcasePhase(checkpoint.phase);
+    setShowcaseJumpKey((k) => k + 1); // forces StoreMapShowcaseLayer to remount on every jump
+    setLastAction(`Dev: jumped to "${checkpoint.label}"`);
+
+    // Continue the rest of the timeline relative to this checkpoint.
+    const phaseMs = showcaseTimeline.find((s) => s.phase === checkpoint.phase)?.delayMs ?? 0;
+    scheduleShowcaseTimelineFrom(phaseMs);
   };
 
   const toggleShowcase = () => {
@@ -254,6 +310,27 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
     }
 
     startShowcase();
+  };
+
+  const toggleShowcasePlayback = () => {
+    if (!isShowcaseActive) {
+      return;
+    }
+
+    if (isShowcasePaused) {
+      setIsShowcasePaused(false);
+      setLastAction('Showcase A resumed.');
+      scheduleShowcaseTimelineFrom(showcaseElapsedMsRef.current);
+      return;
+    }
+
+    if (showcaseStartedAtMsRef.current !== null) {
+      showcaseElapsedMsRef.current = performance.now() - showcaseStartedAtMsRef.current;
+    }
+
+    clearShowcaseTimers();
+    setIsShowcasePaused(true);
+    setLastAction('Showcase A paused.');
   };
 
   const pullItem = (rackId: RackId) => {
@@ -381,7 +458,9 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
         </div>
         <p className="max-w-none whitespace-nowrap text-sm font-medium text-slate-600">
           {isShowcaseActive
-            ? 'Showcase A is running. Map interactions are paused while the automated flow plays.'
+            ? isShowcasePaused
+              ? 'Showcase A is paused. Resume from DEV tools or cancel to restore normal map interactions.'
+              : 'Showcase A is running. Map interactions are paused while the automated flow plays.'
             : isPrecisionPicking
               ? 'Precision picking is on. Click Rack A dots or Rack B SKU stacks to remove merchandise.'
               : 'Hover only the rack name to open metrics. Click anywhere on a rack to simulate removing merchandise.'}
@@ -404,7 +483,14 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
               <RfidLegend />
             </div>
 
-            <BackstockRoom occupiedBoxes={backroomBoxes} />
+            <BackstockRoom
+              occupiedBoxes={backroomBoxes}
+              glowBoxIndex={
+                shouldShowcaseGlowBackroomBox(showcasePhase)
+                  ? showcaseBackroomGlowBoxIndex
+                  : undefined
+              }
+            />
 
             {racks.map((rack) => (
               <RackFootprint
@@ -425,6 +511,8 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
             ))}
 
             <StoreMapShowcaseLayer
+              key={showcaseJumpKey}
+              isPaused={isShowcasePaused}
               phase={showcasePhase}
               targetItemName={showcaseItem.name}
               targetSku={showcaseItem.sku}
@@ -433,13 +521,17 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
         </div>
 
         <StoreMapSidebar
+          devCheckpoints={showcaseCheckpoints}
           isPrecisionPicking={isPrecisionPicking}
+          isShowcasePaused={isShowcasePaused}
           isShowcaseRunning={isShowcaseActive}
           lastAction={lastAction}
           locatorStatus={locatorStatus}
+          onJumpToCheckpoint={jumpToCheckpoint}
           onPrecisionPickingToggle={togglePrecisionPicking}
           onReplenish={replenish}
           onResetDemo={resetDemo}
+          onShowcasePlaybackToggle={toggleShowcasePlayback}
           onShowcaseToggle={toggleShowcase}
         />
       </div>

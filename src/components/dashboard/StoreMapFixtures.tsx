@@ -112,22 +112,36 @@ export function HangingRackMerchandise({
   );
 }
 
-export function CardboardBoxIcon({ className = 'h-5 w-5' }: { className?: string }) {
+export function CardboardBoxIcon({
+  className = 'h-5 w-5',
+  glowing = false,
+}: {
+  className?: string;
+  glowing?: boolean;
+}) {
   return (
     <span
-      className={`relative inline-block border border-[#4b2525] bg-[#ffc37d] shadow-sm ${className}`}
+      className={`relative inline-block bg-[#ffc37d] ${
+        glowing
+          ? 'animate-showcase-backroom-ttl border-2 border-emerald-400'
+          : 'border border-[#4b2525] shadow-sm'
+      } ${className}`}
     >
-      <span className="absolute bottom-0 left-1/3 top-0 w-1/3 border-x border-[#4b2525] bg-[#d19243]" />
+      <span
+        className={`absolute bottom-0 left-1/3 top-0 w-1/3 border-x ${
+          glowing ? 'border-emerald-300 bg-emerald-200/60' : 'border-[#4b2525] bg-[#d19243]'
+        }`}
+      />
     </span>
   );
 }
 
-function CardboardBox({ active }: { active: boolean }) {
+function CardboardBox({ active, glowing = false }: { active: boolean; glowing?: boolean }) {
   if (!active) {
     return <div aria-hidden="true" className="h-5 w-5" />;
   }
 
-  return <CardboardBoxIcon />;
+  return <CardboardBoxIcon glowing={glowing} />;
 }
 
 function BackroomMetricsPopover({ occupiedBoxes }: { occupiedBoxes: boolean[] }) {
@@ -178,19 +192,33 @@ function BackroomMetricsPopover({ occupiedBoxes }: { occupiedBoxes: boolean[] })
   );
 }
 
-function BackroomStorageColumn({ className, boxes }: { className: string; boxes: boolean[] }) {
+function BackroomStorageColumn({
+  className,
+  boxes,
+  glowingLocalIndex,
+}: {
+  className: string;
+  boxes: boolean[];
+  glowingLocalIndex?: number;
+}) {
   return (
     <div className={`absolute border-2 border-slate-800 bg-white/95 p-1.5 ${className}`}>
       <div className="grid h-full grid-cols-2 grid-rows-4 place-items-center gap-1">
         {boxes.map((active, index) => (
-          <CardboardBox key={index} active={active} />
+          <CardboardBox key={index} active={active} glowing={index === glowingLocalIndex} />
         ))}
       </div>
     </div>
   );
 }
 
-export function BackstockRoom({ occupiedBoxes }: { occupiedBoxes: boolean[] }) {
+export function BackstockRoom({
+  glowBoxIndex,
+  occupiedBoxes,
+}: {
+  glowBoxIndex?: number;
+  occupiedBoxes: boolean[];
+}) {
   return (
     <div className="absolute inset-x-[5%] bottom-[4%] z-30 h-[35%] bg-slate-50/55">
       <div aria-hidden="true" className="absolute inset-x-0 top-[15%] h-1">
@@ -208,12 +236,19 @@ export function BackstockRoom({ occupiedBoxes }: { occupiedBoxes: boolean[] }) {
 
       {backroomStorageColumns.map((columnClassName, index) => {
         const firstBoxIndex = index * boxesPerStorageColumn;
+        const glowingLocalIndex =
+          glowBoxIndex !== undefined &&
+          glowBoxIndex >= firstBoxIndex &&
+          glowBoxIndex < firstBoxIndex + boxesPerStorageColumn
+            ? glowBoxIndex - firstBoxIndex
+            : undefined;
 
         return (
           <BackroomStorageColumn
             key={`backroom-column-${index}`}
             boxes={occupiedBoxes.slice(firstBoxIndex, firstBoxIndex + boxesPerStorageColumn)}
             className={columnClassName}
+            glowingLocalIndex={glowingLocalIndex}
           />
         );
       })}
