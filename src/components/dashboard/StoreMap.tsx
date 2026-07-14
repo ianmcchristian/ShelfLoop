@@ -169,6 +169,7 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
   const scheduleShowcaseTimelineFrom = (elapsedMs: number) => {
     clearShowcaseTimers();
     showcaseElapsedMsRef.current = elapsedMs;
+    // eslint-disable-next-line react-hooks/purity -- called only from event handlers, not render
     showcaseStartedAtMsRef.current = performance.now() - elapsedMs;
 
     const remainingSteps = showcaseTimeline.filter(({ delayMs }) => delayMs > elapsedMs);

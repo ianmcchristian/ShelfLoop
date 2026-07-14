@@ -1,19 +1,19 @@
-const capabilityCards = [
+const designConsiderations = [
   [
-    'Rack-level visibility',
-    'Show what is present on a specific apparel fixture instead of treating the whole sales floor as one inventory bucket.',
+    'Scanning on a schedule',
+    'RFID readers use real power, so scanning constantly is not a realistic approach. Instead, scans happen on a set schedule that works within the power needs of the environment. When a scan runs, the system handles everything from there. Nothing depends on someone being nearby to notice a gap.',
   ],
   [
-    'RFID-informed replenishment',
-    'Use reader confidence and item presence to guide when a rack needs attention, not just when a shelf looks empty.',
+    'What is actually there',
+    'Most inventory systems track what should be on a rack based on the last delivery or stock count. RFID reads what is physically on the rack right now. When those two do not match, that is usually where an out-of-stock is quietly hiding.',
   ],
   [
-    'Associate-ready workflow',
-    'Turn a detected gap into a simple action: inspect the rack, pull inventory, replenish, and confirm the fixture is back in stock.',
+    'No one has to notice first',
+    'With a manual process, someone has to spot an empty rack, remember to report it, and make sure the right person gets the message. When a scan finds a gap, a task is created and sent to a team member automatically. The process starts on its own.',
   ],
   [
-    'Fixture-aware design',
-    'Compare how different rack formats behave, from hanging apparel racks to dense folded displays with harder reads.',
+    'Same team, more time for customers',
+    'This does not replace anyone on the team. It removes the part of the job where associates walk the whole floor just to find out what needs attention. With clear tasks already waiting, they can spend more time helping customers.',
   ],
 ];
 
@@ -32,11 +32,7 @@ export function AboutPage() {
               understand, and replenish. The prototype focuses on a zoomed-in store map where each
               rack can show merchandise presence, read confidence, and simple replenishment actions.
             </p>
-            <p className="mt-4 text-sm leading-6 text-slate-600">
-              The goal is not another generic analytics dashboard. It is a fixture-first workflow:
-              see the rack, understand what the RFID reader is detecting, and act before the display
-              turns into an out-of-stock problem.
-            </p>
+
           </div>
 
           <div className="border-l-4 border-spark bg-retail-blue-light/50 p-5">
@@ -52,9 +48,12 @@ export function AboutPage() {
       </article>
 
       <article className="panel p-6">
-        <p className="eyebrow">What the prototype is proving</p>
+        <p className="eyebrow">Design considerations</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Honest answers to the obvious questions.
+        </p>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {capabilityCards.map(([title, body]) => (
+          {designConsiderations.map(([title, body]) => (
             <div key={title} className="border border-slate-200 bg-white p-4 shadow-sm">
               <h3 className="font-black text-retail-ink">{title}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">{body}</p>
