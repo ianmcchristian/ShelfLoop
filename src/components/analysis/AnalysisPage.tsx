@@ -1,6 +1,6 @@
 // ─── Analysis Page ────────────────────────────────────────────────────────────
-// RFID antenna test visualization. Upload a placement DB + scan CSV to map
-// read/missed tags across the 8-box rig and identify coverage blind spots.
+// RFID antenna test visualization. Upload a scan CSV to map read/missed tags
+// across the 8-box rig. Placement DB is pre-loaded with baked data by default.
 
 import { useCallback, useMemo, useState } from 'react';
 import { parsePlacementCsv } from './rfidPlacementParser';
@@ -11,6 +11,7 @@ import type { AnalysisRun, ParseIssue, ResolvedTagPlacement, RunMeta } from './r
 import { BoxDetailPanel } from './BoxDetailPanel';
 import { RigOverview } from './RigOverview';
 import { AnalysisActionsPanel } from './AnalysisActionsPanel';
+import { CoverageGauge } from './CoverageGauge';
 import type { ScanMeta } from './UploadPanel';
 import { UploadPanel } from './UploadPanel';
 
@@ -48,24 +49,11 @@ function IssuePanel({ issues, label }: { issues: ParseIssue[]; label: string }) 
   );
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 py-14 text-center">
-      <p className="text-lg font-black text-slate-700">No scan data loaded</p>
-      <p className="text-sm text-slate-400">
-        Select a scan source above to visualize tag coverage.
-      </p>
-    </div>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function AnalysisPage() {
-  // ── Placement state ────────────────────────────────────────────────────────
-  const [placements, setPlacements] = useState<ResolvedTagPlacement[]>([]);
+  // ── Placement state — pre-loaded with baked data so any scan CSV works immediately
+  const [placements, setPlacements] = useState<ResolvedTagPlacement[]>(TEST_PLACEMENTS);
   const [placementIssues, setPlacementIssues] = useState<ParseIssue[]>([]);
   const [placementFileName, setPlacementFileName] = useState<string | null>(null);
 
@@ -119,6 +107,7 @@ export function AnalysisPage() {
   }, []);
 
   const handleReset = useCallback(() => {
+    // Reset scan only — keep placements (they're stagnant infrastructure)
     setScanReads(null);
     setScanIssues([]);
     setScanFileName(null);
@@ -127,7 +116,6 @@ export function AnalysisPage() {
     setUsingTestData(false);
   }, []);
 
-
   // ── Derived result ─────────────────────────────────────────────────────────
 
   const activePlacements = usingTestData ? TEST_PLACEMENTS : placements;
@@ -135,33 +123,47 @@ export function AnalysisPage() {
   const scanResult: AnalysisRun | null = useMemo(() => {
     const reads = usingTestData ? TEST_RUN_READS : scanReads;
     if (!reads || activePlacements.length === 0) return null;
-    return matchRun(toRunMeta(usingTestData ? {
-      antennaType: TEST_RUN_META.antennaType,
-      angle: TEST_RUN_META.angle,
-      distance: TEST_RUN_META.distance,
-      timeout: TEST_RUN_META.timeout,
-    } : scanMeta), reads, activePlacements);
+    return matchRun(
+      toRunMeta(
+        usingTestData
+          ? { antennaType: TEST_RUN_META.antennaType, angle: TEST_RUN_META.angle,
+              distance: TEST_RUN_META.distance, timeout: TEST_RUN_META.timeout }
+          : scanMeta,
+      ),
+      reads,
+      activePlacements,
+    );
   }, [activePlacements, scanMeta, scanReads, usingTestData]);
 
   // ── Selected box result ────────────────────────────────────────────────────
 
   const selectedBoxResult =
-    selectedBox !== null
-      ? scanResult?.boxResults.find((b) => b.boxNumber === selectedBox) ?? null
+    selectedBox !== null && scanResult !== null
+      ? (scanResult.boxResults.find((b) => b.boxNumber === selectedBox) ?? null)
       : null;
+
+  const hasData = scanResult !== null;
 
   return (
     <div className="flex flex-col gap-6">
       {/* Page header */}
-      <div>
-        <h2 className="text-2xl font-black tracking-tight text-retail-ink">RFID Analysis</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Identify and visualize scan results per antenna configuration and test parameters
-          across the 8-box rig.
-        </p>
+      <div className="flex items-center justify-between gap-6">
+        <div>
+          <h2 className="text-2xl font-black tracking-tight text-retail-ink">RFID Analysis</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Identify and visualize scan results per antenna configuration and test parameters
+            across the 8-box rig.
+          </p>
+        </div>
+        <CoverageGauge
+          overallPct={scanResult?.overallCoveragePct ?? null}
+          totalRead={scanResult?.totalRead ?? 0}
+          totalMissed={scanResult?.totalMissed ?? 0}
+          totalUnresolved={scanResult?.totalUnresolved ?? 0}
+        />
       </div>
 
-      {/* Upload panel + Actions panel — actions matches dashboard sidebar width (260px) */}
+      {/* Upload panel + Actions panel */}
       <div className="flex items-start gap-4">
         <div className="flex-1">
           <UploadPanel
@@ -186,39 +188,35 @@ export function AnalysisPage() {
       <IssuePanel issues={placementIssues} label="Placement database issues" />
       <IssuePanel issues={scanIssues} label="Scan file issues" />
 
-      {/* Main visualization */}
-      {scanResult !== null ? (
-        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-          {/* Left: rig overview + coverage summary */}
-          <RigOverview
-            boxResults={scanResult.boxResults}
-            totalRead={scanResult.totalRead}
-            totalMissed={scanResult.totalMissed}
-            totalUnresolved={scanResult.totalUnresolved}
-            overallPct={scanResult.overallCoveragePct}
-            selectedBox={selectedBox}
-            onBoxSelect={setSelectedBox}
-          />
+      {/* Main visualization — always rendered, idle animation plays when no data */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <RigOverview
+          boxResults={scanResult?.boxResults ?? []}
+          selectedBox={selectedBox}
+          hasData={hasData}
+          onBoxSelect={setSelectedBox}
+          onDeselect={() => setSelectedBox(null)}
+        />
 
-          {/* Right: selected box detail */}
-          <div>
-            {selectedBoxResult ? (
-              <BoxDetailPanel boxResult={selectedBoxResult} />
-            ) : (
-              <div className="flex h-full min-h-[200px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                <div>
-                  <p className="font-black text-slate-400">Select a box</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Click any box in the rig to inspect face-level tag coverage
-                  </p>
-                </div>
+        <div>
+          {selectedBoxResult ? (
+            <BoxDetailPanel boxResult={selectedBoxResult} />
+          ) : (
+            <div className="flex h-full min-h-[200px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+              <div>
+                <p className="font-black text-slate-400">
+                  {hasData ? 'Select a box' : 'Load scan data above'}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {hasData
+                    ? 'Click any box in the rig to inspect face-level tag coverage'
+                    : 'Upload a scan CSV or use test data — the rig will colour up instantly'}
+                </p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      ) : (
-        <EmptyState />
-      )}
+      </div>
     </div>
   );
 }

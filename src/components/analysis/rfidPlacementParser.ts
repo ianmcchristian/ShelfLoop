@@ -87,7 +87,7 @@ export function parsePlacementCsv(csvText: string): PlacementParseResult {
       continue;
     }
 
-    // Label column
+    // Label column (col 3 = Source Label)
     const rawLabel = cols[3] ?? '';
     if (rawLabel === '') {
       issues.push({ severity: 'warn', message: `Row ${rowIndex}: empty label — slot skipped.`, row: rowIndex });
@@ -99,15 +99,22 @@ export function parsePlacementCsv(csvText: string): PlacementParseResult {
       continue;
     }
 
-    // One label in the CSV contains an unexpected full EPC — accept it as-is.
-    const isFullEpc = rawLabel.length > 10;
+    // Full Tag ID column (col 4) — populated for VERIFIED_SUFFIX rows.
+    const rawFullEpc = cols[4] ?? '';
+    let fullEpc: string | null = null;
+    if (rawFullEpc.length > 10 && /^[0-9A-Fa-f]+$/i.test(rawFullEpc)) {
+      fullEpc = rawFullEpc.toUpperCase();
+    } else if (rawLabel.length > 10 && /^[0-9A-Fa-f]+$/i.test(rawLabel)) {
+      // Edge case: label column itself contains a full EPC
+      fullEpc = rawLabel.toUpperCase();
+    }
 
     placements.push({
       boxNumber: currentBox,
       face: currentFace,
       position: rawPos as FacePosition,
       label: rawLabel.toUpperCase(),
-      fullEpc: isFullEpc ? rawLabel.toUpperCase() : null,
+      fullEpc,
     });
   }
 

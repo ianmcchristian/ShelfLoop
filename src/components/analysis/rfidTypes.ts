@@ -111,15 +111,18 @@ export interface RigPosition {
   layer: 0 | 1;
 }
 
+// Physical layout confirmed by engineering team.
+// Top layer  left→right: 7, 5, 4, 3
+// Bottom layer left→right: 8, 6, 2, 1
 export const RIG_LAYOUT: Record<number, RigPosition> = {
-  1: { col: 0, row: 0, layer: 1 }, // front-left  top
-  2: { col: 1, row: 0, layer: 1 }, // front-right top
-  3: { col: 0, row: 1, layer: 1 }, // back-left   top
+  1: { col: 1, row: 0, layer: 0 }, // front-right bottom
+  2: { col: 1, row: 1, layer: 0 }, // back-right  bottom
+  3: { col: 1, row: 0, layer: 1 }, // front-right top
   4: { col: 1, row: 1, layer: 1 }, // back-right  top
-  5: { col: 0, row: 0, layer: 0 }, // front-left  bottom
-  6: { col: 1, row: 0, layer: 0 }, // front-right bottom
-  7: { col: 0, row: 1, layer: 0 }, // back-left   bottom
-  8: { col: 1, row: 1, layer: 0 }, // back-right  bottom
+  5: { col: 0, row: 0, layer: 1 }, // front-left  top
+  6: { col: 0, row: 0, layer: 0 }, // front-left  bottom
+  7: { col: 0, row: 1, layer: 1 }, // back-left   top
+  8: { col: 0, row: 1, layer: 0 }, // back-left   bottom
 };
 
 export const BOX_FACES: BoxFace[] = ['Front', 'Back', 'Left', 'Right', 'Top', 'Bottom'];
