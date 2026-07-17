@@ -20,8 +20,9 @@ interface AppShellProps {
   onRouteChange: (route: RouteId) => void;
 }
 
-const navItems: { id: RouteId; label: string; icon: 'map' | 'info' }[] = [
+const navItems: { id: RouteId; label: string; icon: 'map' | 'info' | 'chart' }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'map' },
+  { id: 'analysis', label: 'Analysis', icon: 'chart' },
   { id: 'about', label: 'About', icon: 'info' },
 ];
 
@@ -35,7 +36,17 @@ function ShelfLoopMark() {
   );
 }
 
-function NavIcon({ icon }: { icon: 'map' | 'info' }) {
+function NavIcon({ icon }: { icon: 'map' | 'info' | 'chart' }) {
+  if (icon === 'chart') {
+    return (
+      <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 20 20" fill="none">
+        <rect x="2" y="12" width="3" height="6" rx="1" fill="currentColor" opacity="0.6" />
+        <rect x="7" y="8" width="3" height="10" rx="1" fill="currentColor" opacity="0.8" />
+        <rect x="12" y="4" width="3" height="14" rx="1" fill="currentColor" />
+        <path d="M17 6 L13 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
   if (icon === 'info') {
     return (
       <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 20 20" fill="none">

@@ -1,1 +1,1 @@
-export type RouteId = 'dashboard' | 'about';
+export type RouteId = 'dashboard' | 'about' | 'analysis';

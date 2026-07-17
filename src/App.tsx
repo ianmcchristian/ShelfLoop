@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { AboutPage } from './components/about/AboutPage';
+import { AnalysisPage } from './components/analysis/AnalysisPage';
 import { StoreMap } from './components/dashboard/StoreMap';
 import { getSkuSuggestions, normalizeSku } from './components/dashboard/storeMapCatalog';
 import { AppShell } from './components/layout/AppShell';
 import type { RouteId } from './routes';
 
 function readRoute(): RouteId {
-  return window.location.hash.replace('#/', '') === 'about' ? 'about' : 'dashboard';
+  const hash = window.location.hash.replace('#/', '');
+  if (hash === 'about') return 'about';
+  if (hash === 'analysis') return 'analysis';
+  return 'dashboard';
 }
 
 function useHashRoute(): [RouteId, (route: RouteId) => void] {
@@ -71,11 +75,17 @@ export default function App() {
       onLocatorSuggestionSelect={selectLocatorSuggestion}
       onRouteChange={setRoute}
     >
-      {route === 'about' ? (
-        <AboutPage />
-      ) : (
+      {/* About is stateless — render on demand */}
+      {route === 'about' && <AboutPage />}
+
+      {/* Dashboard and Analysis stay mounted across tab switches so their
+          state is preserved. Visibility toggled via the 'hidden' class. */}
+      <div className={route === 'dashboard' ? '' : 'hidden'}>
         <StoreMap locatorQuery={locatorQuery} selectedLocatorSku={selectedLocatorSku} />
-      )}
+      </div>
+      <div className={route === 'analysis' ? '' : 'hidden'}>
+        <AnalysisPage />
+      </div>
     </AppShell>
   );
 }
