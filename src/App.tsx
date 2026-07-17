@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AboutPage } from './components/about/AboutPage';
 import { AnalysisPage } from './components/analysis/AnalysisPage';
 import { StoreMap } from './components/dashboard/StoreMap';
@@ -30,11 +30,49 @@ function useHashRoute(): [RouteId, (route: RouteId) => void] {
   return [route, setRoute];
 }
 
+interface AnalysisSearchRequest {
+  nonce: number;
+  query: string;
+}
+
+interface AnalysisSearchEntry {
+  value: string;
+  badge: string;
+  subtitle: string;
+}
+
 export default function App() {
   const [route, setRoute] = useHashRoute();
   const [locatorQuery, setLocatorQuery] = useState('');
   const [selectedLocatorSku, setSelectedLocatorSku] = useState('');
-  const locatorSuggestions = getSkuSuggestions(locatorQuery);
+  const [analysisSearchRequest, setAnalysisSearchRequest] = useState<AnalysisSearchRequest | null>(null);
+  const [analysisSearchEntries, setAnalysisSearchEntries] = useState<AnalysisSearchEntry[]>([]);
+  const locatorSuggestions = useMemo(() => {
+    if (route === 'dashboard') {
+      return getSkuSuggestions(locatorQuery).map((suggestion) => ({
+        value: suggestion.sku,
+        title: suggestion.sku,
+        subtitle: suggestion.name,
+        badge: suggestion.rackLabel,
+      }));
+    }
+
+    if (route === 'analysis') {
+      const term = locatorQuery.trim().toUpperCase();
+      if (!term) return [];
+      return analysisSearchEntries
+        .filter((entry) => entry.value.toUpperCase().includes(term))
+        .slice(0, 3)
+        .map((entry) => ({
+          value: entry.value,
+          title: entry.value,
+          subtitle: entry.subtitle,
+          badge: entry.badge,
+        }));
+    }
+
+    return [];
+  }, [analysisSearchEntries, locatorQuery, route]);
 
   const updateLocatorQuery = (query: string) => {
     setLocatorQuery(query);
@@ -43,20 +81,32 @@ export default function App() {
 
   const submitLocatorQuery = () => {
     const trimmedQuery = locatorQuery.trim();
+    if (!trimmedQuery) return;
+
+    if (route === 'analysis') {
+      setLocatorQuery(trimmedQuery);
+      setAnalysisSearchRequest({ nonce: Date.now(), query: trimmedQuery });
+      return;
+    }
+
     const exactSuggestion = locatorSuggestions.find(
-      (suggestion) => normalizeSku(suggestion.sku) === normalizeSku(trimmedQuery),
+      (suggestion) => normalizeSku(suggestion.value) === normalizeSku(trimmedQuery),
     );
     const selectedSuggestion =
       exactSuggestion ?? (locatorSuggestions.length === 1 ? locatorSuggestions[0] : null);
-    const selectedSku = selectedSuggestion?.sku ?? trimmedQuery;
+    const selectedSku = selectedSuggestion?.value ?? trimmedQuery;
 
     setLocatorQuery(selectedSku);
     setSelectedLocatorSku(selectedSku);
   };
 
-  const selectLocatorSuggestion = (sku: string) => {
-    setLocatorQuery(sku);
-    setSelectedLocatorSku(sku);
+  const selectLocatorSuggestion = (value: string) => {
+    setLocatorQuery(value);
+    if (route === 'analysis') {
+      setAnalysisSearchRequest({ nonce: Date.now(), query: value });
+      return;
+    }
+    setSelectedLocatorSku(value);
   };
 
   const clearLocatorQuery = () => {
@@ -84,7 +134,10 @@ export default function App() {
         <StoreMap locatorQuery={locatorQuery} selectedLocatorSku={selectedLocatorSku} />
       </div>
       <div className={route === 'analysis' ? '' : 'hidden'}>
-        <AnalysisPage />
+        <AnalysisPage
+          searchRequest={analysisSearchRequest}
+          onSearchEntriesChange={setAnalysisSearchEntries}
+        />
       </div>
     </AppShell>
   );

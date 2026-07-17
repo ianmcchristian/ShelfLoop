@@ -3,9 +3,10 @@ import type { ReactNode } from 'react';
 import type { RouteId } from '../../routes';
 
 interface LocatorSuggestion {
-  sku: string;
-  name: string;
-  rackLabel: string;
+  value: string;
+  title: string;
+  subtitle: string;
+  badge: string;
 }
 
 interface AppShellProps {
@@ -16,7 +17,7 @@ interface AppShellProps {
   onLocatorClear: () => void;
   onLocatorQueryChange: (query: string) => void;
   onLocatorSubmit: () => void;
-  onLocatorSuggestionSelect: (sku: string) => void;
+  onLocatorSuggestionSelect: (value: string) => void;
   onRouteChange: (route: RouteId) => void;
 }
 
@@ -81,9 +82,20 @@ export function AppShell({
   onLocatorSuggestionSelect,
   onRouteChange,
 }: AppShellProps) {
-  const isLocatorEnabled = route === 'dashboard';
+  const isLocatorEnabled = route === 'dashboard' || route === 'analysis';
   const shouldShowLocatorSuggestions =
     isLocatorEnabled && locatorQuery.trim().length > 0 && locatorSuggestions.length > 0;
+
+  const locatorAriaLabel =
+    route === 'analysis'
+      ? 'Enter a tag string and press Enter to locate its box in RFID Analysis'
+      : 'Enter a SKU and press Enter to ping it on the store map';
+  const locatorPlaceholder =
+    route === 'analysis'
+      ? 'Enter tag suffix/full EPC, then press Enter to locate it in Scan Zone'
+      : isLocatorEnabled
+        ? 'Enter SKU, then press Enter to ping it on the map'
+        : 'Open Dashboard to ping a SKU on the map';
 
   return (
     <main className="min-h-screen bg-retail-canvas text-retail-ink">
@@ -119,14 +131,10 @@ export function AppShell({
                 />
               </svg>
               <input
-                aria-label="Enter a SKU and press Enter to ping it on the store map"
+                aria-label={locatorAriaLabel}
                 className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-retail-ink outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:text-slate-400"
                 disabled={!isLocatorEnabled}
-                placeholder={
-                  isLocatorEnabled
-                    ? 'Enter SKU, then press Enter to ping it on the map'
-                    : 'Open Dashboard to ping a SKU on the map'
-                }
+                placeholder={locatorPlaceholder}
                 type="search"
                 value={locatorQuery}
                 onChange={(event) => onLocatorQueryChange(event.target.value)}
@@ -156,21 +164,21 @@ export function AppShell({
                 <div className="max-h-64 overflow-y-auto py-1">
                   {locatorSuggestions.map((suggestion) => (
                     <button
-                      key={suggestion.sku}
+                      key={`${suggestion.value}-${suggestion.badge}`}
                       type="button"
                       className="flex w-full items-center justify-between gap-4 px-4 py-2.5 text-left transition hover:bg-retail-blue-light focus:bg-retail-blue-light focus:outline-none"
-                      onClick={() => onLocatorSuggestionSelect(suggestion.sku)}
+                      onClick={() => onLocatorSuggestionSelect(suggestion.value)}
                     >
                       <span>
                         <span className="block text-sm font-black text-retail-blue">
-                          {suggestion.sku}
+                          {suggestion.title}
                         </span>
                         <span className="block text-xs font-semibold text-slate-500">
-                          {suggestion.name}
+                          {suggestion.subtitle}
                         </span>
                       </span>
                       <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-500">
-                        {suggestion.rackLabel}
+                        {suggestion.badge}
                       </span>
                     </button>
                   ))}

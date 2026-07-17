@@ -2,8 +2,7 @@
 // RFID antenna test visualization. Upload a scan CSV to map read/missed tags
 // across the 8-box rig. Placement DB is pre-loaded with baked data by default.
 
-import { useCallback, useMemo, useState } from 'react';
-import { parsePlacementCsv } from './rfidPlacementParser';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseRunCsv } from './rfidRunParser';
 import { matchRun } from './rfidMatcher';
 import { TEST_PLACEMENTS, TEST_RUN_META, TEST_RUN_READS } from './rfidTestData';
@@ -12,8 +11,19 @@ import { BoxDetailPanel } from './BoxDetailPanel';
 import { RigOverview } from './RigOverview';
 import { AnalysisActionsPanel } from './AnalysisActionsPanel';
 import { CoverageGauge } from './CoverageGauge';
+import { ExceptionsPanel } from './ExceptionsPanel';
 import type { ScanMeta } from './UploadPanel';
 import { UploadPanel } from './UploadPanel';
+
+interface AnalysisSearchRequest {
+  nonce: number;
+  query: string;
+}
+
+interface AnalysisPageProps {
+  searchRequest: AnalysisSearchRequest | null;
+  onSearchEntriesChange: (entries: { value: string; badge: string; subtitle: string }[]) => void;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -51,11 +61,10 @@ function IssuePanel({ issues, label }: { issues: ParseIssue[]; label: string }) 
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export function AnalysisPage() {
+export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisPageProps) {
   // ── Placement state — pre-loaded with baked data so any scan CSV works immediately
   const [placements, setPlacements] = useState<ResolvedTagPlacement[]>(TEST_PLACEMENTS);
   const [placementIssues, setPlacementIssues] = useState<ParseIssue[]>([]);
-  const [placementFileName, setPlacementFileName] = useState<string | null>(null);
 
   // ── Scan state ─────────────────────────────────────────────────────────────
   const [scanMeta, setScanMeta] = useState<ScanMeta>(EMPTY_SCAN_META);
@@ -65,15 +74,17 @@ export function AnalysisPage() {
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [selectedBox, setSelectedBox] = useState<number | null>(null);
+  const [highlightedTagKey, setHighlightedTagKey] = useState<string | null>(null);
   const [usingTestData, setUsingTestData] = useState(false);
+  const [shouldScrollToRig, setShouldScrollToRig] = useState(false);
+  const [placementEditorOpen, setPlacementEditorOpen] = useState(false);
+  const rigSectionRef = useRef<HTMLDivElement>(null);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  const handlePlacementFile = useCallback((text: string, name: string) => {
-    const result = parsePlacementCsv(text);
-    setPlacements(result.placements);
-    setPlacementIssues(result.issues);
-    setPlacementFileName(name);
+  const handlePlacementsChange = useCallback((next: ResolvedTagPlacement[]) => {
+    setPlacements(next);
+    setPlacementIssues([]);
     setUsingTestData(false);
   }, []);
 
@@ -83,6 +94,7 @@ export function AnalysisPage() {
     setScanIssues(result.issues);
     setScanFileName(name);
     setUsingTestData(false);
+    setShouldScrollToRig(true);
   }, []);
 
   const handleScanMetaChange = useCallback((field: string, value: string) => {
@@ -92,7 +104,6 @@ export function AnalysisPage() {
   const handleUseTestData = useCallback(() => {
     setPlacements(TEST_PLACEMENTS);
     setPlacementIssues([]);
-    setPlacementFileName(null);
     setScanReads(TEST_RUN_READS);
     setScanIssues([]);
     setScanFileName(null);
@@ -103,7 +114,9 @@ export function AnalysisPage() {
       timeout: TEST_RUN_META.timeout,
     });
     setSelectedBox(null);
+    setHighlightedTagKey(null);
     setUsingTestData(true);
+    setShouldScrollToRig(true);
   }, []);
 
   const handleReset = useCallback(() => {
@@ -113,6 +126,7 @@ export function AnalysisPage() {
     setScanFileName(null);
     setScanMeta(EMPTY_SCAN_META);
     setSelectedBox(null);
+    setHighlightedTagKey(null);
     setUsingTestData(false);
   }, []);
 
@@ -143,6 +157,75 @@ export function AnalysisPage() {
       : null;
 
   const hasData = scanResult !== null;
+
+  useEffect(() => {
+    const seen = new Set<string>();
+    const entries = activePlacements.flatMap((placement) => {
+      const value = (placement.fullEpc ?? placement.label).trim();
+      if (!value) return [];
+      const key = value.toUpperCase();
+      if (seen.has(key)) return [];
+      seen.add(key);
+      return [{
+        value,
+        badge: `Box ${placement.boxNumber}`,
+        subtitle: placement.fullEpc ? `suffix ${placement.label}` : 'unresolved tag label',
+      }];
+    });
+    onSearchEntriesChange(entries);
+  }, [activePlacements, onSearchEntriesChange]);
+
+  useEffect(() => {
+    if (!searchRequest || !scanResult) return;
+
+    const term = searchRequest.query.trim().toUpperCase();
+    if (!term) return;
+
+    const matches = scanResult.boxResults.flatMap((box) =>
+      box.faces.flatMap((face) =>
+        face.slots.map((slot) => {
+          const full = (slot.fullEpc ?? '').toUpperCase();
+          const label = slot.label.toUpperCase();
+          const suffix = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
+          let score = -1;
+
+          if (full === term || label === term || suffix === term) score = 5;
+          else if (full.endsWith(term) || label.endsWith(term)) score = 4;
+          else if (full.startsWith(term) || label.startsWith(term)) score = 3;
+          else if (full.includes(term) || label.includes(term)) score = 2;
+
+          return score >= 0
+            ? {
+                boxNumber: box.boxNumber,
+                score,
+                tagKey: `${box.boxNumber}-${slot.face}-${slot.position}`,
+              }
+            : null;
+        }),
+      ),
+    ).filter((match): match is { boxNumber: number; score: number; tagKey: string } => match !== null);
+
+    if (matches.length === 0) return;
+
+    matches.sort((a, b) => b.score - a.score || a.boxNumber - b.boxNumber);
+    const nextBox = matches[0]!.boxNumber;
+    const nextTagKey = matches[0]!.tagKey;
+    const id = window.requestAnimationFrame(() => {
+      setSelectedBox(nextBox);
+      setHighlightedTagKey(nextTagKey);
+      setShouldScrollToRig(true);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [scanResult, searchRequest]);
+
+  useEffect(() => {
+    if (!shouldScrollToRig || !hasData) return;
+    const id = window.requestAnimationFrame(() => {
+      rigSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setShouldScrollToRig(false);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [hasData, shouldScrollToRig]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -177,9 +260,11 @@ export function AnalysisPage() {
         </div>
         <div className="w-[260px] shrink-0">
           <AnalysisActionsPanel
-            placementFileName={placementFileName}
+            placements={activePlacements}
+            editorOpen={placementEditorOpen}
             onReset={handleReset}
-            onPlacementFile={handlePlacementFile}
+            onPlacementsChange={handlePlacementsChange}
+            onEditorOpenChange={setPlacementEditorOpen}
           />
         </div>
       </div>
@@ -189,20 +274,28 @@ export function AnalysisPage() {
       <IssuePanel issues={scanIssues} label="Scan file issues" />
 
       {/* Main visualization — always rendered, idle animation plays when no data */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+      <div ref={rigSectionRef} className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <RigOverview
           boxResults={scanResult?.boxResults ?? []}
           selectedBox={selectedBox}
+          highlightedTagKey={highlightedTagKey}
           hasData={hasData}
-          onBoxSelect={setSelectedBox}
-          onDeselect={() => setSelectedBox(null)}
+          suppressHtmlLabels={placementEditorOpen}
+          onBoxSelect={(boxNumber) => {
+            setSelectedBox(boxNumber);
+            setHighlightedTagKey(null);
+          }}
+          onDeselect={() => {
+            setSelectedBox(null);
+            setHighlightedTagKey(null);
+          }}
         />
 
         <div>
           {selectedBoxResult ? (
             <BoxDetailPanel boxResult={selectedBoxResult} />
           ) : (
-            <div className="flex h-full min-h-[200px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+            <div className="flex h-full min-h-[560px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
               <div>
                 <p className="font-black text-slate-400">
                   {hasData ? 'Select a box' : 'Load scan data above'}
@@ -217,6 +310,13 @@ export function AnalysisPage() {
           )}
         </div>
       </div>
+
+      <ExceptionsPanel
+        placements={activePlacements}
+        placementIssues={placementIssues}
+        scanIssues={scanIssues}
+        scanResult={scanResult}
+      />
     </div>
   );
 }

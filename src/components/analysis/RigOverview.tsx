@@ -5,14 +5,16 @@ import type { BoxResult } from './rfidTypes';
 import { Rig3DCanvas } from './Rig3DCanvas';
 
 export interface RigOverviewProps {
-  boxResults:  BoxResult[];
+  boxResults: BoxResult[];
   selectedBox: number | null;
-  hasData:     boolean;
+  highlightedTagKey: string | null;
+  hasData: boolean;
+  suppressHtmlLabels: boolean;
   onBoxSelect: (n: number) => void;
-  onDeselect:  () => void;
+  onDeselect: () => void;
 }
 
-export function RigOverview({ boxResults, selectedBox, hasData, onBoxSelect, onDeselect }: RigOverviewProps) {
+export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, onBoxSelect, onDeselect }: RigOverviewProps) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
@@ -33,7 +35,9 @@ export function RigOverview({ boxResults, selectedBox, hasData, onBoxSelect, onD
       <Rig3DCanvas
         boxResults={boxResults}
         selectedBox={selectedBox}
+        highlightedTagKey={highlightedTagKey}
         hasData={hasData}
+        suppressHtmlLabels={suppressHtmlLabels}
         onBoxSelect={onBoxSelect}
         onDeselect={onDeselect}
       />

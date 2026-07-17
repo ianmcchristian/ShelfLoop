@@ -70,31 +70,91 @@ function boxHex(result: BoxResult | undefined): string {
   return '#16a34a';
 }
 
+// ─── Face-corner tag label positions ────────────────────────────────────────
+// Positions are in LOCAL mesh space (before scale). EPS pushes labels just
+// proud of the face so occlude raycasts don't self-intersect the box.
+
+const H   = BOX_SIZE / 2;
+const C   = H * 0.72;   // corner inset — places labels at ~72% from centre
+const EPS = 0.025;      // surface offset
+
+type FaceCorners = Record<string, [number, number, number]>;
+const FACE_CORNERS: Record<string, FaceCorners> = {
+  Front:  { TL: [-C,  C, H+EPS], TR: [ C,  C, H+EPS], BL: [-C, -C, H+EPS], BR: [ C, -C, H+EPS] },
+  Back:   { TL: [ C,  C,-(H+EPS)], TR: [-C,  C,-(H+EPS)], BL: [ C, -C,-(H+EPS)], BR: [-C, -C,-(H+EPS)] },
+  Right:  { TL: [H+EPS,  C,  C], TR: [H+EPS,  C, -C], BL: [H+EPS, -C,  C], BR: [H+EPS, -C, -C] },
+  Left:   { TL:[-(H+EPS), C, -C], TR:[-(H+EPS), C,  C], BL:[-(H+EPS),-C, -C], BR:[-(H+EPS),-C,  C] },
+  Top:    { TL: [-C, H+EPS, -C], TR: [ C, H+EPS, -C], BL: [-C, H+EPS,  C], BR: [ C, H+EPS,  C] },
+  Bottom: { TL: [-C,-(H+EPS), C], TR: [ C,-(H+EPS), C], BL: [-C,-(H+EPS),-C], BR: [ C,-(H+EPS),-C] },
+};
+
+const FACE_LABEL_POSITIONS: Record<string, [number, number, number]> = {
+  Front: [0, 0, H + EPS],
+  Back: [0, 0, -(H + EPS)],
+  Right: [H + EPS, 0, 0],
+  Left: [-(H + EPS), 0, 0],
+  Top: [0, H + EPS, 0],
+  Bottom: [0, -(H + EPS), 0],
+};
+
+const FACE_SHORT_LABEL: Record<string, string> = {
+  Front: 'F',
+  Back: 'B',
+  Left: 'L',
+  Right: 'R',
+  Top: 'U',
+  Bottom: 'D',
+};
+
+/** Shared neutral colour for dimmed (non-selected) boxes. Never mutated. */
+const DIMMED_CLR = new THREE.Color('#c8cdd4');
+
+const STATE_BG: Record<string, string> = {
+  read:       'rgba(20,83,45,0.88)',   // dark green
+  missed:     'rgba(127,29,29,0.88)', // dark red
+  unresolved: 'rgba(71,85,105,0.88)', // slate
+};
+
 // ─── Single box mesh ──────────────────────────────────────────────────────────
 
 interface BoxMeshProps {
-  boxNumber:   number;
-  position:    [number, number, number];
-  result:      BoxResult | undefined;
-  isSelected:  boolean;
+  boxNumber: number;
+  position: [number, number, number];
+  result: BoxResult | undefined;
+  highlightedTagKey: string | null;
+  isSelected: boolean;
   anySelected: boolean;
-  hasData:     boolean;
+  hasData: boolean;
   phaseOffset: number;
-  onSelect:    (n: number) => void;
+  suppressHtmlLabels: boolean;
+  onSelect: (n: number) => void;
 }
 
-function BoxMesh({ boxNumber, position, result, isSelected, anySelected, hasData, phaseOffset, onSelect }: BoxMeshProps) {
-  const meshRef    = useRef<THREE.Mesh>(null);
-  const matRef     = useRef<THREE.MeshStandardMaterial>(null);
-  const labelRef   = useRef<HTMLDivElement>(null);
+function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, anySelected, hasData, phaseOffset, suppressHtmlLabels, onSelect }: BoxMeshProps) {
+  const meshRef     = useRef<THREE.Mesh>(null);
+  const matRef      = useRef<THREE.MeshStandardMaterial>(null);
+  const labelRef    = useRef<HTMLDivElement>(null);
   // Pre-alloc scratch vectors — zero heap allocation inside useFrame
-  const _wp        = useRef(new THREE.Vector3());
-  const _rigCenter = useRef(new THREE.Vector3());
-  const color      = useMemo(() => boxHex(result), [result]);
+  const _wp         = useRef(new THREE.Vector3());
+  const _rigCenter  = useRef(new THREE.Vector3());
+  const colorHex    = useMemo(() => boxHex(result), [result]);
+  // Track coverage colour so useFrame can lerp back to it on deselect
+  const coverageClr = useRef(new THREE.Color(colorHex));
+  const prevHex     = useRef(colorHex);
 
   useFrame(({ camera, clock }, dt) => {
     if (!meshRef.current || !matRef.current) return;
     const smooth = 1 - Math.pow(0.001, dt);
+
+    // ── Sync coverage colour if result changed (rare) ─────────────────────────
+    if (prevHex.current !== colorHex) {
+      coverageClr.current.set(colorHex);
+      prevHex.current = colorHex;
+    }
+
+    // ── Colour: dimmed boxes go neutral grey, others keep coverage colour ──────
+    const wantColor = anySelected && !isSelected ? DIMMED_CLR : coverageClr.current;
+    matRef.current.color.lerp(wantColor, smooth);
 
     // ── Scale ────────────────────────────────────────────────────────────────
     const targetScale = isSelected ? 1.75 : 1.0;
@@ -152,27 +212,106 @@ function BoxMesh({ boxNumber, position, result, isSelected, anySelected, hasData
   return (
     <mesh ref={meshRef} position={position} onClick={handleClick}>
       <boxGeometry args={[BOX_SIZE, BOX_SIZE, BOX_SIZE]} />
-      <meshStandardMaterial ref={matRef} color={color} roughness={0.55} metalness={0.05} />
-      <Html center position={[0, 0, 0]} distanceFactor={6} style={{ pointerEvents: 'none' }}>
-        <div
-          ref={labelRef}
-          style={{
-            fontSize: 10,
-            fontWeight: 800,
-            letterSpacing: '0.04em',
-            background: 'rgba(10,20,40,0.42)',
-            color: '#ffffff',
-            borderRadius: 999,
-            padding: '2px 7px',
-            backdropFilter: 'blur(4px)',
-            whiteSpace: 'nowrap',
-            userSelect: 'none',
-            transition: 'opacity 0.3s ease',
-          }}
-        >
-          {boxNumber}
-        </div>
-      </Html>
+      <meshStandardMaterial ref={matRef} color={colorHex} roughness={1} metalness={0} />
+      {!anySelected && !suppressHtmlLabels && (
+        <Html center position={[0, 0, 0]} distanceFactor={6} style={{ pointerEvents: 'none' }}>
+          <div
+            ref={labelRef}
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: '0.04em',
+              background: 'rgba(10,20,40,0.42)',
+              color: '#ffffff',
+              borderRadius: 999,
+              padding: '2px 7px',
+              backdropFilter: 'blur(4px)',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              transition: 'opacity 0.3s ease',
+            }}
+          >
+            {boxNumber}
+          </div>
+        </Html>
+      )}
+
+      {/* Face labels — only while inspecting a selected box */}
+      {isSelected && !suppressHtmlLabels && result?.faces.map((faceResult) => {
+        const pos = FACE_LABEL_POSITIONS[faceResult.face];
+        if (!pos) return null;
+        return (
+          <Html
+            key={`face-${faceResult.face}`}
+            center
+            position={pos}
+            distanceFactor={5.5}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            occlude={[meshRef] as any}
+            style={{ pointerEvents: 'none' }}
+          >
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 900,
+                letterSpacing: '0.08em',
+                background: 'rgba(10,20,40,0.72)',
+                color: '#ffffff',
+                borderRadius: 999,
+                padding: '2px 6px',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+              }}
+            >
+              {FACE_SHORT_LABEL[faceResult.face]}
+            </div>
+          </Html>
+        );
+      })}
+
+      {/* Tag labels at each face corner — only on the selected box */}
+      {isSelected && !suppressHtmlLabels && result?.faces.flatMap((faceResult) =>
+        faceResult.slots.map((slot) => {
+          const pos = FACE_CORNERS[slot.face]?.[slot.position];
+          if (!pos) return null;
+          const text = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
+          const slotKey = `${boxNumber}-${slot.face}-${slot.position}`;
+          const isHighlighted = highlightedTagKey === slotKey;
+          return (
+            <Html
+              key={`${slot.face}-${slot.position}`}
+              center
+              position={pos as [number, number, number]}
+              distanceFactor={5}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              occlude={[meshRef] as any}
+              style={{ pointerEvents: 'none' }}
+            >
+              <div
+                className={isHighlighted ? 'animate-pulse' : undefined}
+                style={{
+                  fontSize: 7,
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  background: isHighlighted ? 'rgba(0,113,220,0.96)' : (STATE_BG[slot.state] ?? STATE_BG.unresolved),
+                  color: '#ffffff',
+                  padding: '1px 3px',
+                  borderRadius: 2,
+                  whiteSpace: 'nowrap',
+                  userSelect: 'none',
+                  boxShadow: isHighlighted
+                    ? '0 0 0 1px rgba(191,219,254,0.95), 0 0 12px rgba(0,113,220,0.75), 0 0 24px rgba(0,113,220,0.45)'
+                    : undefined,
+                }}
+              >
+                {text}
+              </div>
+            </Html>
+          );
+        })
+      )}
     </mesh>
   );
 }
@@ -180,13 +319,15 @@ function BoxMesh({ boxNumber, position, result, isSelected, anySelected, hasData
 // ─── Scene (owns camera animation) ───────────────────────────────────────────
 
 interface SceneProps {
-  boxResults:  BoxResult[];
+  boxResults: BoxResult[];
   selectedBox: number | null;
-  hasData:     boolean;
+  highlightedTagKey: string | null;
+  hasData: boolean;
+  suppressHtmlLabels: boolean;
   onBoxSelect: (n: number) => void;
 }
 
-function Scene({ boxResults, selectedBox, hasData, onBoxSelect }: SceneProps) {
+function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, onBoxSelect }: SceneProps) {
   const resultMap  = useMemo(
     () => Object.fromEntries(boxResults.map((b) => [b.boxNumber, b])),
     [boxResults],
@@ -261,9 +402,10 @@ function Scene({ boxResults, selectedBox, hasData, onBoxSelect }: SceneProps) {
 
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[3, 5, 4]} intensity={1.2} />
-      <directionalLight position={[-3, -1, -2]} intensity={0.15} />
+      {/* High ambient keeps colours true to coverage value from any angle.
+          Single soft directional just enough to read cube edges — no shadows. */}
+      <ambientLight intensity={0.95} />
+      <directionalLight position={[3, 5, 4]} intensity={0.18} />
 
       <OrbitControls
         ref={controlsRef}
@@ -286,10 +428,12 @@ function Scene({ boxResults, selectedBox, hasData, onBoxSelect }: SceneProps) {
             boxNumber={num}
             position={rigTo3DArr(pos)}
             result={resultMap[num]}
+            highlightedTagKey={highlightedTagKey}
             isSelected={selectedBox === num}
             anySelected={anySelected}
             hasData={hasData}
             phaseOffset={phaseOffset}
+            suppressHtmlLabels={suppressHtmlLabels}
             onSelect={onBoxSelect}
           />
         );
@@ -301,27 +445,31 @@ function Scene({ boxResults, selectedBox, hasData, onBoxSelect }: SceneProps) {
 // ─── Public component ─────────────────────────────────────────────────────────
 
 export interface Rig3DCanvasProps {
-  boxResults:  BoxResult[];
+  boxResults: BoxResult[];
   selectedBox: number | null;
-  hasData:     boolean;
+  highlightedTagKey: string | null;
+  hasData: boolean;
+  suppressHtmlLabels: boolean;
   onBoxSelect: (n: number) => void;
-  onDeselect:  () => void;
+  onDeselect: () => void;
 }
 
-export function Rig3DCanvas({ boxResults, selectedBox, hasData, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
+export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
   return (
     // onDoubleClick bubbles from the <canvas> DOM element — fires for any
     // double-click within the 3D viewport, background or box, no R3F magic needed.
     <div className="flex flex-col" onDoubleClick={onDeselect}>
       <Canvas
         camera={{ position: [2.4, 2.2, 3.4], fov: 44 }}
-        style={{ width: '100%', height: 380, borderRadius: 16, background: '#ffffff', display: 'block' }}
+        style={{ width: '100%', height: 560, borderRadius: 16, background: '#ffffff', display: 'block' }}
       >
         <color attach="background" args={['#ffffff']} />
         <Scene
           boxResults={boxResults}
           selectedBox={selectedBox}
+          highlightedTagKey={highlightedTagKey}
           hasData={hasData}
+          suppressHtmlLabels={suppressHtmlLabels}
           onBoxSelect={onBoxSelect}
         />
       </Canvas>
