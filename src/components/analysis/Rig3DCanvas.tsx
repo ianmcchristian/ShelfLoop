@@ -8,7 +8,7 @@
 //
 // Idle (no data)   : slow auto-rotate + retail-blue emissive pulse.
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';
@@ -105,6 +105,13 @@ const FACE_SHORT_LABEL: Record<string, string> = {
   Top: 'U',
   Bottom: 'D',
 };
+
+// ─── Camera sync state (shared between two canvas instances in compare mode) ──
+
+export interface SyncCameraState {
+  camPosX: number; camPosY: number; camPosZ: number;
+  targetX: number; targetY: number; targetZ: number;
+}
 
 /** Shared neutral colour for dimmed (non-selected) boxes. Never mutated. */
 const DIMMED_CLR = new THREE.Color('#c8cdd4');
@@ -324,10 +331,14 @@ interface SceneProps {
   highlightedTagKey: string | null;
   hasData: boolean;
   suppressHtmlLabels: boolean;
+  isSyncActive: boolean;
+  syncSide: 'A' | 'B';
+  syncStateRef: React.MutableRefObject<SyncCameraState | null> | undefined;
+  lastActiveSideRef: React.MutableRefObject<'A' | 'B' | null> | undefined;
   onBoxSelect: (n: number) => void;
 }
 
-function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, onBoxSelect }: SceneProps) {
+function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
   const resultMap  = useMemo(
     () => Object.fromEntries(boxResults.map((b) => [b.boxNumber, b])),
     [boxResults],
@@ -343,6 +354,8 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
   // Pre-alloc scratch vectors — never allocate inside useFrame
   const _dir            = useRef(new THREE.Vector3());
   const _curr           = useRef(new THREE.Vector3());
+  const _syncCamPos     = useRef(new THREE.Vector3());
+  const _syncTarget     = useRef(new THREE.Vector3());
 
   // Trigger animation whenever selection changes
   useEffect(() => {
@@ -376,28 +389,56 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
 
   useFrame(({ clock }, dt) => {
     if (!controlsRef.current) return;
-    const now = clock.elapsedTime;
-
-    // Always lerp the orbit target (pan-disabled so no user interference)
+    const cam = controlsRef.current.object;
+    const tgt = controlsRef.current.target;
     const tSmooth = 1 - Math.pow(0.001, dt);
-    controlsRef.current.target.lerp(destTargetRef.current, tSmooth);
 
-    // Camera lerp — only during animation window
-    if (animStartRef.current !== null) {
-      const elapsed  = now - animStartRef.current / 1000;
-      // Remap: animStartRef stores a performance.now()-based timestamp, use elapsed since React effect
-      // Simpler: just lerp camera aggressively and stop when close enough
-      _curr.current.copy(controlsRef.current.object.position);
-      const dist = _curr.current.distanceTo(destCamPosRef.current);
-      if (dist > 0.005) {
-        controlsRef.current.object.position.lerp(destCamPosRef.current, tSmooth * 1.5);
-      } else {
-        animStartRef.current = null; // done
+    // ── Is this canvas the sync follower right now? ───────────────────────────
+    const isFollower =
+      isSyncActive &&
+      syncStateRef != null &&
+      lastActiveSideRef != null &&
+      lastActiveSideRef.current !== null &&
+      lastActiveSideRef.current !== syncSide &&
+      syncStateRef.current !== null;
+
+    if (isFollower) {
+      // ── Follower: smooth-lerp toward leader's live camera state ────────────
+      // dt*25 ≈ 0.42 lerp at 60fps — reaches 93% within 5 frames, no jitter.
+      // This feeds into controls.update() so damping stays in the same pipeline.
+      const s = syncStateRef!.current!;
+      const syncLerp = Math.min(dt * 25, 0.9);
+      _syncCamPos.current.set(s.camPosX, s.camPosY, s.camPosZ);
+      _syncTarget.current.set(s.targetX, s.targetY, s.targetZ);
+      cam.position.lerp(_syncCamPos.current, syncLerp);
+      tgt.lerp(_syncTarget.current, syncLerp);
+      controlsRef.current.update();
+    } else {
+      // ── Leader / normal mode: standard animation pipeline ─────────────────
+      tgt.lerp(destTargetRef.current, tSmooth);
+
+      if (animStartRef.current !== null) {
+        const elapsed = clock.elapsedTime - animStartRef.current / 1000;
+        _curr.current.copy(cam.position);
+        const dist = _curr.current.distanceTo(destCamPosRef.current);
+        if (dist > 0.005) {
+          cam.position.lerp(destCamPosRef.current, tSmooth * 1.5);
+        } else {
+          animStartRef.current = null;
+        }
+        void elapsed;
       }
-      void elapsed; // suppress unused warning
-    }
 
-    controlsRef.current.update();
+      controlsRef.current.update();
+
+      // Write sync state so the follower can read it next frame
+      if (isSyncActive && syncStateRef && lastActiveSideRef?.current === syncSide) {
+        syncStateRef.current = {
+          camPosX: cam.position.x, camPosY: cam.position.y, camPosZ: cam.position.z,
+          targetX: tgt.x, targetY: tgt.y, targetZ: tgt.z,
+        };
+      }
+    }
   });
 
   return (
@@ -416,7 +457,10 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
         dampingFactor={0.07}
         autoRotate={!hasData}
         autoRotateSpeed={1.4}
-        onStart={() => { animStartRef.current = null; }}
+        onStart={() => {
+          animStartRef.current = null;
+          if (isSyncActive && lastActiveSideRef) lastActiveSideRef.current = syncSide;
+        }}
       />
 
       {(Object.entries(RIG_LAYOUT) as [string, RigPosition][]).map(([key, pos]) => {
@@ -450,18 +494,23 @@ export interface Rig3DCanvasProps {
   highlightedTagKey: string | null;
   hasData: boolean;
   suppressHtmlLabels: boolean;
+  canvasHeight?: number;
+  isSyncActive?: boolean;
+  syncSide?: 'A' | 'B';
+  syncStateRef?: React.MutableRefObject<SyncCameraState | null>;
+  lastActiveSideRef?: React.MutableRefObject<'A' | 'B' | null>;
   onBoxSelect: (n: number) => void;
   onDeselect: () => void;
 }
 
-export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
+export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
   return (
     // onDoubleClick bubbles from the <canvas> DOM element — fires for any
     // double-click within the 3D viewport, background or box, no R3F magic needed.
     <div className="flex flex-col" onDoubleClick={onDeselect}>
       <Canvas
         camera={{ position: [2.4, 2.2, 3.4], fov: 44 }}
-        style={{ width: '100%', height: 560, borderRadius: 16, background: '#ffffff', display: 'block' }}
+        style={{ width: '100%', height: canvasHeight, borderRadius: 16, background: '#ffffff', display: 'block' }}
       >
         <color attach="background" args={['#ffffff']} />
         <Scene
@@ -470,6 +519,10 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           highlightedTagKey={highlightedTagKey}
           hasData={hasData}
           suppressHtmlLabels={suppressHtmlLabels}
+          isSyncActive={isSyncActive}
+          syncSide={syncSide}
+          syncStateRef={syncStateRef}
+          lastActiveSideRef={lastActiveSideRef}
           onBoxSelect={onBoxSelect}
         />
       </Canvas>

@@ -6,11 +6,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseRunCsv } from './rfidRunParser';
 import { matchRun } from './rfidMatcher';
 import { TEST_PLACEMENTS, TEST_RUN_META, TEST_RUN_READS } from './rfidTestData';
-import type { AnalysisRun, ParseIssue, ResolvedTagPlacement, RunMeta } from './rfidTypes';
+import type { AnalysisRun, ParseIssue, ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 import { BoxDetailPanel } from './BoxDetailPanel';
 import { RigOverview } from './RigOverview';
 import { AnalysisActionsPanel } from './AnalysisActionsPanel';
 import { CoverageGauge } from './CoverageGauge';
+import { CompareRigLayout } from './CompareRigLayout';
 import { ExceptionsPanel } from './ExceptionsPanel';
 import type { ScanMeta } from './UploadPanel';
 import { UploadPanel } from './UploadPanel';
@@ -78,7 +79,13 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   const [usingTestData, setUsingTestData] = useState(false);
   const [shouldScrollToRig, setShouldScrollToRig] = useState(false);
   const [placementEditorOpen, setPlacementEditorOpen] = useState(false);
+  const [isSyncRotating, setIsSyncRotating] = useState(false);
   const rigSectionRef = useRef<HTMLDivElement>(null);
+
+  // ── Compare state ──────────────────────────────────────────────────────────
+  const [compareScanReads, setCompareScanReads] = useState<RunTagRead[] | null>(null);
+  const [compareScanFileName, setCompareScanFileName] = useState<string | null>(null);
+  const [compareUsingTestData, setCompareUsingTestData] = useState(false);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -119,6 +126,25 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setShouldScrollToRig(true);
   }, []);
 
+  const handleCompareFile = useCallback((text: string, name: string) => {
+    const result = parseRunCsv(text);
+    setCompareScanReads(result.reads);
+    setCompareScanFileName(name);
+    setCompareUsingTestData(false);
+  }, []);
+
+  const handleCompareTestData = useCallback(() => {
+    setCompareScanReads(TEST_RUN_READS);
+    setCompareScanFileName(null);
+    setCompareUsingTestData(true);
+  }, []);
+
+  const handleCompareClear = useCallback(() => {
+    setCompareScanReads(null);
+    setCompareScanFileName(null);
+    setCompareUsingTestData(false);
+  }, []);
+
   const handleReset = useCallback(() => {
     // Reset scan only — keep placements (they're stagnant infrastructure)
     setScanReads(null);
@@ -128,6 +154,10 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setSelectedBox(null);
     setHighlightedTagKey(null);
     setUsingTestData(false);
+    // Also clear compare when main scan is reset
+    setCompareScanReads(null);
+    setCompareScanFileName(null);
+    setCompareUsingTestData(false);
   }, []);
 
   // ── Derived result ─────────────────────────────────────────────────────────
@@ -157,6 +187,21 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
       : null;
 
   const hasData = scanResult !== null;
+
+  // ── Compare derived ────────────────────────────────────────────────────────
+  const compareActive = compareScanReads !== null || compareUsingTestData;
+
+  const compareScanResult = useMemo((): AnalysisRun | null => {
+    const reads = compareUsingTestData ? TEST_RUN_READS : compareScanReads;
+    if (!reads || activePlacements.length === 0) return null;
+    return matchRun(toRunMeta(EMPTY_SCAN_META), reads, activePlacements);
+  }, [compareScanReads, compareUsingTestData, activePlacements]);
+
+  const mainLabel: string | null =
+    usingTestData ? 'Test data' : (scanFileName ?? null);
+
+  const compareLabelB: string =
+    compareUsingTestData ? 'Test data' : (compareScanFileName ?? 'Side B');
 
   useEffect(() => {
     const seen = new Set<string>();
@@ -238,12 +283,14 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             across the 8-box rig.
           </p>
         </div>
-        <CoverageGauge
-          overallPct={scanResult?.overallCoveragePct ?? null}
-          totalRead={scanResult?.totalRead ?? 0}
-          totalMissed={scanResult?.totalMissed ?? 0}
-          totalUnresolved={scanResult?.totalUnresolved ?? 0}
-        />
+        {!compareActive && (
+          <CoverageGauge
+            overallPct={scanResult?.overallCoveragePct ?? null}
+            totalRead={scanResult?.totalRead ?? 0}
+            totalMissed={scanResult?.totalMissed ?? 0}
+            totalUnresolved={scanResult?.totalUnresolved ?? 0}
+          />
+        )}
       </div>
 
       {/* Upload panel + Actions panel */}
@@ -253,70 +300,94 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             scanFileName={scanFileName}
             scanMeta={scanMeta}
             usingTestData={usingTestData}
+            compareFileName={compareScanFileName}
+            compareUsingTestData={compareUsingTestData}
             onScanFile={handleScanFile}
             onScanMetaChange={handleScanMetaChange}
             onUseTestData={handleUseTestData}
+            onScanClear={handleReset}
+            onCompareFile={handleCompareFile}
+            onCompareTestData={handleCompareTestData}
+            onCompareClear={handleCompareClear}
           />
         </div>
         <div className="w-[260px] shrink-0">
           <AnalysisActionsPanel
             placements={activePlacements}
             editorOpen={placementEditorOpen}
+            isSyncRotating={isSyncRotating}
             onReset={handleReset}
             onPlacementsChange={handlePlacementsChange}
             onEditorOpenChange={setPlacementEditorOpen}
+            onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
           />
         </div>
       </div>
 
-      {/* Parse issues */}
-      <IssuePanel issues={placementIssues} label="Placement database issues" />
-      <IssuePanel issues={scanIssues} label="Scan file issues" />
-
-      {/* Main visualization — always rendered, idle animation plays when no data */}
-      <div ref={rigSectionRef} className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <RigOverview
-          boxResults={scanResult?.boxResults ?? []}
-          selectedBox={selectedBox}
-          highlightedTagKey={highlightedTagKey}
-          hasData={hasData}
-          suppressHtmlLabels={placementEditorOpen}
-          onBoxSelect={(boxNumber) => {
-            setSelectedBox(boxNumber);
-            setHighlightedTagKey(null);
-          }}
-          onDeselect={() => {
-            setSelectedBox(null);
-            setHighlightedTagKey(null);
-          }}
-        />
-
-        <div>
-          {selectedBoxResult ? (
-            <BoxDetailPanel boxResult={selectedBoxResult} />
-          ) : (
-            <div className="flex h-full min-h-[560px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-              <div>
-                <p className="font-black text-slate-400">
-                  {hasData ? 'Select a box' : 'Load scan data above'}
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  {hasData
-                    ? 'Click any box in the rig to inspect face-level tag coverage'
-                    : 'Upload a scan CSV or use test data — the rig will colour up instantly'}
-                </p>
-              </div>
-            </div>
-          )}
+      {compareActive ? (
+        /* ── Compare mode: two full-width canvases, no BoxDetailPanel ───── */
+        <div ref={rigSectionRef}>
+          <CompareRigLayout
+            scanResultA={scanResult}
+            scanResultB={compareScanResult}
+            labelA={mainLabel ?? 'Side A'}
+            labelB={compareLabelB}
+            isSyncRotating={isSyncRotating}
+            suppressHtmlLabels={placementEditorOpen}
+          />
         </div>
-      </div>
+      ) : (
+        /* ── Normal mode: single rig + BoxDetailPanel + Exceptions ──────── */
+        <>
+          {/* Parse issues */}
+          <IssuePanel issues={placementIssues} label="Placement database issues" />
+          <IssuePanel issues={scanIssues} label="Scan file issues" />
 
-      <ExceptionsPanel
-        placements={activePlacements}
-        placementIssues={placementIssues}
-        scanIssues={scanIssues}
-        scanResult={scanResult}
-      />
+          <div ref={rigSectionRef} className="grid gap-6 lg:grid-cols-[1fr_380px]">
+            <RigOverview
+              boxResults={scanResult?.boxResults ?? []}
+              selectedBox={selectedBox}
+              highlightedTagKey={highlightedTagKey}
+              hasData={hasData}
+              suppressHtmlLabels={placementEditorOpen}
+              onBoxSelect={(boxNumber) => {
+                setSelectedBox(boxNumber);
+                setHighlightedTagKey(null);
+              }}
+              onDeselect={() => {
+                setSelectedBox(null);
+                setHighlightedTagKey(null);
+              }}
+            />
+
+            <div>
+              {selectedBoxResult ? (
+                <BoxDetailPanel boxResult={selectedBoxResult} />
+              ) : (
+                <div className="flex h-full min-h-[560px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                  <div>
+                    <p className="font-black text-slate-400">
+                      {hasData ? 'Select a box' : 'Load scan data above'}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {hasData
+                        ? 'Click any box in the rig to inspect face-level tag coverage'
+                        : 'Upload a scan CSV or use test data — the rig will colour up instantly'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <ExceptionsPanel
+            placements={activePlacements}
+            placementIssues={placementIssues}
+            scanIssues={scanIssues}
+            scanResult={scanResult}
+          />
+        </>
+      )}
     </div>
   );
 }

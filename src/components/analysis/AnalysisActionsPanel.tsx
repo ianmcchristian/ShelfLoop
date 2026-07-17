@@ -8,17 +8,21 @@ import { PlacementEditorModal } from './PlacementEditorModal';
 interface AnalysisActionsPanelProps {
   placements: ResolvedTagPlacement[];
   editorOpen: boolean;
+  isSyncRotating: boolean;
   onReset: () => void;
   onPlacementsChange: (placements: ResolvedTagPlacement[]) => void;
   onEditorOpenChange: (open: boolean) => void;
+  onSyncRotatingToggle: () => void;
 }
 
 export function AnalysisActionsPanel({
   placements,
   editorOpen,
+  isSyncRotating,
   onReset,
   onPlacementsChange,
   onEditorOpenChange,
+  onSyncRotatingToggle,
 }: AnalysisActionsPanelProps) {
 
   return (
@@ -46,6 +50,27 @@ export function AnalysisActionsPanel({
           </summary>
 
           <div className="mt-4 space-y-3 text-center text-sm font-semibold text-slate-600">
+            <button
+              type="button"
+              aria-pressed={isSyncRotating}
+              className={`mx-auto flex items-center justify-center gap-2 rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35 ${
+                isSyncRotating
+                  ? 'bg-retail-blue text-white shadow-sm'
+                  : 'bg-retail-blue-light text-retail-blue hover:bg-retail-blue hover:text-white'
+              }`}
+              onClick={onSyncRotatingToggle}
+            >
+              <span
+                aria-hidden="true"
+                className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                  isSyncRotating
+                    ? 'bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]'
+                    : 'bg-slate-300'
+                }`}
+              />
+              Sync Rotating
+            </button>
+
             <button
               type="button"
               className="mx-auto block transition hover:text-retail-blue focus:outline-none focus-visible:underline"
