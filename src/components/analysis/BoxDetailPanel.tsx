@@ -20,6 +20,13 @@ const STATE_LABEL: Record<TagReadState, string> = {
   unresolved: 'Unresolved',
 };
 
+/** Display name overrides — avoids Back/Bottom both being "B" in the 3D labels.
+ * The face key stays 'Top'/'Bottom' everywhere in data; only the UI label changes. */
+const FACE_DISPLAY_LABEL: Partial<Record<string, string>> = {
+  Top:    'Up',
+  Bottom: 'Down',
+};
+
 function TagDot({
   state, label, position, rssiColor, rssiPct,
 }: {
@@ -133,7 +140,7 @@ interface CrossLayoutProps {
 function CrossLayout({ faceMap, rssiSuffixMap }: CrossLayoutProps) {
   const FaceLabel = ({ name }: { name: string }) => (
     <p className="mb-1 text-center text-[0.55rem] font-black uppercase tracking-[0.1em] text-slate-400">
-      {name}
+      {FACE_DISPLAY_LABEL[name] ?? name}
     </p>
   );
 
@@ -251,7 +258,7 @@ export function BoxDetailPanel({ boxResult, rssiSuffixMap }: BoxDetailPanelProps
               if (!f) return null;
               return (
                 <tr key={face} className="border-b border-slate-50 last:border-0">
-                  <td className="px-3 py-1.5 font-semibold text-slate-700">{face}</td>
+                  <td className="px-3 py-1.5 font-semibold text-slate-700">{FACE_DISPLAY_LABEL[face] ?? face}</td>
                   <td className="px-3 py-1.5 text-right font-semibold text-emerald-600">{f.readCount}</td>
                   <td className="px-3 py-1.5 text-right font-semibold text-red-400">{f.missCount}</td>
                   <td className="px-3 py-1.5 text-right font-black">

@@ -139,34 +139,38 @@ function makeReads(
 }
 
 // ─── Scenario A — Large · 45° · 3ft · Max ────────────────────────────────────
-// "Strong run" — optimal configuration. 166/192 = ~87% overall coverage.
+// "Strong run" — optimal configuration. 174/192 = ~91% overall coverage.
 // All 8 boxes >= 83% — all show GREEN at the 80% threshold.
 //
 // Physics (Large antenna, 45deg tilt, 3 ft, Max power):
-//   Front / Left / Right faces: full 4/4 on every box.
-//   Back face: 4/4 on NW/NE top boxes; 3/4 elsewhere (miss BR — far corner).
-//   Top face: 4/4 on top-layer boxes; 3/4 on bottom-layer (miss BR, shielded).
-//   Bottom of top-layer boxes (1-4): TL+TR only — floor-side not illuminated.
-//   Bottom of bottom-layer boxes (5-8): TL+TR only — floor-facing.
+//   NW/NE top boxes (1,2): 100% — closest to antenna, direct illumination at max
+//     power means even bottom-face south-side tags get wrap-around reads.
+//   SW/SE top boxes (3,4): 22/24 — bottom face south-side (BL/BR) in shadow;
+//     the "B" row of the bottom face is on the south/back side, furthest from
+//     a North-facing antenna.
+//   NW/NE bottom boxes (5,6): 21/24 — top face partially shielded by box above
+//     (miss BR corner); bottom face south-side still shadowed.
+//   SW/SE bottom boxes (7,8): 20/24 — furthest from antenna; back face also
+//     loses its BR corner (double-shadowed: south + layer attenuation).
 //
 // RSSI: -38 to -52 dBm (all strong green).
 
 const SCENARIO_A_SPECS: { box: number; slots: SlotSpec[] }[] = [
-  // NW Top (Box 1): 22/24
-  { box: 1, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
-  // NE Top (Box 2): 22/24
-  { box: 2, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
-  // SW Top (Box 3): 21/24 — Back misses BR (SW-back is furthest from antenna axis)
-  { box: 3, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
-  // SE Top (Box 4): 21/24 — Back misses BR
-  { box: 4, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
-  // NW Bottom (Box 5): 20/24 — Back misses BR; Top misses BR (shielded by Box 1)
-  { box: 5, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
-  // NE Bottom (Box 6): 20/24 — same pattern as Box 5
-  { box: 6, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
-  // SW Bottom (Box 7): 20/24 — same pattern
+  // NW Top (Box 1): 24/24 — perfect reads; max power + 3ft = wrap-around on all faces
+  { box: 1, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4), ...sface(5)] },
+  // NE Top (Box 2): 24/24 — same as Box 1
+  { box: 2, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4), ...sface(5)] },
+  // SW Top (Box 3): 22/24 — Bottom south-side (BL/BR at index 2,3) enters shadow zone
+  { box: 3, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
+  // SE Top (Box 4): 22/24 — same bottom shadow pattern
+  { box: 4, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
+  // NW Bottom (Box 5): 21/24 — Top face loses BR (shielded by Box 1); Bottom south-side
+  { box: 5, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
+  // NE Bottom (Box 6): 21/24 — same as Box 5 (shielded by Box 2)
+  { box: 6, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
+  // SW Bottom (Box 7): 20/24 — Back also loses BR (SW corner furthest); Top loses BR
   { box: 7, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
-  // SE Bottom (Box 8): 20/24 — same pattern
+  // SE Bottom (Box 8): 20/24 — same as Box 7; SE = furthest overall from antenna axis
   { box: 8, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
 ];
 
