@@ -260,7 +260,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
     }
 
     const pulseNow = pulse ? performance.now() / 1000 - pulse.startedAt : null;
-    const pulseActive = pulseNow !== null && pulseNow >= 0 && pulseNow <= 3.1;
+    const pulseActive = pulseNow !== null && pulseNow >= 0 && pulseNow <= 4.2;
 
     // ── Colour: dimmed boxes go neutral grey, others keep coverage colour ──────
     const wantColor = anySelected && !isSelected ? DIMMED_CLR : coverageClr.current;
@@ -309,7 +309,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
     }
 
     if (pulseActive) {
-      const glow = Math.max(0, 1 - Math.abs((pulseNow ?? 0) - 1.4) / 1.4) * 0.14;
+      const glow = Math.max(0, 1 - Math.abs((pulseNow ?? 0) - 1.9) / 1.9) * 0.12;
       matRef.current.emissive.set('#67e8f9');
       matRef.current.emissiveIntensity = Math.max(matRef.current.emissiveIntensity, glow);
     }
@@ -479,7 +479,7 @@ function PulseTagPing({
     const now = performance.now() / 1000;
     const age = now - hitAt;
     const pulseAge = now - pulseStart;
-    const active = Number.isFinite(hitAt) && age >= 0 && age <= 1.0 && pulseAge <= 3.1;
+    const active = Number.isFinite(hitAt) && age >= 0 && age <= 1.0 && pulseAge <= 4.2;
     meshRef.current.visible = active;
     if (!active) return;
 
@@ -541,22 +541,22 @@ function PulseWave({ delay }: { delay: number }) {
     if (startRef.current === null) startRef.current = clock.elapsedTime;
 
     const t = clock.elapsedTime - startRef.current - delay;
-    if (t < 0 || t > 1.8) {
+    if (t < 0 || t > 2.5) {
       meshRef.current.visible = false;
       return;
     }
 
     meshRef.current.visible = true;
-    const progress = t / 1.8;
+    const progress = t / 2.5;
     // In local antenna space, the plate face normal is -Y.
-    meshRef.current.position.y = -0.03 - progress * 1.7;
-    meshRef.current.scale.setScalar(1.15 + progress * 4.9);
-    matRef.current.opacity = 0.3 * (1 - progress);
+    meshRef.current.position.y = -0.02 - progress * 1.18;
+    meshRef.current.scale.setScalar(1.02 + progress * 2.35);
+    matRef.current.opacity = 0.34 * (1 - progress);
   });
 
   return (
     <mesh ref={meshRef} visible={false} rotation={[Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.62, 0.74, 64]} />
+      <torusGeometry args={[0.62, 0.09, 20, 64]} />
       <meshBasicMaterial
         ref={matRef}
         color="#38bdf8"
@@ -573,8 +573,8 @@ function PulseBurst() {
   return (
     <>
       <PulseWave delay={0} />
-      <PulseWave delay={0.12} />
-      <PulseWave delay={0.24} />
+      <PulseWave delay={0.22} />
+      <PulseWave delay={0.44} />
     </>
   );
 }
@@ -650,9 +650,9 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
       startedAt: antennaPulseStartedAt,
       origin: antennaPose.center.clone().addScaledVector(antennaPose.direction, 0.02),
       direction: antennaPose.direction.clone(),
-      speed: 0.68,
-      spreadBase: 0.86,
-      spreadSlope: 1.55,
+      speed: 0.92,
+      spreadBase: 0.96,
+      spreadSlope: 1.1,
     };
   }, [antennaPose, antennaPulseStartedAt, antennaPulseToken, showAntennaGuide]);
 

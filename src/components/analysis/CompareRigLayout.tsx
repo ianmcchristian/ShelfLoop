@@ -60,6 +60,7 @@ function RigPane({
 
       {/* ── Canvas ───────────────────────────────────────────────────────── */}
       <Rig3DCanvas
+        key={`compare-${side}-${showAntennaGuide ? 'guide' : 'plain'}-${showCompassGuide ? 'compass' : 'nocompass'}-${antennaGuideAngleDeg}`}
         boxResults={scanResult?.boxResults ?? []}
         selectedBox={selectedBox}
         highlightedTagKey={null}
