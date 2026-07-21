@@ -16,7 +16,7 @@ import * as THREE from 'three';
 
 import type { BoxResult, RigPosition } from './rfidTypes';
 import { RIG_LAYOUT } from './rfidTypes';
-import { rssiToHex, RSSI_MISSED_COLOR } from './rfidColorUtils';
+import { rssiToHex, rssiToPct, RSSI_MISSED_COLOR } from './rfidColorUtils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -304,25 +304,36 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
               occlude={[meshRef] as any}
               style={{ pointerEvents: 'none' }}
             >
-              <div
-                className={isHighlighted ? 'animate-pulse' : undefined}
-                style={{
-                  fontSize: 7,
-                  fontFamily: 'monospace',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  background: tagBg,
-                  color: '#ffffff',
-                  padding: '1px 3px',
-                  borderRadius: 2,
-                  whiteSpace: 'nowrap',
-                  userSelect: 'none',
-                  boxShadow: isHighlighted
-                    ? '0 0 0 1px rgba(191,219,254,0.95), 0 0 12px rgba(0,113,220,0.75), 0 0 24px rgba(0,113,220,0.45)'
-                    : undefined,
-                }}
-              >
-                {text}
+              {/* Wrapper: pointer-events:auto on the chip while the Html portal stays none,
+                  so OrbitControls still works when dragging through a label area. */}
+              <div className="group relative" style={{ display: 'inline-block', pointerEvents: 'auto' }}>
+                <div
+                  className={isHighlighted ? 'animate-pulse' : undefined}
+                  style={{
+                    fontSize: 7,
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    background: tagBg,
+                    color: '#ffffff',
+                    padding: '1px 3px',
+                    borderRadius: 2,
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none',
+                    boxShadow: isHighlighted
+                      ? '0 0 0 1px rgba(191,219,254,0.95), 0 0 12px rgba(0,113,220,0.75), 0 0 24px rgba(0,113,220,0.45)'
+                      : undefined,
+                  }}
+                >
+                  {text}
+                </div>
+
+                {/* RSSI tooltip — only renders when signal data is available */}
+                {rssiDbm !== null && (
+                  <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-slate-900/90 px-1.5 py-0.5 text-[8px] font-bold text-white opacity-0 transition-opacity duration-100 group-hover:opacity-100">
+                    {rssiToPct(rssiDbm)}% signal
+                  </div>
+                )}
               </div>
             </Html>
           );
