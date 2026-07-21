@@ -28,6 +28,45 @@ interface AnalysisActionsPanelProps {
   onExportRunSummary: () => void;
 }
 
+// ── Mini zone bar ────────────────────────────────────────────────────────────
+// Renders a small horizontal bar with a red background zone and a green
+// highlight zone, plus a tick marker at the current value position.
+// Both min and greenMin are assumed to be 0 for simplicity.
+function MiniBar({
+  value,
+  max,
+  greenThreshold, // values >= this are "in the green" (for Y1)
+  invertGreen,    // true = values <= greenThreshold are "in the green" (for Y2)
+}: {
+  value: number;
+  max: number;
+  greenThreshold: number;
+  invertGreen?: boolean;
+}) {
+  const clampPct = (v: number) => Math.min(Math.max((v / max) * 100, 0), 100);
+  const markerPct     = clampPct(value);
+  const thresholdPct  = clampPct(greenThreshold);
+
+  // green zone spans from threshold→100% (Y1) or 0→threshold (Y2)
+  const greenLeft  = invertGreen ? 0              : thresholdPct;
+  const greenWidth = invertGreen ? thresholdPct   : 100 - thresholdPct;
+
+  return (
+    <div className="relative mt-1.5 h-2 w-full rounded-full bg-red-300/50">
+      {/* green zone */}
+      <div
+        className="absolute top-0 h-full rounded-full bg-emerald-400/75"
+        style={{ left: `${greenLeft}%`, width: `${greenWidth}%` }}
+      />
+      {/* value tick marker */}
+      <div
+        className="absolute top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-slate-700 ring-1 ring-white"
+        style={{ left: `calc(${markerPct}% - 1.5px)` }}
+      />
+    </div>
+  );
+}
+
 const DownloadIcon = () => (
   <svg
     aria-hidden="true"
@@ -74,27 +113,28 @@ export function AnalysisActionsPanel({
           </p>
           {doEMetrics ? (
             <div className="rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-slate-100">
-              <div className="space-y-1.5">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[0.62rem] font-bold text-slate-500">
-                    Y1&nbsp;&nbsp;Coverage
-                  </span>
-                  <span className="text-[0.78rem] font-black tabular-nums text-emerald-600">
-                    {doEMetrics.y1.toFixed(1)}%
-                  </span>
+              <div className="space-y-3">
+                {/* Y1 */}
+                <div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[0.62rem] font-bold text-slate-500">Y1&nbsp;&nbsp;Coverage</span>
+                    <span className="text-[0.78rem] font-black tabular-nums text-emerald-600">
+                      {doEMetrics.y1.toFixed(1)}%
+                    </span>
+                  </div>
+                  <MiniBar value={doEMetrics.y1} max={100} greenThreshold={80} />
                 </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[0.62rem] font-bold text-slate-500">
-                    Y2&nbsp;&nbsp;Distribution CV
-                  </span>
-                  <span className="text-[0.78rem] font-black tabular-nums text-retail-blue">
-                    {doEMetrics.y2.toFixed(1)}%
-                  </span>
+                {/* Y2 */}
+                <div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[0.62rem] font-bold text-slate-500">Y2&nbsp;&nbsp;Distribution CV</span>
+                    <span className="text-[0.78rem] font-black tabular-nums text-retail-blue">
+                      {doEMetrics.y2.toFixed(1)}%
+                    </span>
+                  </div>
+                  <MiniBar value={doEMetrics.y2} max={75} greenThreshold={25} invertGreen />
                 </div>
               </div>
-              <p className="mt-1.5 text-[0.54rem] text-slate-400">
-                Y2 lower = more uniform
-              </p>
             </div>
           ) : (
             <p className="rounded-lg bg-slate-50 px-3 py-2 text-center text-[0.62rem] text-slate-400 ring-1 ring-slate-100">
