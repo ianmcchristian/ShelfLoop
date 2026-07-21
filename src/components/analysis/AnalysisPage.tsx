@@ -325,21 +325,45 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
         )}
       </div>
 
-      {/* Upload panel — full width */}
-      <UploadPanel
-        scanFileName={scanFileName}
-        scanMeta={scanMeta}
-        usingTestData={usingTestData}
-        compareFileName={compareScanFileName}
-        compareUsingTestData={compareUsingTestData}
-        onScanFile={handleScanFile}
-        onScanMetaChange={handleScanMetaChange}
-        onUseTestData={handleUseTestData}
-        onScanClear={handleReset}
-        onCompareFile={handleCompareFile}
-        onCompareTestData={handleCompareTestData}
-        onCompareClear={handleCompareClear}
-      />
+      {/* Upload panel + Actions panel — top row */}
+      <div className="flex items-start gap-4">
+        <div className="flex-1">
+          <UploadPanel
+            scanFileName={scanFileName}
+            scanMeta={scanMeta}
+            usingTestData={usingTestData}
+            compareFileName={compareScanFileName}
+            compareUsingTestData={compareUsingTestData}
+            onScanFile={handleScanFile}
+            onScanMetaChange={handleScanMetaChange}
+            onUseTestData={handleUseTestData}
+            onScanClear={handleReset}
+            onCompareFile={handleCompareFile}
+            onCompareTestData={handleCompareTestData}
+            onCompareClear={handleCompareClear}
+          />
+        </div>
+        <div className="w-[260px] shrink-0">
+          <AnalysisActionsPanel
+            placements={activePlacements}
+            editorOpen={placementEditorOpen}
+            isSyncRotating={isSyncRotating}
+            showAntennaGuide={showAntennaGuide}
+            showCompassGuide={showCompassGuide}
+            canExport={canExport}
+            doEMetrics={doEMetrics}
+            selectedBox={selectedBox}
+            onReset={handleReset}
+            onPlacementsChange={handlePlacementsChange}
+            onEditorOpenChange={setPlacementEditorOpen}
+            onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
+            onAntennaGuideToggle={() => setShowAntennaGuide((v) => !v)}
+            onCompassGuideToggle={() => setShowCompassGuide((v) => !v)}
+            onExportRunSummary={handleExportRunSummary}
+            onRequestBoxDeselect={() => { setSelectedBox(null); setHighlightedTagKey(null); }}
+          />
+        </div>
+      </div>
 
       {compareActive ? (
         /* ── Compare mode: two full-width canvases, no BoxDetailPanel ───── */
@@ -366,10 +390,14 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
           <IssuePanel issues={placementIssues} label="Placement database issues" />
           <IssuePanel issues={scanIssues} label="Scan file issues" />
 
-          {/* Right column: ActionsPanel at idle ↔ BoxDetailPanel when a box is selected.
-               Both live in the same grid slot — mutually exclusive by construction.
-               The 3D model (left column) never moves regardless of which is shown. */}
-          <div ref={rigSectionRef} className="grid gap-6 lg:grid-cols-[1fr_380px]">
+          {/* Rig grid — full width when idle, 2-col when a box is selected.
+               BoxDetailPanel only mounts on demand; no dead-zone placeholder. */}
+          <div
+            ref={rigSectionRef}
+            className={selectedBoxResult
+              ? 'grid gap-6 lg:grid-cols-[1fr_380px]'
+              : ''}
+          >
             <RigOverview
               boxResults={scanResult?.boxResults ?? []}
               selectedBox={selectedBox}
@@ -390,29 +418,9 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
                 setHighlightedTagKey(null);
               }}
             />
-
-            <div>
-              {selectedBoxResult ? (
-                <BoxDetailPanel boxResult={selectedBoxResult} rssiSuffixMap={rssiSuffixMap} />
-              ) : (
-                <AnalysisActionsPanel
-                  placements={activePlacements}
-                  editorOpen={placementEditorOpen}
-                  isSyncRotating={isSyncRotating}
-                  showAntennaGuide={showAntennaGuide}
-                  showCompassGuide={showCompassGuide}
-                  canExport={canExport}
-                  doEMetrics={doEMetrics}
-                  onReset={handleReset}
-                  onPlacementsChange={handlePlacementsChange}
-                  onEditorOpenChange={setPlacementEditorOpen}
-                  onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
-                  onAntennaGuideToggle={() => setShowAntennaGuide((v) => !v)}
-                  onCompassGuideToggle={() => setShowCompassGuide((v) => !v)}
-                  onExportRunSummary={handleExportRunSummary}
-                />
-              )}
-            </div>
+            {selectedBoxResult && (
+              <BoxDetailPanel boxResult={selectedBoxResult} rssiSuffixMap={rssiSuffixMap} />
+            )}
           </div>
 
           <ExceptionsPanel

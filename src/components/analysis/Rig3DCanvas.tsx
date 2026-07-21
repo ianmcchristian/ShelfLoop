@@ -481,6 +481,18 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
   // Ref mirror so the guide effect can read selection without being in its deps.
   const selectedBoxRef  = useRef(selectedBox);
   useEffect(() => { selectedBoxRef.current = selectedBox; }, [selectedBox]);
+  // Guide tween: pending signal written by effect, consumed on first useFrame.
+  // Pre-alloc the anim struct to stay zero-allocation in the hot path.
+  const guidePendingRef = useRef<{ toPos: THREE.Vector3; toTarget: THREE.Vector3 } | null>(null);
+  const _guideAnim = useRef({
+    active:    false,
+    startT:    0,
+    dur:       0.55,
+    fromPos:   new THREE.Vector3(),
+    toPos:     new THREE.Vector3(),
+    fromTarget:new THREE.Vector3(),
+    toTarget:  new THREE.Vector3(),
+  });
 
   // Trigger animation whenever selection changes
   useEffect(() => {
@@ -513,30 +525,27 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
   }, [selectedBox]);
 
   // ── Antenna guide camera adjustment ─────────────────────────────────────────
-  // ON : raise orbit target to y=0.6 (midpoint of rig base -0.5 → antenna tip +1.9)
-  //      and push camera out to 6.5 units — preserves current view direction.
-  // OFF: re-centre target on rig origin, restore ~4.8 unit distance.
+  // Writes a pending signal; the actual tween starts on the next useFrame so
+  // startT is captured from the R3F clock (avoiding performance.now mismatch).
   // Skipped when a box is already selected (box-zoom animation takes priority).
   useEffect(() => {
     if (!controlsRef.current || selectedBoxRef.current !== null) return;
-    animStartRef.current = performance.now() / 1000;
+    const cam = controlsRef.current.object;
+    const tgt = controlsRef.current.target;
 
     if (showAntennaGuide) {
-      destTargetRef.current.set(0, 0.6, 0);
-      _guideDir.current
-        .copy(controlsRef.current.object.position)
-        .sub(controlsRef.current.target)
-        .normalize()
-        .multiplyScalar(6.5);
-      destCamPosRef.current.copy(destTargetRef.current).add(_guideDir.current);
+      const newTarget = new THREE.Vector3(0, 0.6, 0);
+      _guideDir.current.copy(cam.position).sub(tgt).normalize().multiplyScalar(6.5);
+      guidePendingRef.current = {
+        toTarget: newTarget,
+        toPos:    newTarget.clone().add(_guideDir.current),
+      };
     } else {
-      destTargetRef.current.copy(DEFAULT_TARGET);
-      _guideDir.current
-        .copy(controlsRef.current.object.position)
-        .sub(controlsRef.current.target)
-        .normalize()
-        .multiplyScalar(4.8);
-      destCamPosRef.current.copy(DEFAULT_TARGET).add(_guideDir.current);
+      _guideDir.current.copy(cam.position).sub(tgt).normalize().multiplyScalar(4.8);
+      guidePendingRef.current = {
+        toTarget: DEFAULT_TARGET.clone(),
+        toPos:    DEFAULT_TARGET.clone().add(_guideDir.current),
+      };
     }
   }, [showAntennaGuide]);
 
@@ -567,19 +576,48 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
       tgt.lerp(_syncTarget.current, syncLerp);
       controlsRef.current.update();
     } else {
-      // ── Leader / normal mode: standard animation pipeline ─────────────────
-      tgt.lerp(destTargetRef.current, tSmooth);
+      // ── Leader / normal mode ──────────────────────────────────────────────
 
-      if (animStartRef.current !== null) {
-        const elapsed = clock.elapsedTime - animStartRef.current / 1000;
-        _curr.current.copy(cam.position);
-        const dist = _curr.current.distanceTo(destCamPosRef.current);
-        if (dist > 0.005) {
-          cam.position.lerp(destCamPosRef.current, tSmooth * 1.5);
-        } else {
-          animStartRef.current = null;
+      // Initialise guide tween on first frame after the effect fires.
+      // Capturing startT here ensures we use the R3F clock (not wall clock).
+      if (guidePendingRef.current) {
+        const p = guidePendingRef.current;
+        const ga = _guideAnim.current;
+        ga.active = true;
+        ga.startT = clock.elapsedTime;
+        ga.fromPos.copy(cam.position);
+        ga.fromTarget.copy(tgt);
+        ga.toPos.copy(p.toPos);
+        ga.toTarget.copy(p.toTarget);
+        guidePendingRef.current = null;
+      }
+
+      if (_guideAnim.current.active) {
+        // ── Eased guide tween — camera + target move together in perfect sync ─
+        const ga   = _guideAnim.current;
+        const raw  = Math.min((clock.elapsedTime - ga.startT) / ga.dur, 1);
+        // Smooth-step (3t²−2t³): zero first-derivative at both ends → no hiccup
+        const t    = raw * raw * (3 - 2 * raw);
+        cam.position.lerpVectors(ga.fromPos,    ga.toPos,    t);
+        tgt.copy(cam.position);
+        tgt.lerpVectors(ga.fromTarget, ga.toTarget, t);
+        if (raw >= 1) {
+          ga.active = false;
+          destTargetRef.current.copy(ga.toTarget);
+          destCamPosRef.current.copy(ga.toPos);
         }
-        void elapsed;
+      } else {
+        // ── Standard box-zoom / deselect animation ────────────────────────────
+        tgt.lerp(destTargetRef.current, tSmooth);
+        if (animStartRef.current !== null) {
+          _curr.current.copy(cam.position);
+          const dist = _curr.current.distanceTo(destCamPosRef.current);
+          if (dist > 0.005) {
+            cam.position.lerp(destCamPosRef.current, tSmooth * 1.5);
+          } else {
+            animStartRef.current = null;
+          }
+        }
       }
 
       controlsRef.current.update();

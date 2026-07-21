@@ -3,6 +3,7 @@
 // Shows DOE primary metrics (Y1/Y2) inline when scan data is loaded,
 // and a single "Run Summary" download gated on complete antenna config.
 
+import { useEffect, useRef } from 'react';
 import type { ResolvedTagPlacement } from './rfidTypes';
 import { PlacementEditorModal } from './PlacementEditorModal';
 
@@ -19,6 +20,8 @@ interface AnalysisActionsPanelProps {
   showCompassGuide: boolean;
   canExport: boolean;
   doEMetrics: DoEMetrics | null;
+  selectedBox: number | null;
+  onRequestBoxDeselect: () => void;
   onReset: () => void;
   onPlacementsChange: (placements: ResolvedTagPlacement[]) => void;
   onEditorOpenChange: (open: boolean) => void;
@@ -92,6 +95,7 @@ export function AnalysisActionsPanel({
   showCompassGuide,
   canExport,
   doEMetrics,
+  selectedBox,
   onReset,
   onPlacementsChange,
   onEditorOpenChange,
@@ -99,7 +103,16 @@ export function AnalysisActionsPanel({
   onAntennaGuideToggle,
   onCompassGuideToggle,
   onExportRunSummary,
+  onRequestBoxDeselect,
 }: AnalysisActionsPanelProps) {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+
+  // Close the action menu whenever a box is selected
+  useEffect(() => {
+    if (selectedBox !== null && detailsRef.current) {
+      detailsRef.current.open = false;
+    }
+  }, [selectedBox]);
 
   return (
     <>
@@ -171,8 +184,11 @@ export function AnalysisActionsPanel({
 
         <div className="my-3 border-t border-slate-100" />
 
-        <details className="group w-full text-center">
-          <summary className="inline-flex cursor-pointer list-none items-center justify-center gap-3 rounded-full bg-retail-blue px-5 py-2 text-sm font-black text-white shadow-sm transition hover:bg-retail-blue-dark">
+        <details ref={detailsRef} className="group relative w-full text-center">
+          <summary
+            className="inline-flex cursor-pointer list-none items-center justify-center gap-3 rounded-full bg-retail-blue px-5 py-2 text-sm font-black text-white shadow-sm transition hover:bg-retail-blue-dark"
+            onClick={() => { if (selectedBox !== null) onRequestBoxDeselect(); }}
+          >
             <span>Action menu</span>
             <svg
               aria-hidden="true"
@@ -190,7 +206,9 @@ export function AnalysisActionsPanel({
             </svg>
           </summary>
 
-          <div className="mt-4 space-y-3 text-center text-sm font-semibold text-slate-600">
+          {/* Floating overlay — position:absolute so it doesn't push the 3D model down */}
+          <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
+          <div className="space-y-3 text-center text-sm font-semibold text-slate-600">
             <button
               type="button"
               aria-pressed={isSyncRotating}
@@ -292,6 +310,7 @@ export function AnalysisActionsPanel({
                 </div>
               </details>
             </div>
+          </div>
           </div>
         </details>
       </div>
