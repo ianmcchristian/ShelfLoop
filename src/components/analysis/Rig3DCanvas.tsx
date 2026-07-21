@@ -22,9 +22,9 @@ import { rssiToHex, rssiToPct, RSSI_MISSED_COLOR } from './rfidColorUtils';
 
 const BOX_SIZE       = 0.92;
 const STEP           = 1.08;
-// Camera sits on the North-West side by default so screen-left = West and
-// screen-right = East, matching the physical box numbering Ian expects.
-const DEFAULT_CAM    = new THREE.Vector3(-2.4, 2.2, 3.4);
+// Camera sits on the South-West side by default so North reads higher on screen
+// and West/East still map left/right the way Ian expects.
+const DEFAULT_CAM    = new THREE.Vector3(-2.4, 2.2, -3.4);
 const DEFAULT_TARGET = new THREE.Vector3(0, 0, 0);
 const COMPASS_RADIUS = 1.72;
 const COMPASS_Y      = 1.38;
@@ -392,6 +392,8 @@ function CompassRose() {
 }
 
 function AntennaGuide({ angleDeg }: { angleDeg: 0 | 45 }) {
+  const antennaZ = angleDeg === 0 ? ARM_Z + 0.114 : ANTENNA_Z;
+
   return (
     <group position={[0, 0, 0]}>
       {/* PVC center pole */}
@@ -413,7 +415,7 @@ function AntennaGuide({ angleDeg }: { angleDeg: 0 | 45 }) {
       </mesh>
 
       {/* Antenna plate: offset out from the pole, facing North */}
-      <mesh position={[0, ANTENNA_Y, ANTENNA_Z]} rotation={[-THREE.MathUtils.degToRad(angleDeg), 0, 0]}>
+      <mesh position={[0, ANTENNA_Y, antennaZ]} rotation={[-THREE.MathUtils.degToRad(angleDeg), 0, 0]}>
         <boxGeometry args={[0.62, 0.028, 0.46]} />
         <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.26} />
       </mesh>
@@ -642,7 +644,7 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
       )}
 
       <Canvas
-        camera={{ position: [-2.4, 2.2, 3.4], fov: 44 }}
+        camera={{ position: [-2.4, 2.2, -3.4], fov: 44 }}
         style={{ width: '100%', height: canvasHeight, borderRadius: 16, background: '#ffffff', display: 'block' }}
       >
         <color attach="background" args={['#ffffff']} />
