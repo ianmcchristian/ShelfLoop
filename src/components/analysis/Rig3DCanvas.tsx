@@ -537,41 +537,34 @@ function PulseWave({ delay }: { delay: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const matRef  = useRef<THREE.MeshBasicMaterial>(null);
   const startRef = useRef<number | null>(null);
-  const geometry = useMemo(() => {
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0, -0.02, 0.0),
-      new THREE.Vector3(0, -0.12, 0.08),
-      new THREE.Vector3(0, -0.28, 0.18),
-      new THREE.Vector3(0, -0.52, 0.26),
-    ]);
-    return new THREE.TubeGeometry(curve, 36, 0.022, 14, false);
-  }, []);
 
   useFrame(({ clock }) => {
     if (!meshRef.current || !matRef.current) return;
     if (startRef.current === null) startRef.current = clock.elapsedTime;
 
     const t = clock.elapsedTime - startRef.current - delay;
-    if (t < 0 || t > 3.2) {
+    if (t < 0 || t > 3.0) {
       meshRef.current.visible = false;
       return;
     }
 
     meshRef.current.visible = true;
-    const progress = t / 3.2;
-    meshRef.current.position.y = -progress * 0.28;
-    meshRef.current.position.z = progress * 0.1;
-    meshRef.current.scale.set(0.85 + progress * 1.35, 0.85 + progress * 1.35, 0.85 + progress * 1.2);
-    matRef.current.opacity = 0.24 * (1 - progress);
+    const progress = t / 3.0;
+    // In local antenna space, the plate face normal is -Y.
+    meshRef.current.position.y = -0.015 - progress * 1.04;
+    meshRef.current.scale.set(1.0 + progress * 1.35, 1, 1.0 + progress * 1.15);
+    matRef.current.opacity = 0.28 * (1 - progress);
   });
 
   return (
-    <mesh ref={meshRef} visible={false} geometry={geometry}>
+    <mesh ref={meshRef} visible={false}>
+      <boxGeometry args={[0.78, 0.14, 0.58]} />
       <meshBasicMaterial
         ref={matRef}
         color="#38bdf8"
         transparent
         opacity={0}
+        side={THREE.DoubleSide}
         depthWrite={false}
       />
     </mesh>
