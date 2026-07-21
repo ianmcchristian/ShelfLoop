@@ -412,22 +412,10 @@ function AntennaGuide() {
         <meshStandardMaterial color="#64748b" roughness={1} metalness={0} transparent opacity={0.55} />
       </mesh>
 
-      {/* Small vertical riser at the end of the arm */}
-      <mesh position={[0, ARM_Y + 0.09, ARM_Z + 0.11]}>
-        <boxGeometry args={[0.05, 0.2, 0.05]} />
-        <meshStandardMaterial color="#64748b" roughness={1} metalness={0} transparent opacity={0.55} />
-      </mesh>
-
       {/* Antenna plate: offset out from the pole, facing North, top edge tilts North */}
       <mesh position={[0, ANTENNA_Y, ANTENNA_Z]} rotation={[-Math.PI / 4, 0, 0]}>
         <boxGeometry args={[0.62, 0.028, 0.46]} />
         <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.26} />
-      </mesh>
-
-      {/* Tiny north tick on the antenna face */}
-      <mesh position={[0, ANTENNA_Y + 0.03, ANTENNA_Z + 0.16]} rotation={[-Math.PI / 4, 0, 0]}>
-        <boxGeometry args={[0.18, 0.01, 0.04]} />
-        <meshStandardMaterial color="#2563eb" roughness={1} metalness={0} transparent opacity={0.55} />
       </mesh>
     </group>
   );
