@@ -537,6 +537,15 @@ function PulseWave({ delay }: { delay: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const matRef  = useRef<THREE.MeshBasicMaterial>(null);
   const startRef = useRef<number | null>(null);
+  const geometry = useMemo(() => {
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, -0.02, 0.0),
+      new THREE.Vector3(0, -0.12, 0.08),
+      new THREE.Vector3(0, -0.28, 0.18),
+      new THREE.Vector3(0, -0.52, 0.26),
+    ]);
+    return new THREE.TubeGeometry(curve, 36, 0.022, 14, false);
+  }, []);
 
   useFrame(({ clock }) => {
     if (!meshRef.current || !matRef.current) return;
@@ -550,23 +559,19 @@ function PulseWave({ delay }: { delay: number }) {
 
     meshRef.current.visible = true;
     const progress = t / 3.2;
-    // In local antenna space, the plate face normal is -Y. Arc expands outward
-    // on the FRONT side of the plate instead of behind it.
-    meshRef.current.position.y = -0.03 - progress * 0.94;
-    meshRef.current.position.z = -progress * 0.22;
-    meshRef.current.scale.setScalar(0.78 + progress * 1.52);
-    matRef.current.opacity = 0.26 * (1 - progress);
+    meshRef.current.position.y = -progress * 0.28;
+    meshRef.current.position.z = progress * 0.1;
+    meshRef.current.scale.set(0.85 + progress * 1.35, 0.85 + progress * 1.35, 0.85 + progress * 1.2);
+    matRef.current.opacity = 0.24 * (1 - progress);
   });
 
   return (
-    <mesh ref={meshRef} visible={false} rotation={[0, -Math.PI / 2, -0.26]}>
-      <torusGeometry args={[0.52, 0.028, 18, 72, Math.PI * 0.82]} />
+    <mesh ref={meshRef} visible={false} geometry={geometry}>
       <meshBasicMaterial
         ref={matRef}
         color="#38bdf8"
         transparent
         opacity={0}
-        side={THREE.DoubleSide}
         depthWrite={false}
       />
     </mesh>
