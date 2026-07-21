@@ -82,6 +82,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   const [isSyncRotating, setIsSyncRotating] = useState(false);
   const [showAntennaGuide, setShowAntennaGuide] = useState(false);
   const [showCompassGuide, setShowCompassGuide] = useState(false);
+  const [antennaGuideAngleDeg, setAntennaGuideAngleDeg] = useState<0 | 45>(45);
   const rigSectionRef = useRef<HTMLDivElement>(null);
 
   // ── Compare state ──────────────────────────────────────────────────────────
@@ -353,6 +354,8 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             suppressHtmlLabels={placementEditorOpen}
             showAntennaGuide={showAntennaGuide}
             showCompassGuide={showCompassGuide}
+            antennaGuideAngleDeg={antennaGuideAngleDeg}
+            onAntennaGuideAngleChange={setAntennaGuideAngleDeg}
             rssiSuffixMapA={rssiSuffixMap}
             rssiSuffixMapB={compareRssiSuffixMap}
           />
@@ -373,6 +376,8 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
               suppressHtmlLabels={placementEditorOpen}
               showAntennaGuide={showAntennaGuide}
               showCompassGuide={showCompassGuide}
+              antennaGuideAngleDeg={antennaGuideAngleDeg}
+              onAntennaGuideAngleChange={setAntennaGuideAngleDeg}
               rssiSuffixMap={rssiSuffixMap}
               onBoxSelect={(boxNumber) => {
                 setSelectedBox(boxNumber);

@@ -19,6 +19,8 @@ interface RigPaneProps {
   suppressHtmlLabels: boolean;
   showAntennaGuide: boolean;
   showCompassGuide: boolean;
+  antennaGuideAngleDeg: 0 | 45;
+  onAntennaGuideAngleChange: (angle: 0 | 45) => void;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncStateRef: React.MutableRefObject<SyncCameraState | null>;
@@ -28,7 +30,7 @@ interface RigPaneProps {
 }
 
 function RigPane({
-  side, label, selectedBox, scanResult, suppressHtmlLabels, showAntennaGuide, showCompassGuide, rssiSuffixMap,
+  side, label, selectedBox, scanResult, suppressHtmlLabels, showAntennaGuide, showCompassGuide, antennaGuideAngleDeg, onAntennaGuideAngleChange, rssiSuffixMap,
   isSyncActive, syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect,
 }: RigPaneProps) {
   const hasData = scanResult !== null;
@@ -66,6 +68,8 @@ function RigPane({
         suppressHtmlLabels={suppressHtmlLabels}
         showAntennaGuide={showAntennaGuide}
         showCompassGuide={showCompassGuide}
+        antennaGuideAngleDeg={antennaGuideAngleDeg}
+        onAntennaGuideAngleChange={onAntennaGuideAngleChange}
         rssiSuffixMap={rssiSuffixMap}
         isSyncActive={isSyncActive}
         syncSide={side}
@@ -105,6 +109,8 @@ interface CompareRigLayoutProps {
   suppressHtmlLabels: boolean;
   showAntennaGuide: boolean;
   showCompassGuide: boolean;
+  antennaGuideAngleDeg: 0 | 45;
+  onAntennaGuideAngleChange: (angle: 0 | 45) => void;
   rssiSuffixMapA: Map<string, number>;
   rssiSuffixMapB: Map<string, number>;
 }
@@ -118,6 +124,8 @@ export function CompareRigLayout({
   suppressHtmlLabels,
   showAntennaGuide,
   showCompassGuide,
+  antennaGuideAngleDeg,
+  onAntennaGuideAngleChange,
   rssiSuffixMapA,
   rssiSuffixMapB,
 }: CompareRigLayoutProps) {
@@ -157,6 +165,8 @@ export function CompareRigLayout({
         suppressHtmlLabels={suppressHtmlLabels}
         showAntennaGuide={showAntennaGuide}
         showCompassGuide={showCompassGuide}
+        antennaGuideAngleDeg={antennaGuideAngleDeg}
+        onAntennaGuideAngleChange={onAntennaGuideAngleChange}
         rssiSuffixMap={rssiSuffixMapA}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}
@@ -172,6 +182,8 @@ export function CompareRigLayout({
         suppressHtmlLabels={suppressHtmlLabels}
         showAntennaGuide={showAntennaGuide}
         showCompassGuide={showCompassGuide}
+        antennaGuideAngleDeg={antennaGuideAngleDeg}
+        onAntennaGuideAngleChange={onAntennaGuideAngleChange}
         rssiSuffixMap={rssiSuffixMapB}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}

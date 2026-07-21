@@ -124,9 +124,6 @@ export function AnalysisActionsPanel({
                 </summary>
 
                 <div className="mt-3 space-y-2">
-                  <p className="text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">
-                    Placement database
-                  </p>
                   <button
                     type="button"
                     className="mx-auto block rounded-lg bg-slate-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 ring-1 ring-slate-200 transition hover:bg-retail-blue-light hover:text-retail-blue hover:ring-retail-blue/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35"
@@ -135,9 +132,6 @@ export function AnalysisActionsPanel({
                     Box Placement
                   </button>
 
-                  <p className="pt-2 text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">
-                    Rig overlays
-                  </p>
                   <button
                     type="button"
                     aria-pressed={showAntennaGuide}

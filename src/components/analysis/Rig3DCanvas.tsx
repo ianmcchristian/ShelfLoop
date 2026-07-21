@@ -32,7 +32,7 @@ const POST_HEIGHT    = 2.55;
 const POST_Y         = 0.48;
 const HUB_Y          = 1.22;
 const ARM_Y          = 1.82;
-const ARM_Z          = 0.16;
+const ARM_Z          = 0.09;
 const ANTENNA_Y      = 1.88;
 const ANTENNA_Z      = 0.31;
 // At scale 1.75, box is ~1.61 units wide. With fov=44°, half-height at D is
@@ -391,7 +391,7 @@ function CompassRose() {
   );
 }
 
-function AntennaGuide() {
+function AntennaGuide({ angleDeg }: { angleDeg: 0 | 45 }) {
   return (
     <group position={[0, 0, 0]}>
       {/* PVC center pole */}
@@ -408,12 +408,12 @@ function AntennaGuide() {
 
       {/* Mount arm protruding North from the center pole */}
       <mesh position={[0, ARM_Y, ARM_Z]}>
-        <boxGeometry args={[0.09, 0.05, 0.34]} />
+        <boxGeometry args={[0.09, 0.05, 0.2]} />
         <meshStandardMaterial color="#64748b" roughness={1} metalness={0} transparent opacity={0.55} />
       </mesh>
 
-      {/* Antenna plate: offset out from the pole, facing North, top edge tilts North */}
-      <mesh position={[0, ANTENNA_Y, ANTENNA_Z]} rotation={[-Math.PI / 4, 0, 0]}>
+      {/* Antenna plate: offset out from the pole, facing North */}
+      <mesh position={[0, ANTENNA_Y, ANTENNA_Z]} rotation={[-THREE.MathUtils.degToRad(angleDeg), 0, 0]}>
         <boxGeometry args={[0.62, 0.028, 0.46]} />
         <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.26} />
       </mesh>
@@ -431,6 +431,7 @@ interface SceneProps {
   suppressHtmlLabels: boolean;
   showAntennaGuide: boolean;
   showCompassGuide: boolean;
+  antennaGuideAngleDeg: 0 | 45;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncSide: 'A' | 'B';
@@ -439,7 +440,7 @@ interface SceneProps {
   onBoxSelect: (n: number) => void;
 }
 
-function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
+function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, antennaGuideAngleDeg, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
   const resultMap  = useMemo(
     () => Object.fromEntries(boxResults.map((b) => [b.boxNumber, b])),
     [boxResults],
@@ -565,7 +566,7 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
       />
 
       {!suppressHtmlLabels && showCompassGuide && <CompassRose />}
-      {showAntennaGuide && <AntennaGuide />}
+      {showAntennaGuide && <AntennaGuide angleDeg={antennaGuideAngleDeg} />}
 
       {(Object.entries(RIG_LAYOUT) as [string, RigPosition][]).map(([key, pos]) => {
         const num         = Number(key);
@@ -601,6 +602,8 @@ export interface Rig3DCanvasProps {
   suppressHtmlLabels: boolean;
   showAntennaGuide?: boolean;
   showCompassGuide?: boolean;
+  antennaGuideAngleDeg?: 0 | 45;
+  onAntennaGuideAngleChange?: (angle: 0 | 45) => void;
   rssiSuffixMap: Map<string, number>;
   canvasHeight?: number;
   isSyncActive?: boolean;
@@ -611,11 +614,33 @@ export interface Rig3DCanvasProps {
   onDeselect: () => void;
 }
 
-export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide = false, showCompassGuide = false, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
+export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide = false, showCompassGuide = false, antennaGuideAngleDeg = 45, onAntennaGuideAngleChange, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
   return (
     // onDoubleClick bubbles from the <canvas> DOM element — fires for any
     // double-click within the 3D viewport, background or box, no R3F magic needed.
-    <div className="flex flex-col" onDoubleClick={onDeselect}>
+    <div className="relative flex flex-col" onDoubleClick={onDeselect}>
+      {showAntennaGuide && onAntennaGuideAngleChange && (
+        <div className="pointer-events-none absolute left-4 top-4 z-10">
+          <div className="pointer-events-auto inline-flex rounded-full border border-slate-200 bg-white/92 p-1 shadow-sm backdrop-blur">
+            {([0, 45] as const).map((angle) => (
+              <button
+                key={angle}
+                type="button"
+                aria-pressed={antennaGuideAngleDeg === angle}
+                className={`rounded-full px-3 py-1 text-[0.62rem] font-black tracking-[0.12em] transition ${
+                  antennaGuideAngleDeg === angle
+                    ? 'bg-retail-blue text-white'
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+                onClick={() => onAntennaGuideAngleChange(angle)}
+              >
+                {angle}°
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Canvas
         camera={{ position: [-2.4, 2.2, 3.4], fov: 44 }}
         style={{ width: '100%', height: canvasHeight, borderRadius: 16, background: '#ffffff', display: 'block' }}
@@ -629,6 +654,7 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           suppressHtmlLabels={suppressHtmlLabels}
           showAntennaGuide={showAntennaGuide}
           showCompassGuide={showCompassGuide}
+          antennaGuideAngleDeg={antennaGuideAngleDeg}
           rssiSuffixMap={rssiSuffixMap}
           isSyncActive={isSyncActive}
           syncSide={syncSide}
