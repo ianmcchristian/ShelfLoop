@@ -8,9 +8,10 @@ import { matchRun } from './rfidMatcher';
 import { TEST_PLACEMENTS, SCENARIO_A, SCENARIO_B } from './rfidTestData';
 import type { AnalysisRun, ParseIssue, ResolvedTagPlacement, RunMeta, RunTagRead, ScanMeta } from './rfidTypes';
 import { BoxDetailPanel } from './BoxDetailPanel';
+import { RigSummaryPanel } from './RigSummaryPanel';
 import { RigOverview } from './RigOverview';
 import { AnalysisActionsPanel } from './AnalysisActionsPanel';
-import { CoverageGauge } from './CoverageGauge';
+import { ScanTally } from './ScanTally';
 import { CompareRigLayout } from './CompareRigLayout';
 import { ExceptionsPanel } from './ExceptionsPanel';
 import { UploadPanel } from './UploadPanel';
@@ -118,7 +119,6 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setScanFileName(name);
     setUsingTestData(false);
     setScenarioPlacements(null); // Back to real placement DB when loading a CSV
-    setShouldScrollToRig(true);
   }, []);
 
   const handleScanMetaChange = useCallback((field: keyof ScanMeta, value: string) => {
@@ -142,7 +142,6 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setSelectedBox(null);
     setHighlightedTagKey(null);
     setUsingTestData(true);
-    setShouldScrollToRig(true);
   }, []);
 
   const handleCompareFile = useCallback((text: string, name: string) => {
@@ -316,8 +315,8 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
           </p>
         </div>
         {!compareActive && (
-          <CoverageGauge
-            overallPct={scanResult?.overallCoveragePct ?? null}
+          <ScanTally
+            hasData={hasData}
             totalRead={scanResult?.totalRead ?? 0}
             totalMissed={scanResult?.totalMissed ?? 0}
             totalUnresolved={scanResult?.totalUnresolved ?? 0}
@@ -390,13 +389,12 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
           <IssuePanel issues={placementIssues} label="Placement database issues" />
           <IssuePanel issues={scanIssues} label="Scan file issues" />
 
-          {/* Rig grid — full width when idle, 2-col when a box is selected.
-               BoxDetailPanel only mounts on demand; no dead-zone placeholder. */}
+          {/* Rig grid — permanent 2 columns so the Scan Zone never resizes.
+               Right column shows the selected box's faces, or the rig summary
+               when nothing is selected. */}
           <div
             ref={rigSectionRef}
-            className={selectedBoxResult
-              ? 'grid gap-6 lg:grid-cols-[1fr_380px]'
-              : ''}
+            className="grid gap-6 lg:grid-cols-[1fr_380px]"
           >
             <RigOverview
               boxResults={scanResult?.boxResults ?? []}
@@ -418,8 +416,10 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
                 setHighlightedTagKey(null);
               }}
             />
-            {selectedBoxResult && (
+            {selectedBoxResult ? (
               <BoxDetailPanel boxResult={selectedBoxResult} rssiSuffixMap={rssiSuffixMap} />
+            ) : (
+              <RigSummaryPanel scanResult={scanResult} />
             )}
           </div>
 

@@ -26,6 +26,13 @@ const STEP           = 1.08;
 // and West/East still map left/right the way Ian expects.
 const DEFAULT_CAM    = new THREE.Vector3(-2.4, 2.2, 3.4);
 const DEFAULT_TARGET = new THREE.Vector3(0, 0, 0);
+// Idle auto-spin — driven manually in useFrame instead of OrbitControls.autoRotate,
+// which only re-armed after a user interaction (hence "click to start spinning").
+const SPIN_AXIS      = new THREE.Vector3(0, 1, 0);
+const SPIN_RAD_PER_S = 0.28;
+// Camera dolly distances for the antenna-guide toggle (pure zoom, like scroll).
+const GUIDE_DIST     = 6.5;
+const DEFAULT_DIST   = 4.8;
 const COMPASS_RADIUS = 1.72;
 const COMPASS_Y      = 1.38;
 const POST_HEIGHT    = 2.55;
@@ -533,20 +540,15 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
     const cam = controlsRef.current.object;
     const tgt = controlsRef.current.target;
 
-    if (showAntennaGuide) {
-      const newTarget = new THREE.Vector3(0, 0.6, 0);
-      _guideDir.current.copy(cam.position).sub(tgt).normalize().multiplyScalar(6.5);
-      guidePendingRef.current = {
-        toTarget: newTarget,
-        toPos:    newTarget.clone().add(_guideDir.current),
-      };
-    } else {
-      _guideDir.current.copy(cam.position).sub(tgt).normalize().multiplyScalar(4.8);
-      guidePendingRef.current = {
-        toTarget: DEFAULT_TARGET.clone(),
-        toPos:    DEFAULT_TARGET.clone().add(_guideDir.current),
-      };
-    }
+    // Pure dolly: keep the orbit target exactly where it is and only change the
+    // camera distance. Panning is disabled so `tgt` is always DEFAULT_TARGET —
+    // this makes the toggle feel identical to a mouse-wheel zoom (nothing fancy).
+    const dist = showAntennaGuide ? GUIDE_DIST : DEFAULT_DIST;
+    _guideDir.current.copy(cam.position).sub(tgt).normalize().multiplyScalar(dist);
+    guidePendingRef.current = {
+      toTarget: tgt.clone(),
+      toPos:    tgt.clone().add(_guideDir.current),
+    };
   }, [showAntennaGuide]);
 
   useFrame(({ clock }, dt) => {
@@ -617,6 +619,14 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
           } else {
             animStartRef.current = null;
           }
+        } else if (!hasData && !anySelected) {
+          // ── Idle auto-spin ───────────────────────────────────────────────────
+          // Driven here (not via OrbitControls.autoRotate) so it starts on the
+          // very first frame — no click required. Rotate the camera offset
+          // around the rig's vertical axis; update() below preserves it.
+          _curr.current.copy(cam.position).sub(tgt);
+          _curr.current.applyAxisAngle(SPIN_AXIS, SPIN_RAD_PER_S * dt);
+          cam.position.copy(tgt).add(_curr.current);
         }
       }
 
@@ -646,8 +656,7 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
         maxDistance={9}
         enableDamping
         dampingFactor={0.07}
-        autoRotate={!hasData}
-        autoRotateSpeed={1.4}
+        autoRotate={false}
         onStart={() => {
           animStartRef.current = null;
           if (isSyncActive && lastActiveSideRef) lastActiveSideRef.current = syncSide;
@@ -731,8 +740,9 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
         </div>
       )}
 
-      {/* Height-animating wrapper — smooth resize when antenna guide is toggled */}
-      <div style={{ height: canvasHeight, transition: 'height 0.35s ease', borderRadius: 16, overflow: 'hidden' }}>
+      {/* Fixed-height viewport. The antenna-guide toggle is a pure camera dolly
+          (see Scene guide effect) so the canvas never resizes — no reflow jut. */}
+      <div style={{ height: canvasHeight, borderRadius: 16, overflow: 'hidden' }}>
       <Canvas
         camera={{ position: [-2.4, 2.2, 3.4], fov: 44 }}
         style={{ width: '100%', height: '100%', background: '#ffffff', display: 'block' }}

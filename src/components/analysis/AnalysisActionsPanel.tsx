@@ -114,6 +114,18 @@ export function AnalysisActionsPanel({
     }
   }, [selectedBox]);
 
+  // Collapse the dropdown on a single click anywhere outside it
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      const el = detailsRef.current;
+      if (el && el.open && !el.contains(e.target as Node)) {
+        el.open = false;
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
   return (
     <>
       <div className="panel p-4">

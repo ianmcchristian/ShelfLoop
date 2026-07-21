@@ -21,7 +21,7 @@ export interface RigOverviewProps {
 
 export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, antennaGuideAngleDeg, onAntennaGuideAngleChange, rssiSuffixMap, onBoxSelect, onDeselect }: RigOverviewProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-500">
           Scan Zone
@@ -38,7 +38,7 @@ export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasDat
         </div>
       </div>
       <Rig3DCanvas
-        canvasHeight={showAntennaGuide ? 680 : 560}
+        canvasHeight={560}
         boxResults={boxResults}
         selectedBox={selectedBox}
         highlightedTagKey={highlightedTagKey}
