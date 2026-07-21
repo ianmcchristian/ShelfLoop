@@ -1,24 +1,15 @@
 // ─── RFID Export Utilities ────────────────────────────────────────────────────
-// Builds CSV export strings from a completed AnalysisRun.
+// Builds CSV exports and computes DOE primary metrics from a completed AnalysisRun.
 //
-// Two formats:
-//   buildRunSummaryCsv  — one row per run, designed to stack across 16 tests.
-//                         Columns: config · coverage % · per-box % · face % ·
-//                         layer split · per-box RSSI mean.
-//   buildTagDetailCsv   — one row per placement slot (read / missed / unresolved).
-//                         Config columns repeated so it's also stackable.
-//
-// Both include antenna config columns so a stack of N exports is immediately
-// pivot-ready without any manual metadata entry.
+// Exports:
+//   computeDoEMetrics  — Y1 (overall coverage %) + Y2 (CV of box coverage %)
+//                        returned as numbers, used for both inline display and CSV.
+//   buildRunSummaryCsv — One row per tag slot; Y1/Y2 + config repeated on every
+//                        row so 16 stacked exports are immediately pivot-ready.
+//   buildExportFilename — Safe filename slug derived from run metadata.
+//   downloadCsv         — Browser download trigger.
 
-import type { AnalysisRun, BoxFace } from './rfidTypes';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const ALL_FACES: BoxFace[] = ['Front', 'Back', 'Left', 'Right', 'Top', 'Bottom'];
-const TOP_BOXES    = [1, 2, 3, 4];
-const BOTTOM_BOXES = [5, 6, 7, 8];
-const ALL_BOXES    = [1, 2, 3, 4, 5, 6, 7, 8];
+import type { AnalysisRun } from './rfidTypes';
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -29,127 +20,52 @@ function q(v: string | number | null | undefined): string {
   return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-function mean(nums: number[]): number | null {
-  if (nums.length === 0) return null;
-  return nums.reduce((a, b) => a + b, 0) / nums.length;
-}
-
-/** Per-box RSSI mean, derived from slot read states + rssiSuffixMap. */
-function computeBoxRssiMeans(
-  run: AnalysisRun,
-  rssiSuffixMap: Map<string, number>,
-): Map<number, number | null> {
-  const out = new Map<number, number | null>();
-  for (const box of run.boxResults) {
-    const vals: number[] = [];
-    for (const face of box.faces) {
-      for (const slot of face.slots) {
-        if (slot.state === 'read') {
-          const key = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
-          const rssi = rssiSuffixMap.get(key);
-          if (rssi !== undefined) vals.push(rssi);
-        }
-      }
-    }
-    out.set(box.boxNumber, mean(vals));
-  }
-  return out;
-}
-
-/** Coverage % for a subset of box numbers. */
-function layerCoveragePct(run: AnalysisRun, boxes: number[]): number {
-  const boxMap = new Map(run.boxResults.map((b) => [b.boxNumber, b]));
-  let reads = 0, total = 0;
-  for (const n of boxes) {
-    const b = boxMap.get(n);
-    if (!b) continue;
-    reads += b.readCount;
-    total += b.readCount + b.missCount;
-  }
-  return total > 0 ? (reads / total) * 100 : 0;
-}
-
-/** Coverage % for one face aggregated across all boxes. */
-function faceCoveragePct(run: AnalysisRun, face: BoxFace): number {
-  let reads = 0, total = 0;
-  for (const box of run.boxResults) {
-    const fr = box.faces.find((f) => f.face === face);
-    if (!fr) continue;
-    reads += fr.readCount;
-    total += fr.readCount + fr.missCount;
-  }
-  return total > 0 ? (reads / total) * 100 : 0;
-}
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * One-row summary CSV — stack 16 of these for a cross-run pivot table.
- * Returns the full CSV string (header row + data row).
+ * Compute DOE primary response variables from a scan run.
+ *
+ * Y1 = overall % tag coverage   (higher is better)
+ * Y2 = CV of per-box coverage % (lower = more uniform spatial distribution)
+ *       CV = (σ / μ) × 100  computed over box 1–8 individual coverage percents
+ */
+export function computeDoEMetrics(run: AnalysisRun): { y1: number; y2: number } {
+  const y1 = run.overallCoveragePct;
+  const boxPcts = run.boxResults.map((b) => b.coveragePct);
+  const n = boxPcts.length;
+  if (n === 0) return { y1, y2: 0 };
+  const avg = boxPcts.reduce((a, b) => a + b, 0) / n;
+  const variance = boxPcts.reduce((sum, p) => sum + (p - avg) ** 2, 0) / n;
+  const stdDev = Math.sqrt(variance);
+  const y2 = avg > 0 ? (stdDev / avg) * 100 : 0;
+  return { y1, y2 };
+}
+
+/**
+ * Run Summary CSV — one row per tag placement slot.
+ *
+ * Y1 and Y2 are prepended on every row so the file doubles as a
+ * per-run metrics reference when stacking 16 exports for the DOE.
  *
  * Columns:
+ *   y1_coverage_pct · y2_distribution_cv
  *   run_name · antenna · orientation · range · power
- *   overall_coverage_pct · total_reads · total_tags · unresolved_reads
- *   top_layer_pct · bottom_layer_pct
- *   box_1_pct … box_8_pct
- *   face_front_pct … face_bottom_pct
- *   box_1_rssi_mean … box_8_rssi_mean
- *   exported_at
+ *   box · face · position · label · full_epc · state · rssi_dbm
  */
 export function buildRunSummaryCsv(
   run: AnalysisRun,
   rssiSuffixMap: Map<string, number>,
 ): string {
-  const boxMap   = new Map(run.boxResults.map((b) => [b.boxNumber, b]));
-  const rssiMeans = computeBoxRssiMeans(run, rssiSuffixMap);
+  const { y1, y2 } = computeDoEMetrics(run);
 
   const headers = [
-    'run_name', 'antenna', 'orientation', 'range', 'power',
-    'overall_coverage_pct', 'total_reads', 'total_tags', 'unresolved_reads',
-    'top_layer_pct', 'bottom_layer_pct',
-    ...ALL_BOXES.map((n) => `box_${n}_pct`),
-    ...ALL_FACES.map((f) => `face_${f.toLowerCase()}_pct`),
-    ...ALL_BOXES.map((n) => `box_${n}_rssi_mean_dbm`),
-    'exported_at',
-  ];
-
-  const data = [
-    q(run.meta.name || 'Unnamed'),
-    q(run.meta.antenna), q(run.meta.orientation), q(run.meta.range), q(run.meta.power),
-    run.overallCoveragePct.toFixed(1),
-    run.totalRead, run.totalTags, run.totalUnresolved,
-    layerCoveragePct(run, TOP_BOXES).toFixed(1),
-    layerCoveragePct(run, BOTTOM_BOXES).toFixed(1),
-    ...ALL_BOXES.map((n) => (boxMap.get(n)?.coveragePct ?? 0).toFixed(1)),
-    ...ALL_FACES.map((f) => faceCoveragePct(run, f).toFixed(1)),
-    ...ALL_BOXES.map((n) => {
-      const r = rssiMeans.get(n);
-      return r !== null && r !== undefined ? r.toFixed(1) : '';
-    }),
-    q(new Date().toISOString()),
-  ];
-
-  return [headers.join(','), data.join(',')].join('\n');
-}
-
-/**
- * Full tag-level detail CSV — one row per placement slot.
- * Config columns are repeated on every row so stacking works here too.
- *
- * Columns:
- *   run_name · antenna · orientation · range · power
- *   box · face · position · label · full_epc · state · rssi_dbm
- */
-export function buildTagDetailCsv(
-  run: AnalysisRun,
-  rssiSuffixMap: Map<string, number>,
-): string {
-  const headers = [
+    'y1_coverage_pct', 'y2_distribution_cv',
     'run_name', 'antenna', 'orientation', 'range', 'power',
     'box', 'face', 'position', 'label', 'full_epc', 'state', 'rssi_dbm',
   ];
 
   const configCols = [
+    y1.toFixed(1), y2.toFixed(1),
     q(run.meta.name || 'Unnamed'),
     q(run.meta.antenna), q(run.meta.orientation), q(run.meta.range), q(run.meta.power),
   ];
@@ -176,14 +92,14 @@ export function buildTagDetailCsv(
 
 /**
  * Build a safe filename slug from run metadata.
- * e.g. "Large_45deg_3ft_Max" or "Example_A_Large_45deg_3ft_Max"
+ * e.g. "shelfloop_summary_Large_45deg_3ft_Max.csv"
  */
-export function buildExportFilename(run: AnalysisRun, type: 'summary' | 'detail'): string {
+export function buildExportFilename(run: AnalysisRun): string {
   const configSlug = [run.meta.antenna, run.meta.orientation, run.meta.range, run.meta.power]
     .join('_')
     .replace(/[°\s]/g, '');
   const namePart = run.meta.name ? `${run.meta.name.replace(/\s+/g, '_')}_` : '';
-  return `shelfloop_${type}_${namePart}${configSlug}.csv`;
+  return `shelfloop_summary_${namePart}${configSlug}.csv`;
 }
 
 /** Trigger a browser file download for a CSV string. */

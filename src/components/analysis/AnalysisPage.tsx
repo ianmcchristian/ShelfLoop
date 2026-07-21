@@ -15,7 +15,7 @@ import { CompareRigLayout } from './CompareRigLayout';
 import { ExceptionsPanel } from './ExceptionsPanel';
 import { UploadPanel } from './UploadPanel';
 import { buildRssiMap } from './rfidColorUtils';
-import { buildRunSummaryCsv, buildTagDetailCsv, buildExportFilename, downloadCsv } from './rfidExport';
+import { computeDoEMetrics, buildRunSummaryCsv, buildExportFilename, downloadCsv } from './rfidExport';
 import { scanMetaIsComplete } from './rfidTypes';
 
 interface AnalysisSearchRequest {
@@ -205,21 +205,19 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
 
   const hasData = scanResult !== null;
 
-  // ── Export ─────────────────────────────────────────────────────────────────
+  // ── Export + DOE metrics ──────────────────────────────────────────────────
 
   const canExport = scanResult !== null && scanMetaIsComplete(scanMeta);
 
-  const handleExportSummary = useCallback(() => {
+  const doEMetrics = useMemo(
+    () => (scanResult ? computeDoEMetrics(scanResult) : null),
+    [scanResult],
+  );
+
+  const handleExportRunSummary = useCallback(() => {
     if (!scanResult) return;
     const csv  = buildRunSummaryCsv(scanResult, rssiSuffixMap);
-    const name = buildExportFilename(scanResult, 'summary');
-    downloadCsv(csv, name);
-  }, [scanResult, rssiSuffixMap]);
-
-  const handleExportDetail = useCallback(() => {
-    if (!scanResult) return;
-    const csv  = buildTagDetailCsv(scanResult, rssiSuffixMap);
-    const name = buildExportFilename(scanResult, 'detail');
+    const name = buildExportFilename(scanResult);
     downloadCsv(csv, name);
   }, [scanResult, rssiSuffixMap]);
 
@@ -353,14 +351,14 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             showAntennaGuide={showAntennaGuide}
             showCompassGuide={showCompassGuide}
             canExport={canExport}
+            doEMetrics={doEMetrics}
             onReset={handleReset}
             onPlacementsChange={handlePlacementsChange}
             onEditorOpenChange={setPlacementEditorOpen}
             onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
             onAntennaGuideToggle={() => setShowAntennaGuide((v) => !v)}
             onCompassGuideToggle={() => setShowCompassGuide((v) => !v)}
-            onExportSummary={handleExportSummary}
-            onExportDetail={handleExportDetail}
+            onExportRunSummary={handleExportRunSummary}
           />
         </div>
       </div>

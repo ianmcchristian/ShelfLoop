@@ -1,9 +1,15 @@
 // ─── Analysis Actions Panel ────────────────────────────────────────────────────
 // Sidebar action menu for the Analysis tab.
-// CSV placement upload replaced by the in-session placement editor modal.
+// Shows DOE primary metrics (Y1/Y2) inline when scan data is loaded,
+// and a single "Run Summary" download gated on complete antenna config.
 
 import type { ResolvedTagPlacement } from './rfidTypes';
 import { PlacementEditorModal } from './PlacementEditorModal';
+
+interface DoEMetrics {
+  y1: number; // overall coverage %
+  y2: number; // CV of box coverage %
+}
 
 interface AnalysisActionsPanelProps {
   placements: ResolvedTagPlacement[];
@@ -12,15 +18,32 @@ interface AnalysisActionsPanelProps {
   showAntennaGuide: boolean;
   showCompassGuide: boolean;
   canExport: boolean;
+  doEMetrics: DoEMetrics | null;
   onReset: () => void;
   onPlacementsChange: (placements: ResolvedTagPlacement[]) => void;
   onEditorOpenChange: (open: boolean) => void;
   onSyncRotatingToggle: () => void;
   onAntennaGuideToggle: () => void;
   onCompassGuideToggle: () => void;
-  onExportSummary: () => void;
-  onExportDetail: () => void;
+  onExportRunSummary: () => void;
 }
+
+const DownloadIcon = () => (
+  <svg
+    aria-hidden="true"
+    className="h-3.5 w-3.5 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
 
 export function AnalysisActionsPanel({
   placements,
@@ -29,14 +52,14 @@ export function AnalysisActionsPanel({
   showAntennaGuide,
   showCompassGuide,
   canExport,
+  doEMetrics,
   onReset,
   onPlacementsChange,
   onEditorOpenChange,
   onSyncRotatingToggle,
   onAntennaGuideToggle,
   onCompassGuideToggle,
-  onExportSummary,
-  onExportDetail,
+  onExportRunSummary,
 }: AnalysisActionsPanelProps) {
 
   return (
@@ -44,44 +67,61 @@ export function AnalysisActionsPanel({
       <div className="panel p-4">
         <p className="eyebrow">Analysis actions</p>
 
+        {/* ── DOE Metrics ────────────────────────────────────────────────── */}
+        <div className="mt-3">
+          <p className="mb-2 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">
+            DOE Primary Metrics
+          </p>
+          {doEMetrics ? (
+            <div className="rounded-lg bg-slate-50 px-3 py-2.5 ring-1 ring-slate-100">
+              <div className="space-y-1.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[0.62rem] font-bold text-slate-500">
+                    Y1&nbsp;&nbsp;Coverage
+                  </span>
+                  <span className="text-[0.78rem] font-black tabular-nums text-emerald-600">
+                    {doEMetrics.y1.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[0.62rem] font-bold text-slate-500">
+                    Y2&nbsp;&nbsp;Distribution CV
+                  </span>
+                  <span className="text-[0.78rem] font-black tabular-nums text-retail-blue">
+                    {doEMetrics.y2.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+              <p className="mt-1.5 text-[0.54rem] text-slate-400">
+                Y2 lower = more uniform
+              </p>
+            </div>
+          ) : (
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-center text-[0.62rem] text-slate-400 ring-1 ring-slate-100">
+              Load scan data to see metrics
+            </p>
+          )}
+        </div>
+
         {/* ── Export ─────────────────────────────────────────────────────── */}
         <div className="mt-3">
           <p className="mb-2 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">
-            Export results
+            Export
           </p>
           {canExport ? (
-            <div className="flex flex-col gap-1.5">
-              <button
-                type="button"
-                onClick={onExportSummary}
-                className="flex w-full items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-left text-[0.68rem] font-black tracking-[0.06em] text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-              >
-                <svg aria-hidden="true" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                <span className="leading-tight">
-                  Run Summary
-                  <span className="block text-[0.58rem] font-semibold text-emerald-500">1 row · stackable</span>
+            <button
+              type="button"
+              onClick={onExportRunSummary}
+              className="flex w-full items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-left text-[0.68rem] font-black tracking-[0.06em] text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            >
+              <DownloadIcon />
+              <span className="leading-tight">
+                Run Summary
+                <span className="block text-[0.58rem] font-semibold text-emerald-500">
+                  all slots · Y1+Y2 included
                 </span>
-              </button>
-              <button
-                type="button"
-                onClick={onExportDetail}
-                className="flex w-full items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-left text-[0.68rem] font-black tracking-[0.06em] text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-              >
-                <svg aria-hidden="true" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                <span className="leading-tight">
-                  Tag Detail
-                  <span className="block text-[0.58rem] font-semibold text-emerald-500">1 row / tag · full breakdown</span>
-                </span>
-              </button>
-            </div>
+              </span>
+            </button>
           ) : (
             <p className="rounded-lg bg-slate-50 px-3 py-2 text-center text-[0.62rem] text-slate-400 ring-1 ring-slate-100">
               Fill in antenna config<br />to enable export
