@@ -10,11 +10,13 @@ interface AnalysisActionsPanelProps {
   editorOpen: boolean;
   isSyncRotating: boolean;
   showAntennaGuide: boolean;
+  showCompassGuide: boolean;
   onReset: () => void;
   onPlacementsChange: (placements: ResolvedTagPlacement[]) => void;
   onEditorOpenChange: (open: boolean) => void;
   onSyncRotatingToggle: () => void;
   onAntennaGuideToggle: () => void;
+  onCompassGuideToggle: () => void;
 }
 
 export function AnalysisActionsPanel({
@@ -22,11 +24,13 @@ export function AnalysisActionsPanel({
   editorOpen,
   isSyncRotating,
   showAntennaGuide,
+  showCompassGuide,
   onReset,
   onPlacementsChange,
   onEditorOpenChange,
   onSyncRotatingToggle,
   onAntennaGuideToggle,
+  onCompassGuideToggle,
 }: AnalysisActionsPanelProps) {
 
   return (
@@ -145,6 +149,18 @@ export function AnalysisActionsPanel({
                     onClick={onAntennaGuideToggle}
                   >
                     Antenna Guide
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={showCompassGuide}
+                    className={`mx-auto block rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] ring-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35 ${
+                      showCompassGuide
+                        ? 'bg-retail-blue text-white ring-retail-blue shadow-sm'
+                        : 'bg-slate-50 text-slate-500 ring-slate-200 hover:bg-retail-blue-light hover:text-retail-blue hover:ring-retail-blue/30'
+                    }`}
+                    onClick={onCompassGuideToggle}
+                  >
+                    Compass Markers
                   </button>
                 </div>
               </details>

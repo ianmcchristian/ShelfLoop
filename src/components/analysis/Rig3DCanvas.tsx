@@ -429,20 +429,6 @@ function AntennaGuide() {
         <boxGeometry args={[0.18, 0.01, 0.04]} />
         <meshStandardMaterial color="#2563eb" roughness={1} metalness={0} transparent opacity={0.55} />
       </mesh>
-
-      {/* Wire bundle returning from the antenna mount into the hub/pole */}
-      <mesh position={[-0.03, 1.61, 0.12]} rotation={[0.55, 0.05, 0.08]}>
-        <cylinderGeometry args={[0.008, 0.008, 0.58, 8]} />
-        <meshStandardMaterial color="#111827" roughness={1} metalness={0} transparent opacity={0.55} />
-      </mesh>
-      <mesh position={[0.0, 1.57, 0.11]} rotation={[0.62, -0.04, 0.02]}>
-        <cylinderGeometry args={[0.008, 0.008, 0.64, 8]} />
-        <meshStandardMaterial color="#111827" roughness={1} metalness={0} transparent opacity={0.55} />
-      </mesh>
-      <mesh position={[0.03, 1.6, 0.1]} rotation={[0.57, -0.06, -0.05]}>
-        <cylinderGeometry args={[0.008, 0.008, 0.6, 8]} />
-        <meshStandardMaterial color="#111827" roughness={1} metalness={0} transparent opacity={0.55} />
-      </mesh>
     </group>
   );
 }
@@ -456,6 +442,7 @@ interface SceneProps {
   hasData: boolean;
   suppressHtmlLabels: boolean;
   showAntennaGuide: boolean;
+  showCompassGuide: boolean;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncSide: 'A' | 'B';
@@ -464,7 +451,7 @@ interface SceneProps {
   onBoxSelect: (n: number) => void;
 }
 
-function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
+function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
   const resultMap  = useMemo(
     () => Object.fromEntries(boxResults.map((b) => [b.boxNumber, b])),
     [boxResults],
@@ -589,7 +576,7 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
         }}
       />
 
-      {!suppressHtmlLabels && <CompassRose />}
+      {!suppressHtmlLabels && showCompassGuide && <CompassRose />}
       {showAntennaGuide && <AntennaGuide />}
 
       {(Object.entries(RIG_LAYOUT) as [string, RigPosition][]).map(([key, pos]) => {
@@ -625,6 +612,7 @@ export interface Rig3DCanvasProps {
   hasData: boolean;
   suppressHtmlLabels: boolean;
   showAntennaGuide?: boolean;
+  showCompassGuide?: boolean;
   rssiSuffixMap: Map<string, number>;
   canvasHeight?: number;
   isSyncActive?: boolean;
@@ -635,7 +623,7 @@ export interface Rig3DCanvasProps {
   onDeselect: () => void;
 }
 
-export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide = false, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
+export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide = false, showCompassGuide = false, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
   return (
     // onDoubleClick bubbles from the <canvas> DOM element — fires for any
     // double-click within the 3D viewport, background or box, no R3F magic needed.
@@ -652,6 +640,7 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           hasData={hasData}
           suppressHtmlLabels={suppressHtmlLabels}
           showAntennaGuide={showAntennaGuide}
+          showCompassGuide={showCompassGuide}
           rssiSuffixMap={rssiSuffixMap}
           isSyncActive={isSyncActive}
           syncSide={syncSide}

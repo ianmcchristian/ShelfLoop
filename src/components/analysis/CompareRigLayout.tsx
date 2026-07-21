@@ -18,6 +18,7 @@ interface RigPaneProps {
   scanResult: AnalysisRun | null;
   suppressHtmlLabels: boolean;
   showAntennaGuide: boolean;
+  showCompassGuide: boolean;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncStateRef: React.MutableRefObject<SyncCameraState | null>;
@@ -27,7 +28,7 @@ interface RigPaneProps {
 }
 
 function RigPane({
-  side, label, selectedBox, scanResult, suppressHtmlLabels, showAntennaGuide, rssiSuffixMap,
+  side, label, selectedBox, scanResult, suppressHtmlLabels, showAntennaGuide, showCompassGuide, rssiSuffixMap,
   isSyncActive, syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect,
 }: RigPaneProps) {
   const hasData = scanResult !== null;
@@ -64,6 +65,7 @@ function RigPane({
         canvasHeight={COMPARE_CANVAS_HEIGHT}
         suppressHtmlLabels={suppressHtmlLabels}
         showAntennaGuide={showAntennaGuide}
+        showCompassGuide={showCompassGuide}
         rssiSuffixMap={rssiSuffixMap}
         isSyncActive={isSyncActive}
         syncSide={side}
@@ -102,6 +104,7 @@ interface CompareRigLayoutProps {
   isSyncRotating: boolean;
   suppressHtmlLabels: boolean;
   showAntennaGuide: boolean;
+  showCompassGuide: boolean;
   rssiSuffixMapA: Map<string, number>;
   rssiSuffixMapB: Map<string, number>;
 }
@@ -114,6 +117,7 @@ export function CompareRigLayout({
   isSyncRotating,
   suppressHtmlLabels,
   showAntennaGuide,
+  showCompassGuide,
   rssiSuffixMapA,
   rssiSuffixMapB,
 }: CompareRigLayoutProps) {
@@ -152,6 +156,7 @@ export function CompareRigLayout({
         scanResult={scanResultA}
         suppressHtmlLabels={suppressHtmlLabels}
         showAntennaGuide={showAntennaGuide}
+        showCompassGuide={showCompassGuide}
         rssiSuffixMap={rssiSuffixMapA}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}
@@ -166,6 +171,7 @@ export function CompareRigLayout({
         scanResult={scanResultB}
         suppressHtmlLabels={suppressHtmlLabels}
         showAntennaGuide={showAntennaGuide}
+        showCompassGuide={showCompassGuide}
         rssiSuffixMap={rssiSuffixMapB}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}

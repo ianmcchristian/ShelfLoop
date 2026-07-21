@@ -81,6 +81,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   const [placementEditorOpen, setPlacementEditorOpen] = useState(false);
   const [isSyncRotating, setIsSyncRotating] = useState(false);
   const [showAntennaGuide, setShowAntennaGuide] = useState(false);
+  const [showCompassGuide, setShowCompassGuide] = useState(false);
   const rigSectionRef = useRef<HTMLDivElement>(null);
 
   // ── Compare state ──────────────────────────────────────────────────────────
@@ -329,11 +330,13 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             editorOpen={placementEditorOpen}
             isSyncRotating={isSyncRotating}
             showAntennaGuide={showAntennaGuide}
+            showCompassGuide={showCompassGuide}
             onReset={handleReset}
             onPlacementsChange={handlePlacementsChange}
             onEditorOpenChange={setPlacementEditorOpen}
             onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
             onAntennaGuideToggle={() => setShowAntennaGuide((v) => !v)}
+            onCompassGuideToggle={() => setShowCompassGuide((v) => !v)}
           />
         </div>
       </div>
@@ -349,6 +352,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             isSyncRotating={isSyncRotating}
             suppressHtmlLabels={placementEditorOpen}
             showAntennaGuide={showAntennaGuide}
+            showCompassGuide={showCompassGuide}
             rssiSuffixMapA={rssiSuffixMap}
             rssiSuffixMapB={compareRssiSuffixMap}
           />
@@ -368,6 +372,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
               hasData={hasData}
               suppressHtmlLabels={placementEditorOpen}
               showAntennaGuide={showAntennaGuide}
+              showCompassGuide={showCompassGuide}
               rssiSuffixMap={rssiSuffixMap}
               onBoxSelect={(boxNumber) => {
                 setSelectedBox(boxNumber);
