@@ -38,6 +38,7 @@ export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasDat
         </div>
       </div>
       <Rig3DCanvas
+        canvasHeight={showAntennaGuide ? 680 : 560}
         boxResults={boxResults}
         selectedBox={selectedBox}
         highlightedTagKey={highlightedTagKey}

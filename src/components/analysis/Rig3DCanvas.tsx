@@ -477,6 +477,10 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
   const _curr           = useRef(new THREE.Vector3());
   const _syncCamPos     = useRef(new THREE.Vector3());
   const _syncTarget     = useRef(new THREE.Vector3());
+  const _guideDir       = useRef(new THREE.Vector3());
+  // Ref mirror so the guide effect can read selection without being in its deps.
+  const selectedBoxRef  = useRef(selectedBox);
+  useEffect(() => { selectedBoxRef.current = selectedBox; }, [selectedBox]);
 
   // Trigger animation whenever selection changes
   useEffect(() => {
@@ -507,6 +511,34 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
       destCamPosRef.current.copy(controlsRef.current.object.position);
     }
   }, [selectedBox]);
+
+  // ── Antenna guide camera adjustment ─────────────────────────────────────────
+  // ON : raise orbit target to y=0.6 (midpoint of rig base -0.5 → antenna tip +1.9)
+  //      and push camera out to 6.5 units — preserves current view direction.
+  // OFF: re-centre target on rig origin, restore ~4.8 unit distance.
+  // Skipped when a box is already selected (box-zoom animation takes priority).
+  useEffect(() => {
+    if (!controlsRef.current || selectedBoxRef.current !== null) return;
+    animStartRef.current = performance.now() / 1000;
+
+    if (showAntennaGuide) {
+      destTargetRef.current.set(0, 0.6, 0);
+      _guideDir.current
+        .copy(controlsRef.current.object.position)
+        .sub(controlsRef.current.target)
+        .normalize()
+        .multiplyScalar(6.5);
+      destCamPosRef.current.copy(destTargetRef.current).add(_guideDir.current);
+    } else {
+      destTargetRef.current.copy(DEFAULT_TARGET);
+      _guideDir.current
+        .copy(controlsRef.current.object.position)
+        .sub(controlsRef.current.target)
+        .normalize()
+        .multiplyScalar(4.8);
+      destCamPosRef.current.copy(DEFAULT_TARGET).add(_guideDir.current);
+    }
+  }, [showAntennaGuide]);
 
   useFrame(({ clock }, dt) => {
     if (!controlsRef.current) return;
@@ -661,9 +693,11 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
         </div>
       )}
 
+      {/* Height-animating wrapper — smooth resize when antenna guide is toggled */}
+      <div style={{ height: canvasHeight, transition: 'height 0.35s ease', borderRadius: 16, overflow: 'hidden' }}>
       <Canvas
         camera={{ position: [-2.4, 2.2, 3.4], fov: 44 }}
-        style={{ width: '100%', height: canvasHeight, borderRadius: 16, background: '#ffffff', display: 'block' }}
+        style={{ width: '100%', height: '100%', background: '#ffffff', display: 'block' }}
       >
         <color attach="background" args={['#ffffff']} />
         <Scene
@@ -683,6 +717,7 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           onBoxSelect={onBoxSelect}
         />
       </Canvas>
+      </div>
       {hasData && (
         <p className="mt-2 text-right text-[0.58rem] font-semibold text-slate-400">
           {selectedBox !== null
