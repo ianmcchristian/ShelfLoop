@@ -91,11 +91,11 @@ interface ScanSourceProps {
   scanFileName: string | null;
   usingTestData: boolean;
   onScanFile: (text: string, name: string) => void;
-  onUseTestData: () => void;
+  onUseTestData: (scenario: 'A' | 'B') => void;
   onScanClear: () => void;
 }
 
-function ScanSource({ scanFileName, usingTestData, onScanFile, onUseTestData, onScanClear }: ScanSourceProps) {
+function ScanSource({ scanFileName, onScanFile, onUseTestData, onScanClear }: ScanSourceProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,7 +110,8 @@ function ScanSource({ scanFileName, usingTestData, onScanFile, onUseTestData, on
     e.target.value = '';
   };
 
-  const activeLabel = usingTestData ? 'demo-scan.csv (test)' : scanFileName;
+  // scanFileName doubles as the loaded-example label when using test data
+  const activeLabel = scanFileName;
 
   return (
     <div className="flex flex-col gap-2">
@@ -129,21 +130,30 @@ function ScanSource({ scanFileName, usingTestData, onScanFile, onUseTestData, on
           </button>
         </div>
       ) : (
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex-1 rounded-xl border-2 border-dashed border-slate-300 bg-white px-3 py-2.5 text-center text-xs font-black text-slate-500 transition hover:border-retail-blue hover:bg-retail-blue-light hover:text-retail-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35"
+            className="w-full rounded-xl border-2 border-dashed border-slate-300 bg-white px-3 py-2.5 text-center text-xs font-black text-slate-500 transition hover:border-retail-blue hover:bg-retail-blue-light hover:text-retail-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35"
           >
             Load CSV file
           </button>
-          <button
-            type="button"
-            onClick={onUseTestData}
-            className="flex-1 rounded-xl border-2 border-dashed border-slate-300 bg-white px-3 py-2.5 text-center text-xs font-black text-slate-500 transition hover:border-retail-blue hover:bg-retail-blue-light hover:text-retail-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35"
-          >
-            Load test data
-          </button>
+
+          <div className="flex flex-col gap-1">
+            <p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-400">or load example</p>
+            <div className="flex gap-2">
+              {(['A', 'B'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onUseTestData(s)}
+                  className="flex-1 rounded-xl border-2 border-dashed border-slate-300 bg-white px-3 py-2 text-center text-xs font-black text-slate-500 transition hover:border-retail-blue hover:bg-retail-blue-light hover:text-retail-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35"
+                >
+                  {s === 'A' ? 'Strong (A)' : 'Weak (B)'}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
       <input ref={inputRef} type="file" accept=".csv" className="hidden" onChange={handleChange} />
@@ -224,7 +234,7 @@ export interface UploadPanelProps {
   compareUsingTestData: boolean;
   onScanFile: (text: string, name: string) => void;
   onScanMetaChange: (field: keyof ScanMeta, value: string) => void;
-  onUseTestData: () => void;
+  onUseTestData: (scenario: 'A' | 'B') => void;
   onScanClear: () => void;
   onCompareFile: (text: string, name: string) => void;
   onCompareTestData: () => void;

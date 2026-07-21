@@ -90,47 +90,151 @@ export const TEST_PLACEMENTS: ResolvedTagPlacement[] = RAW_PLACEMENTS.map(
   }),
 );
 
-// ─── Mock run ─────────────────────────────────────────────────────────────────
-// Simulates a realistic read: good coverage on boxes 2 & 3, patchy elsewhere.
+// ─── Scenario A — Large · 45° · 3ft · Max ────────────────────────────────────
+// "Strong run" — optimal configuration. ~77% coverage (148/192 tags).
+// Physics: strong signal, wide beam, close range. Near-perfect on front/side/top
+// faces. Back faces mostly covered. Bottom faces are the consistent weak point.
+// RSSI range: -38 to -52 dBm (mostly green).
 
-const MOCK_READ_EPCS = [
-  // Box 2 — 18/24 read (75%)
-  'E28011B0A5020066E5C289B8','E28011B0A5020066E5C10388','E28011B0A5020066E5C16FB8',
-  'E2801191A5040076300B24C6','E28011B0A5020066E5C25B38','E28011B0A5020066E5C1F5F8',
-  'E2801191A5040076300A4E36','E2801191A5040076300A4E46','E28011B0A5020066E5C1F538',
-  'E28011B0A5020066E5C1F5B8','E28011B0A5020066E5C1F568','E28011B0A5020066E5C1F528',
-  'E28011B0A5020066E5C1F5C8','E28011B0A5020066E5C16FA8','E28011B0A5020066E5C25B08',
-  'E2801191A5040076300AB336','E28011B0A5020066E5C28938','E28011B0A5020066E5C16FF8',
-  // Box 3 — 20/24 read (83%)
-  'E28011B0A5020066E5C25B98','E28011B0A5020066E5C16F68','E28011B0A5020066E5C12948',
-  'E28011B0A5020066E5C28928','E2801191A5040076300A09B6','E2801191A5040076300A0986',
-  'E28011B0A5020066E5C26318','E28011B0A5020066E5C10368','E28011B0A5020066E5C26358',
-  'E28011B0A5020066E5C10338','E28011B0A5020066E5C263A8','E28011B0A5020066E5C26368',
-  'E2801191A5040076300AB3B6','E28011B0A5020066E5C16F08','E28011B0A5020066E5C25B48',
-  'E28011B0A5020066E5C25B88','E28011B0A5020066E5C25BC8','E28011B0A5020066E5C28988',
-  'E28011B0A5020066E5C25BD8','E28011B0A5020066E5C28928',
-  // Box 8 partial (verified tags only)
-  'E28011B0A5020066E5C16F18','E28011B0A5020066E5C263E8','E28011B0A5020066E5C263F8',
-  'E28011B0A5020066E5C129C8','E2801191A5040076300A4E76',
+const SCENARIO_A_EPCS: string[] = [
+  // Box 1 — NW Top (19/20 resolved — miss Back BR)
+  'E28011B0A502006C0283A0A5','E28011B0A502006C028452D4','E28011B0A502006C0283A055','E28011B0A502006C0283A674', // Front
+  'E28011B0A502006C028452C4','E28011B0A502006C02845224','E28011B0A502006C02844C84',                              // Back TL/TR/BL
+  'E28011B0A502006C02847884','E28011B0A502006C02835895','E28011B0A502006C0284C654','E28011B0A502006C0284C0B4', // Left
+  'E28011B0A502006C02844C24','E28011B0A502006C02845234','E28011B0A502006C028452E5','E28011B0A502006C027C8006', // Right
+  'E28011B0A502006C0283A045','E28011B0A502006C0284C6A5','E28011B0A502006C0284C0F5',                          // Top TL/BL/BR
+  'E28011B0A502006C0284C085',                                                                                 // Bottom BR
+  // Box 2 — NE Top (21/24 — miss Back BR + Bottom TL/BR)
+  'E28011B0A5020066E5C289B8','E28011B0A5020066E5C10388','E28011B0A5020066E5C16FB8','E28011B0A5020066E5C16FE8', // Front
+  'E2801191A5040076300B24C6','E28011B0A5020066E5C25B38','E2801191A5040076300B2496',                          // Back TL/TR/BL
+  'E2801191A5040076300A4E36','E2801191A5040076300A4E46','E28011B0A5020066E5C1F538','E2801191A5040076300A4E06', // Left
+  'E28011B0A5020066E5C1F5B8','E28011B0A5020066E5C1F588','E28011B0A5020066E5C1F568','E28011B0A5020066E5C1F528', // Right
+  'E28011B0A5020066E5C1F5C8','E28011B0A5020066E5C16FA8','E28011B0A5020066E5C25B08','E2801191A5040076300B24D6', // Top
+  'E2801191A5040076300A09F6','E28011B0A5020066E5C28938',                                                     // Bottom TR/BL
+  // Box 3 — SW Top (21/24 — miss Back BR + Bottom TR/BL)
+  'E28011B0A5020066E5C25B98','E28011B0A5020066E5C16F68','E28011B0A5020066E5C12948','E28011B0A5020066E5C12988', // Front
+  'E28011B0A5020066E5C28928','E2801191A5040076300A09B6','E2801191A5040076300A0986',                          // Back TL/TR/BL
+  'E28011B0A5020066E5C26318','E28011B0A5020066E5C10368','E28011B0A5020066E5C26358','E28011B0A5020066E5C26328', // Left
+  'E28011B0A5020066E5C10338','E28011B0A5020066E5C263A8','E28011B0A5020066E5C263B8','E28011B0A5020066E5C26368', // Right
+  'E2801191A5040076300AB3B6','E28011B0A5020066E5C16F08','E28011B0A5020066E5C25B48','E28011B0A5020066E5C28968', // Top
+  'E28011B0A5020066E5C25B88','E28011B0A5020066E5C25BD8',                                                     // Bottom TL/BR
+  // Box 4 — SE Top (18/20 resolved — miss Bottom BL)
+  'E28011B0A5050070B1BD341A','E28011B0A5050070B1BD34BA','E28011B0A5050070B1BD34AA','E28011B0A5050070B1BD348A', // Front
+  'E28011B0A5050070B1BE0E1A','E28011B0A502006C028478D5','E28011B0A502006C0284C095',                          // Back TL/BL/BR
+  'E28011B0A5050070B1BDC20A','E28011B0A5050070B1BDE8AA','E28011B0A5050070B1BDC2AA',                          // Left TR/BL/BR
+  'E28011B0A5050070B1BC883A','E28011B0A5050070B1BCAE9A','E28011B0A5050070B1BCAE2A',                          // Right TL/BL/BR
+  'E28011B0A5050070B1BC62CA','E28011B0A5050070B1BC62DA','E28011B0A5050070B1BDE82A','E28011B0A5050070B1BDC28A', // Top
+  'E28011B0A5050070B1BE94AA','E28011B0A5050070B1BE948A',                                                     // Bottom TL/TR
+  // Box 5 — NW Bottom (12/12 resolved — all resolvable tags read)
+  'E2801191A5040076300B6946','E2801191A5040076300B6916','E2801191A5040076300BAE56','E2801191A5040076300B69C6', // Front
+  'E2801191A5040076300AB376','E2801191A5040076300AB386','E2801191A5040076300AB3C6',                          // Back TR/BL/BR
+  'E2801191A5040076300BAE16','E2801191A5040076300B6906','E2801191A5040076300B6986',                          // Left TL/BL/BR
+  'E2801191A5040076300B6956',                                                                                 // Right BL
+  'E2801191A5040076300AF886',                                                                                 // Top BL
+  // Box 6 — NE Bottom (17/17 resolved — all resolvable tags read)
+  'E28011B0A502006C02845275','E28011B0A502006C02844CD5','E28011B0A502006C02844C85','E28011B0A502006C0283A6D5', // Front
+  'E2801191A5040076300B2446',                                                                                 // Back TL
+  'E28011B0A502006C0283A684','E28011B0A502006C0284C0E5','E28011B0A502006C0284C695','E28011B0A502006C0283A014', // Left
+  'E28011B0A502006C02835884','E28011B0A502006C02847874','E28011B0A502006C0283A0B5',                          // Right TR/BL/BR
+  'E28011B0A502006C0284C084','E28011B0A502006C02844C94','E28011B0A502006C028478E4',                          // Top TL/TR/BL
+  'E28011B0A502006C0284C664',                                                                                 // Bottom TL
+  // Box 7 — SW Bottom (21/23 resolved — miss Bottom TR/BR)
+  'E28011B0A5050070B1BDBA0A','E28011B0A5050070B1BDBAAA','E28011B0A5050070B1BD349A',                          // Front TR/BL/BR
+  'E28011B0A502006C02844C75','E28011B0A502006C02847885','E28011B0A502006C02845285','E28011B0A502006C02844CE5', // Back
+  'E28011B0A5050070B1BDBA8A','E28011B0A5050070B1BDC27A','E28011B0A5050070B1BDBA7A','E28011B0A5050070B1BDC29A', // Left
+  'E2801191A5040076300AF836','E2801191A5040076300AF8B6','E2801191A5040076300B2406','E2801191A5040076300AF8C6',  // Right
+  'E28011B0A5050070B1BC625A','E28011B0A5050070B1BCAEBA','E28011B0A5050070B1BC62BA','E28011B0A5050070B1BC88AA', // Top
+  'E28011B0A5050070B1BCAECA','E28011B0A5050070B1BC88DA',                                                     // Bottom TL/BL
+  // Box 8 — SE Bottom (19/19 resolved — all resolvable tags read)
+  'E28011B0A5020066E5C16F18','E28011B0A5020066E5C16F58','E28011B0A5020066E5C12908',                          // Front TL/TR/BL
+  'E28011B0A5050070B1BE0EAA','E28011B0A5050070B1BDE89A','E28011B0A5050070B1BDE8BA','E28011B0A5050070B1BC5A0A', // Back
+  'E28011B0A5050070B1BBD4EA','E28011B0A5050070B1BC620A','E28011B0A5050070B1BC5ADA','E28011B0A5050070B1BC5A5A', // Left
+  'E28011B0A5020066E5C263E8','E28011B0A5020066E5C263F8','E28011B0A5020066E5C103F8','E28011B0A5020066E5C129C8', // Right
+  'E2801191A5040076300A4E76','E28011B0A5020066E5C129D8','E28011B0A5020066E5C12938',                          // Top TR/BL/BR
+  'E28011B0A5050070B1BDE8CA',                                                                                 // Bottom BL
 ];
 
-export const TEST_RUN_META: RunMeta = {
-  name:        'Mock Run — Demo',
-  antenna:     'Large',
-  orientation: '45°',
-  range:       '3ft',
-  power:       'Base',
+// ─── Scenario B — Medium · 0° · 6ft · Base ───────────────────────────────────
+// "Distance penalty" — challenging configuration. ~39% coverage (74/192 tags).
+// Physics: weaker signal, flat beam, double the range, base power. Front faces
+// of near boxes (NW/NE) still readable. SW/SE bottom boxes are near-blind.
+// Clear spatial falloff pattern makes blind spots immediately obvious in the rig.
+// RSSI range: -58 to -78 dBm (mostly red).
+
+const SCENARIO_B_EPCS: string[] = [
+  // Box 1 — NW Top (10/20 — front face + near-side TL/TR only)
+  'E28011B0A502006C0283A0A5','E28011B0A502006C028452D4','E28011B0A502006C0283A055','E28011B0A502006C0283A674', // Front
+  'E28011B0A502006C028452C4',                                                                                 // Back TL only
+  'E28011B0A502006C02847884','E28011B0A502006C02835895',                                                     // Left TL/TR
+  'E28011B0A502006C02844C24','E28011B0A502006C02845234',                                                     // Right TL/TR
+  'E28011B0A502006C0283A045',                                                                                 // Top TL only
+  // Box 2 — NE Top (18/24 — best box at this range, most faces partially covered)
+  'E28011B0A5020066E5C289B8','E28011B0A5020066E5C10388','E28011B0A5020066E5C16FB8','E28011B0A5020066E5C16FE8', // Front
+  'E2801191A5040076300B24C6','E28011B0A5020066E5C25B38',                                                     // Back TL/TR
+  'E2801191A5040076300A4E36','E2801191A5040076300A4E46','E28011B0A5020066E5C1F538',                          // Left TL/TR/BL
+  'E28011B0A5020066E5C1F5B8','E28011B0A5020066E5C1F588','E28011B0A5020066E5C1F568','E28011B0A5020066E5C1F528', // Right
+  'E28011B0A5020066E5C1F5C8','E28011B0A5020066E5C16FA8','E28011B0A5020066E5C25B08','E2801191A5040076300B24D6', // Top
+  'E2801191A5040076300A09F6',                                                                                 // Bottom TR only
+  // Box 3 — SW Top (10/24 — front face + lead edges of sides, no back, no bottom)
+  'E28011B0A5020066E5C25B98','E28011B0A5020066E5C16F68','E28011B0A5020066E5C12948',                          // Front TL/TR/BL
+  'E28011B0A5020066E5C28928',                                                                                 // Back TL only
+  'E28011B0A5020066E5C26318','E28011B0A5020066E5C10368',                                                     // Left TL/TR
+  'E28011B0A5020066E5C10338','E28011B0A5020066E5C263A8',                                                     // Right TL/TR
+  'E2801191A5040076300AB3B6','E28011B0A5020066E5C25B48',                                                     // Top TL/BL
+  // Box 4 — SE Top (10/20 — front face + sparse coverage elsewhere)
+  'E28011B0A5050070B1BD341A','E28011B0A5050070B1BD34BA','E28011B0A5050070B1BD34AA','E28011B0A5050070B1BD348A', // Front
+  'E28011B0A5050070B1BE0E1A',                                                                                 // Back TL only
+  'E28011B0A5050070B1BDC20A',                                                                                 // Left TR only
+  'E28011B0A5050070B1BC883A',                                                                                 // Right TL only
+  'E28011B0A5050070B1BC62CA','E28011B0A5050070B1BC62DA',                                                     // Top TL/TR
+  'E28011B0A5050070B1BE94AA',                                                                                 // Bottom TL only
+  // Box 5 — NW Bottom (6/12 — front face mostly, 1 back, 1 left)
+  'E2801191A5040076300B6946','E2801191A5040076300B6916','E2801191A5040076300BAE56',                          // Front TL/TR/BL
+  'E2801191A5040076300AB376','E2801191A5040076300AB386',                                                     // Back TR/BL
+  'E2801191A5040076300BAE16',                                                                                 // Left TL only
+  // Box 6 — NE Bottom (12/17 — best bottom box; front + sides partially covered)
+  'E28011B0A502006C02845275','E28011B0A502006C02844CD5','E28011B0A502006C02844C85','E28011B0A502006C0283A6D5', // Front
+  'E2801191A5040076300B2446',                                                                                 // Back TL
+  'E28011B0A502006C0283A684','E28011B0A502006C0284C0E5','E28011B0A502006C0284C695',                          // Left TL/TR/BL
+  'E28011B0A502006C02835884','E28011B0A502006C02847874',                                                     // Right TR/BL
+  'E28011B0A502006C0284C084','E28011B0A502006C02844C94',                                                     // Top TL/TR
+  // Box 7 — SW Bottom (5/23 — severe falloff; front face edge + single slots)
+  'E28011B0A5050070B1BDBA0A','E28011B0A5050070B1BDBAAA',                                                     // Front TR/BL
+  'E28011B0A5050070B1BDBA8A',                                                                                 // Left TL only
+  'E28011B0A5050070B1BC625A',                                                                                 // Top TL only
+  'E28011B0A5050070B1BCAECA',                                                                                 // Bottom TL only
+  // Box 8 — SE Bottom (3/19 — near-total blind spot; only front TL/TR + 1 left)
+  'E28011B0A5020066E5C16F18','E28011B0A5020066E5C16F58',                                                     // Front TL/TR
+  'E28011B0A5050070B1BBD4EA',                                                                                 // Left TL only
+];
+
+// ─── Scenario objects ─────────────────────────────────────────────────────────
+
+const RSSI_A = [-38, -42, -44, -46, -48, -40, -51, -43, -47, -39] as const; // strong: mostly green
+const RSSI_B = [-58, -62, -65, -68, -71, -60, -74, -66, -72, -78] as const; // weak:   mostly red
+
+function toReads(epcs: string[], rssiCycle: readonly number[]): RunTagRead[] {
+  return epcs.map((epc, i) => ({
+    rawEpc: epc,
+    suffix: epc.slice(-7).toUpperCase(),
+    rssi:   rssiCycle[i % rssiCycle.length],
+  }));
+}
+
+export interface TestScenario {
+  label: string;
+  meta:  RunMeta;
+  reads: RunTagRead[];
+}
+
+export const SCENARIO_A: TestScenario = {
+  label: 'Example A — Strong (Large · 45° · 3ft · Max)',
+  meta: { name: 'Example A', antenna: 'Large', orientation: '45°', range: '3ft', power: 'Max' },
+  reads: toReads(SCENARIO_A_EPCS, RSSI_A),
 };
 
-// Mock RSSI values (-40 to -72 dBm) so the RSSI heatmap toggle is testable
-// without uploading a real _data.csv. Cycles through a representative spread.
-const MOCK_RSSI_CYCLE = [-42, -51, -58, -46, -64, -43, -55, -68, -49, -72] as const;
-
-export const TEST_RUN_READS: RunTagRead[] = MOCK_READ_EPCS.map((epc, i) => ({
-  rawEpc: epc,
-  suffix: epc.slice(-7).toUpperCase(),
-  rssi:   MOCK_RSSI_CYCLE[i % MOCK_RSSI_CYCLE.length],
-}));
-
-/** Minimal CSV text that represents the mock run — used for download/copy. */
-export const TEST_RUN_CSV = `EPC\n${MOCK_READ_EPCS.join('\n')}\n`;
+export const SCENARIO_B: TestScenario = {
+  label: 'Example B — Weak (Medium · 0° · 6ft · Base)',
+  meta: { name: 'Example B', antenna: 'Medium', orientation: '0°', range: '6ft', power: 'Base' },
+  reads: toReads(SCENARIO_B_EPCS, RSSI_B),
+};

@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseRunCsv } from './rfidRunParser';
 import { matchRun } from './rfidMatcher';
-import { TEST_PLACEMENTS, TEST_RUN_META, TEST_RUN_READS } from './rfidTestData';
+import { TEST_PLACEMENTS, SCENARIO_A, SCENARIO_B } from './rfidTestData';
 import type { AnalysisRun, ParseIssue, ResolvedTagPlacement, RunMeta, RunTagRead, ScanMeta } from './rfidTypes';
 import { BoxDetailPanel } from './BoxDetailPanel';
 import { RigOverview } from './RigOverview';
@@ -88,14 +88,9 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   const [compareUsingTestData, setCompareUsingTestData] = useState(false);
 
   // ── RSSI derived ───────────────────────────────────────────────────────────
-  const activeReads = useMemo(
-    () => (usingTestData ? TEST_RUN_READS : (scanReads ?? [])),
-    [usingTestData, scanReads],
-  );
-  const compareActiveReads = useMemo(
-    () => (compareUsingTestData ? TEST_RUN_READS : (compareScanReads ?? [])),
-    [compareUsingTestData, compareScanReads],
-  );
+  // scanReads is always set (by file upload or handleUseTestData), so no branch needed.
+  const activeReads        = useMemo(() => scanReads ?? [],        [scanReads]);
+  const compareActiveReads = useMemo(() => compareScanReads ?? [], [compareScanReads]);
 
   const rssiSuffixMap        = useMemo(() => buildRssiMap(activeReads),         [activeReads]);
   const compareRssiSuffixMap = useMemo(() => buildRssiMap(compareActiveReads), [compareActiveReads]);
@@ -121,17 +116,18 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setScanMeta((m) => ({ ...m, [field]: value }));
   }, []);
 
-  const handleUseTestData = useCallback(() => {
+  const handleUseTestData = useCallback((scenario: 'A' | 'B') => {
+    const s = scenario === 'A' ? SCENARIO_A : SCENARIO_B;
     setPlacements(TEST_PLACEMENTS);
     setPlacementIssues([]);
-    setScanReads(TEST_RUN_READS);
+    setScanReads(s.reads);
     setScanIssues([]);
-    setScanFileName(null);
+    setScanFileName(s.label);
     setScanMeta({
-      antenna:     TEST_RUN_META.antenna     as ScanMeta['antenna'],
-      orientation: TEST_RUN_META.orientation as ScanMeta['orientation'],
-      range:       TEST_RUN_META.range       as ScanMeta['range'],
-      power:       TEST_RUN_META.power       as ScanMeta['power'],
+      antenna:     s.meta.antenna     as ScanMeta['antenna'],
+      orientation: s.meta.orientation as ScanMeta['orientation'],
+      range:       s.meta.range       as ScanMeta['range'],
+      power:       s.meta.power       as ScanMeta['power'],
     });
     setSelectedBox(null);
     setHighlightedTagKey(null);
@@ -147,8 +143,9 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   }, []);
 
   const handleCompareTestData = useCallback(() => {
-    setCompareScanReads(TEST_RUN_READS);
-    setCompareScanFileName(null);
+    // Compare test data defaults to Scenario A reads
+    setCompareScanReads(SCENARIO_A.reads);
+    setCompareScanFileName(SCENARIO_A.label);
     setCompareUsingTestData(true);
   }, []);
 
@@ -178,21 +175,13 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   const activePlacements = usingTestData ? TEST_PLACEMENTS : placements;
 
   const scanResult: AnalysisRun | null = useMemo(() => {
-    const reads = usingTestData ? TEST_RUN_READS : scanReads;
-    if (!reads || activePlacements.length === 0) return null;
+    if (!scanReads || activePlacements.length === 0) return null;
     return matchRun(
-      toRunMeta(
-        usingTestData
-          ? { antenna: TEST_RUN_META.antenna as ScanMeta['antenna'],
-              orientation: TEST_RUN_META.orientation as ScanMeta['orientation'],
-              range: TEST_RUN_META.range as ScanMeta['range'],
-              power: TEST_RUN_META.power as ScanMeta['power'] }
-          : scanMeta,
-      ),
-      reads,
+      toRunMeta(scanMeta),
+      scanReads,
       activePlacements,
     );
-  }, [activePlacements, scanMeta, scanReads, usingTestData]);
+  }, [activePlacements, scanMeta, scanReads]);
 
   // ── Selected box result ────────────────────────────────────────────────────
 
@@ -207,10 +196,9 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   const compareActive = compareScanReads !== null || compareUsingTestData;
 
   const compareScanResult = useMemo((): AnalysisRun | null => {
-    const reads = compareUsingTestData ? TEST_RUN_READS : compareScanReads;
-    if (!reads || activePlacements.length === 0) return null;
-    return matchRun(toRunMeta(EMPTY_SCAN_META), reads, activePlacements);
-  }, [compareScanReads, compareUsingTestData, activePlacements]);
+    if (!compareScanReads || activePlacements.length === 0) return null;
+    return matchRun(toRunMeta(EMPTY_SCAN_META), compareScanReads, activePlacements);
+  }, [compareScanReads, activePlacements]);
 
   const mainLabel: string | null =
     usingTestData ? 'Test data' : (scanFileName ?? null);
