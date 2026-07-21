@@ -30,7 +30,11 @@ const COMPASS_RADIUS = 1.72;
 const COMPASS_Y      = 1.38;
 const POST_HEIGHT    = 2.55;
 const POST_Y         = 0.48;
-const ANTENNA_Y      = 1.86;
+const HUB_Y          = 1.22;
+const ARM_Y          = 1.82;
+const ARM_Z          = 0.16;
+const ANTENNA_Y      = 1.88;
+const ANTENNA_Z      = 0.31;
 // At scale 1.75, box is ~1.61 units wide. With fov=44°, half-height at D is
 // D * tan(22°) ≈ D * 0.404. Need D * 0.404 > box_half_diagonal (≈1.14) plus
 // margin → D ≥ 4.0 keeps all corners fully in frame.
@@ -390,22 +394,54 @@ function CompassRose() {
 function AntennaGuide() {
   return (
     <group position={[0, 0, 0]}>
-      {/* PVC post */}
+      {/* PVC center pole */}
       <mesh position={[0, POST_Y, 0]}>
-        <cylinderGeometry args={[0.028, 0.028, POST_HEIGHT, 12]} />
-        <meshStandardMaterial color="#94a3b8" roughness={1} metalness={0} transparent opacity={0.45} />
+        <cylinderGeometry args={[0.028, 0.028, POST_HEIGHT, 14]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={1} metalness={0} transparent opacity={0.7} />
       </mesh>
 
-      {/* Antenna plate: centered in rig, facing North. 45° tilt = top edge leans North. */}
-      <mesh position={[0, ANTENNA_Y, 0.04]} rotation={[-Math.PI / 4, 0, 0]}>
-        <boxGeometry args={[0.58, 0.03, 0.42]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.18} />
+      {/* Hub / printed clamp on the pole */}
+      <mesh position={[0, HUB_Y, 0]}>
+        <cylinderGeometry args={[0.048, 0.048, 0.11, 12]} />
+        <meshStandardMaterial color="#94a3b8" roughness={1} metalness={0} transparent opacity={0.5} />
       </mesh>
 
-      {/* Tiny north tick on the antenna itself */}
-      <mesh position={[0, ANTENNA_Y + 0.02, 0.29]} rotation={[-Math.PI / 4, 0, 0]}>
-        <boxGeometry args={[0.16, 0.01, 0.04]} />
-        <meshStandardMaterial color="#2563eb" roughness={1} metalness={0} transparent opacity={0.45} />
+      {/* Mount arm protruding North from the center pole */}
+      <mesh position={[0, ARM_Y, ARM_Z]}>
+        <boxGeometry args={[0.09, 0.05, 0.34]} />
+        <meshStandardMaterial color="#64748b" roughness={1} metalness={0} transparent opacity={0.55} />
+      </mesh>
+
+      {/* Small vertical riser at the end of the arm */}
+      <mesh position={[0, ARM_Y + 0.09, ARM_Z + 0.11]}>
+        <boxGeometry args={[0.05, 0.2, 0.05]} />
+        <meshStandardMaterial color="#64748b" roughness={1} metalness={0} transparent opacity={0.55} />
+      </mesh>
+
+      {/* Antenna plate: offset out from the pole, facing North, top edge tilts North */}
+      <mesh position={[0, ANTENNA_Y, ANTENNA_Z]} rotation={[-Math.PI / 4, 0, 0]}>
+        <boxGeometry args={[0.62, 0.028, 0.46]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.26} />
+      </mesh>
+
+      {/* Tiny north tick on the antenna face */}
+      <mesh position={[0, ANTENNA_Y + 0.03, ANTENNA_Z + 0.16]} rotation={[-Math.PI / 4, 0, 0]}>
+        <boxGeometry args={[0.18, 0.01, 0.04]} />
+        <meshStandardMaterial color="#2563eb" roughness={1} metalness={0} transparent opacity={0.55} />
+      </mesh>
+
+      {/* Wire bundle returning from the antenna mount into the hub/pole */}
+      <mesh position={[-0.03, 1.61, 0.12]} rotation={[0.55, 0.05, 0.08]}>
+        <cylinderGeometry args={[0.008, 0.008, 0.58, 8]} />
+        <meshStandardMaterial color="#111827" roughness={1} metalness={0} transparent opacity={0.55} />
+      </mesh>
+      <mesh position={[0.0, 1.57, 0.11]} rotation={[0.62, -0.04, 0.02]}>
+        <cylinderGeometry args={[0.008, 0.008, 0.64, 8]} />
+        <meshStandardMaterial color="#111827" roughness={1} metalness={0} transparent opacity={0.55} />
+      </mesh>
+      <mesh position={[0.03, 1.6, 0.1]} rotation={[0.57, -0.06, -0.05]}>
+        <cylinderGeometry args={[0.008, 0.008, 0.6, 8]} />
+        <meshStandardMaterial color="#111827" roughness={1} metalness={0} transparent opacity={0.55} />
       </mesh>
     </group>
   );
@@ -419,6 +455,7 @@ interface SceneProps {
   highlightedTagKey: string | null;
   hasData: boolean;
   suppressHtmlLabels: boolean;
+  showAntennaGuide: boolean;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncSide: 'A' | 'B';
@@ -427,7 +464,7 @@ interface SceneProps {
   onBoxSelect: (n: number) => void;
 }
 
-function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
+function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
   const resultMap  = useMemo(
     () => Object.fromEntries(boxResults.map((b) => [b.boxNumber, b])),
     [boxResults],
@@ -553,7 +590,7 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
       />
 
       {!suppressHtmlLabels && <CompassRose />}
-      <AntennaGuide />
+      {showAntennaGuide && <AntennaGuide />}
 
       {(Object.entries(RIG_LAYOUT) as [string, RigPosition][]).map(([key, pos]) => {
         const num         = Number(key);
@@ -587,6 +624,7 @@ export interface Rig3DCanvasProps {
   highlightedTagKey: string | null;
   hasData: boolean;
   suppressHtmlLabels: boolean;
+  showAntennaGuide?: boolean;
   rssiSuffixMap: Map<string, number>;
   canvasHeight?: number;
   isSyncActive?: boolean;
@@ -597,7 +635,7 @@ export interface Rig3DCanvasProps {
   onDeselect: () => void;
 }
 
-export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
+export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide = false, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
   return (
     // onDoubleClick bubbles from the <canvas> DOM element — fires for any
     // double-click within the 3D viewport, background or box, no R3F magic needed.
@@ -613,6 +651,7 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           highlightedTagKey={highlightedTagKey}
           hasData={hasData}
           suppressHtmlLabels={suppressHtmlLabels}
+          showAntennaGuide={showAntennaGuide}
           rssiSuffixMap={rssiSuffixMap}
           isSyncActive={isSyncActive}
           syncSide={syncSide}

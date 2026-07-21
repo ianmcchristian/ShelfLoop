@@ -80,6 +80,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   const [shouldScrollToRig, setShouldScrollToRig] = useState(false);
   const [placementEditorOpen, setPlacementEditorOpen] = useState(false);
   const [isSyncRotating, setIsSyncRotating] = useState(false);
+  const [showAntennaGuide, setShowAntennaGuide] = useState(false);
   const rigSectionRef = useRef<HTMLDivElement>(null);
 
   // ── Compare state ──────────────────────────────────────────────────────────
@@ -327,10 +328,12 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             placements={activePlacements}
             editorOpen={placementEditorOpen}
             isSyncRotating={isSyncRotating}
+            showAntennaGuide={showAntennaGuide}
             onReset={handleReset}
             onPlacementsChange={handlePlacementsChange}
             onEditorOpenChange={setPlacementEditorOpen}
             onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
+            onAntennaGuideToggle={() => setShowAntennaGuide((v) => !v)}
           />
         </div>
       </div>
@@ -345,6 +348,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             labelB={compareLabelB}
             isSyncRotating={isSyncRotating}
             suppressHtmlLabels={placementEditorOpen}
+            showAntennaGuide={showAntennaGuide}
             rssiSuffixMapA={rssiSuffixMap}
             rssiSuffixMapB={compareRssiSuffixMap}
           />
@@ -363,6 +367,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
               highlightedTagKey={highlightedTagKey}
               hasData={hasData}
               suppressHtmlLabels={placementEditorOpen}
+              showAntennaGuide={showAntennaGuide}
               rssiSuffixMap={rssiSuffixMap}
               onBoxSelect={(boxNumber) => {
                 setSelectedBox(boxNumber);

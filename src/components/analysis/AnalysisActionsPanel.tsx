@@ -9,20 +9,24 @@ interface AnalysisActionsPanelProps {
   placements: ResolvedTagPlacement[];
   editorOpen: boolean;
   isSyncRotating: boolean;
+  showAntennaGuide: boolean;
   onReset: () => void;
   onPlacementsChange: (placements: ResolvedTagPlacement[]) => void;
   onEditorOpenChange: (open: boolean) => void;
   onSyncRotatingToggle: () => void;
+  onAntennaGuideToggle: () => void;
 }
 
 export function AnalysisActionsPanel({
   placements,
   editorOpen,
   isSyncRotating,
+  showAntennaGuide,
   onReset,
   onPlacementsChange,
   onEditorOpenChange,
   onSyncRotatingToggle,
+  onAntennaGuideToggle,
 }: AnalysisActionsPanelProps) {
 
   return (
@@ -121,10 +125,26 @@ export function AnalysisActionsPanel({
                   </p>
                   <button
                     type="button"
-                    className="mx-auto block rounded-lg bg-slate-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 ring-1 ring-slate-200 transition hover:bg-retail-blue-light hover:text-retail-blue hover:ring-retail-blue/30 focus:outline-none"
+                    className="mx-auto block rounded-lg bg-slate-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 ring-1 ring-slate-200 transition hover:bg-retail-blue-light hover:text-retail-blue hover:ring-retail-blue/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35"
                     onClick={() => onEditorOpenChange(true)}
                   >
                     Box Placement
+                  </button>
+
+                  <p className="pt-2 text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">
+                    Rig overlays
+                  </p>
+                  <button
+                    type="button"
+                    aria-pressed={showAntennaGuide}
+                    className={`mx-auto block rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] ring-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35 ${
+                      showAntennaGuide
+                        ? 'bg-retail-blue text-white ring-retail-blue shadow-sm'
+                        : 'bg-slate-50 text-slate-500 ring-slate-200 hover:bg-retail-blue-light hover:text-retail-blue hover:ring-retail-blue/30'
+                    }`}
+                    onClick={onAntennaGuideToggle}
+                  >
+                    Antenna Guide
                   </button>
                 </div>
               </details>

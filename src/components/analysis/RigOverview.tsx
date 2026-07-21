@@ -10,12 +10,13 @@ export interface RigOverviewProps {
   highlightedTagKey: string | null;
   hasData: boolean;
   suppressHtmlLabels: boolean;
+  showAntennaGuide: boolean;
   rssiSuffixMap: Map<string, number>;
   onBoxSelect: (n: number) => void;
   onDeselect: () => void;
 }
 
-export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, rssiSuffixMap, onBoxSelect, onDeselect }: RigOverviewProps) {
+export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, rssiSuffixMap, onBoxSelect, onDeselect }: RigOverviewProps) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
@@ -39,6 +40,7 @@ export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasDat
         highlightedTagKey={highlightedTagKey}
         hasData={hasData}
         suppressHtmlLabels={suppressHtmlLabels}
+        showAntennaGuide={showAntennaGuide}
         rssiSuffixMap={rssiSuffixMap}
         onBoxSelect={onBoxSelect}
         onDeselect={onDeselect}

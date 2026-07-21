@@ -17,6 +17,7 @@ interface RigPaneProps {
   selectedBox: number | null;
   scanResult: AnalysisRun | null;
   suppressHtmlLabels: boolean;
+  showAntennaGuide: boolean;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncStateRef: React.MutableRefObject<SyncCameraState | null>;
@@ -26,7 +27,7 @@ interface RigPaneProps {
 }
 
 function RigPane({
-  side, label, selectedBox, scanResult, suppressHtmlLabels, rssiSuffixMap,
+  side, label, selectedBox, scanResult, suppressHtmlLabels, showAntennaGuide, rssiSuffixMap,
   isSyncActive, syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect,
 }: RigPaneProps) {
   const hasData = scanResult !== null;
@@ -62,6 +63,7 @@ function RigPane({
         hasData={hasData}
         canvasHeight={COMPARE_CANVAS_HEIGHT}
         suppressHtmlLabels={suppressHtmlLabels}
+        showAntennaGuide={showAntennaGuide}
         rssiSuffixMap={rssiSuffixMap}
         isSyncActive={isSyncActive}
         syncSide={side}
@@ -99,6 +101,7 @@ interface CompareRigLayoutProps {
   labelB: string;
   isSyncRotating: boolean;
   suppressHtmlLabels: boolean;
+  showAntennaGuide: boolean;
   rssiSuffixMapA: Map<string, number>;
   rssiSuffixMapB: Map<string, number>;
 }
@@ -110,6 +113,7 @@ export function CompareRigLayout({
   labelB,
   isSyncRotating,
   suppressHtmlLabels,
+  showAntennaGuide,
   rssiSuffixMapA,
   rssiSuffixMapB,
 }: CompareRigLayoutProps) {
@@ -147,6 +151,7 @@ export function CompareRigLayout({
         selectedBox={selectedBoxA}
         scanResult={scanResultA}
         suppressHtmlLabels={suppressHtmlLabels}
+        showAntennaGuide={showAntennaGuide}
         rssiSuffixMap={rssiSuffixMapA}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}
@@ -160,6 +165,7 @@ export function CompareRigLayout({
         selectedBox={selectedBoxB}
         scanResult={scanResultB}
         suppressHtmlLabels={suppressHtmlLabels}
+        showAntennaGuide={showAntennaGuide}
         rssiSuffixMap={rssiSuffixMapB}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}
