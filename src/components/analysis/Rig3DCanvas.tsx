@@ -14,9 +14,9 @@ import { Html, OrbitControls } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 
-import type { BoxResult, RigPosition } from './rfidTypes';
+import type { BoxResult, RigPosition, TagSlotResult } from './rfidTypes';
 import { RIG_LAYOUT } from './rfidTypes';
-import { rssiToHex, rssiToPct, RSSI_MISSED_COLOR } from './rfidColorUtils';
+import { rssiToHex, rssiToPct } from './rfidColorUtils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -53,6 +53,40 @@ function rigTo3D({ col, layer, row }: RigPosition): THREE.Vector3 {
 function rigTo3DArr(pos: RigPosition): [number, number, number] {
   const v = rigTo3D(pos);
   return [v.x, v.y, v.z];
+}
+
+interface AntennaPose {
+  center: THREE.Vector3;
+  direction: THREE.Vector3;
+  rotationX: number;
+}
+
+interface PulseDescriptor {
+  startedAt: number;
+  origin: THREE.Vector3;
+  direction: THREE.Vector3;
+}
+
+function getAntennaPose(angleDeg: 0 | 45): AntennaPose {
+  const center = new THREE.Vector3(
+    0,
+    angleDeg === 0 ? ARM_Y : ANTENNA_Y,
+    angleDeg === 0 ? ARM_Z + 0.33 : ANTENNA_Z,
+  );
+  const rotationX = -THREE.MathUtils.degToRad(angleDeg);
+  const direction = new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(rotationX, 0, 0)).normalize();
+  return { center, direction, rotationX };
+}
+
+function tagPulseColor(
+  slot: TagSlotResult,
+  lookupKey: string,
+  rssiSuffixMap: Map<string, number>,
+): string {
+  const rssiDbm = slot.state === 'read' ? (rssiSuffixMap.get(lookupKey) ?? null) : null;
+  if (slot.state !== 'read') return '#94a3b8';
+  if (rssiDbm !== null) return rssiToHex(rssiDbm);
+  return '#14532d';
 }
 
 // Precise red scale per spec, green entry at 85%.
@@ -143,10 +177,11 @@ interface BoxMeshProps {
   phaseOffset: number;
   suppressHtmlLabels: boolean;
   rssiSuffixMap: Map<string, number>;
+  pulse: PulseDescriptor | null;
   onSelect: (n: number) => void;
 }
 
-function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, anySelected, hasData, phaseOffset, suppressHtmlLabels, rssiSuffixMap, onSelect }: BoxMeshProps) {
+function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, anySelected, hasData, phaseOffset, suppressHtmlLabels, rssiSuffixMap, pulse, onSelect }: BoxMeshProps) {
   const meshRef     = useRef<THREE.Mesh>(null);
   const matRef      = useRef<THREE.MeshStandardMaterial>(null);
   const labelRef    = useRef<HTMLDivElement>(null);
@@ -154,6 +189,38 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
   const _wp         = useRef(new THREE.Vector3());
   const _rigCenter  = useRef(new THREE.Vector3());
   const colorHex    = useMemo(() => boxHex(result), [result]);
+  const pulseTagData = useMemo(() => {
+    if (!result) return [] as { key: string; pos: [number, number, number]; color: string; hitAt: number }[];
+    return result.faces.flatMap((faceResult) =>
+      faceResult.slots.flatMap((slot) => {
+        const pos = FACE_CORNERS[slot.face]?.[slot.position];
+        if (!pos) return [];
+        const lookupKey = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
+        if (!pulse) {
+          return [{
+            key: `${slot.face}-${slot.position}`,
+            pos: pos as [number, number, number],
+            color: tagPulseColor(slot, lookupKey, rssiSuffixMap),
+            hitAt: Number.POSITIVE_INFINITY,
+          }];
+        }
+
+        const world = new THREE.Vector3(position[0] + pos[0], position[1] + pos[1], position[2] + pos[2]);
+        const rel = world.clone().sub(pulse.origin);
+        const along = rel.dot(pulse.direction);
+        const closest = pulse.direction.clone().multiplyScalar(along);
+        const radial = rel.sub(closest).length();
+        const spread = along > 0 ? 0.42 + along * 0.72 : 0;
+        const hitAt = along > 0 && radial <= spread ? pulse.startedAt + along * 0.34 : Number.POSITIVE_INFINITY;
+        return [{
+          key: `${slot.face}-${slot.position}`,
+          pos: pos as [number, number, number],
+          color: tagPulseColor(slot, lookupKey, rssiSuffixMap),
+          hitAt,
+        }];
+      }),
+    );
+  }, [position, pulse, result, rssiSuffixMap]);
   // Track coverage colour so useFrame can lerp back to it on deselect
   const coverageClr = useRef(new THREE.Color(colorHex));
   const prevHex     = useRef(colorHex);
@@ -168,6 +235,9 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
       prevHex.current = colorHex;
     }
 
+    const pulseNow = pulse ? performance.now() / 1000 - pulse.startedAt : null;
+    const pulseActive = pulseNow !== null && pulseNow >= 0 && pulseNow <= 1.9;
+
     // ── Colour: dimmed boxes go neutral grey, others keep coverage colour ──────
     const wantColor = anySelected && !isSelected ? DIMMED_CLR : coverageClr.current;
     matRef.current.color.lerp(wantColor, smooth);
@@ -178,9 +248,10 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
       THREE.MathUtils.lerp(meshRef.current.scale.x, targetScale, smooth),
     );
 
-    // ── Material opacity (selection dimming) ─────────────────────────────────
+    // ── Material opacity (selection dimming + pulse translucency) ────────────
     const selectionTarget = anySelected && !isSelected ? 0.18 : 1.0;
-    const newOpacity      = THREE.MathUtils.lerp(matRef.current.opacity, selectionTarget, smooth);
+    const pulseTarget     = pulseActive ? Math.min(selectionTarget, 0.28) : selectionTarget;
+    const newOpacity      = THREE.MathUtils.lerp(matRef.current.opacity, pulseTarget, smooth);
     const wantTransparent = newOpacity < 0.99;
     // needsUpdate is required when toggling transparent — forces shader recompile
     if (matRef.current.transparent !== wantTransparent) {
@@ -206,11 +277,17 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
 
     // ── Emissive: idle pulse only — no colour change on selection ─────────────
     if (!hasData) {
-      const pulse = Math.max(0, Math.sin(clock.elapsedTime * 1.4 + phaseOffset));
+      const idlePulse = Math.max(0, Math.sin(clock.elapsedTime * 1.4 + phaseOffset));
       matRef.current.emissive.set('#0071dc');
-      matRef.current.emissiveIntensity = pulse * 0.5;
+      matRef.current.emissiveIntensity = idlePulse * 0.5;
     } else {
       matRef.current.emissiveIntensity = 0;
+    }
+
+    if (pulseActive) {
+      const glow = Math.max(0, 1 - Math.abs((pulseNow ?? 0) - 0.9) / 0.9) * 0.16;
+      matRef.current.emissive.set('#67e8f9');
+      matRef.current.emissiveIntensity = Math.max(matRef.current.emissiveIntensity, glow);
     }
   });
 
@@ -300,10 +377,8 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
           const lookupKey = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
           const rssiDbm   = slot.state === 'read' ? (rssiSuffixMap.get(lookupKey) ?? null) : null;
           let tagBg: string;
-          if (isHighlighted)              { tagBg = 'rgba(0,113,220,0.96)'; }
-          else if (slot.state !== 'read') { tagBg = RSSI_MISSED_COLOR; }
-          else if (rssiDbm !== null)      { tagBg = rssiToHex(rssiDbm); }
-          else                            { tagBg = 'rgba(20,83,45,0.88)'; } // green fallback (no RSSI data)
+          if (isHighlighted) { tagBg = 'rgba(0,113,220,0.96)'; }
+          else { tagBg = tagPulseColor(slot, lookupKey, rssiSuffixMap); }
 
           return (
             <Html
@@ -350,11 +425,52 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
           );
         })
       )}
+
+      {/* Pulse-only tag pings on box faces while wavefront is travelling */}
+      {!suppressHtmlLabels && pulse && pulseTagData.map((tag) => (
+        <PulseTagPing key={tag.key} pos={tag.pos} color={tag.color} hitAt={tag.hitAt} pulseStart={pulse.startedAt} />
+      ))}
     </mesh>
   );
 }
 
 // ─── Orientation helpers / rig guide ─────────────────────────────────────────
+
+function PulseTagPing({
+  pos,
+  color,
+  hitAt,
+  pulseStart,
+}: {
+  pos: [number, number, number];
+  color: string;
+  hitAt: number;
+  pulseStart: number;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+
+  useFrame(() => {
+    if (!meshRef.current || !matRef.current) return;
+    const now = performance.now() / 1000;
+    const age = now - hitAt;
+    const pulseAge = now - pulseStart;
+    const active = Number.isFinite(hitAt) && age >= 0 && age <= 1.0 && pulseAge <= 1.9;
+    meshRef.current.visible = active;
+    if (!active) return;
+
+    const scale = 0.6 + Math.min(age / 0.25, 1) * 1.5;
+    meshRef.current.scale.setScalar(scale);
+    matRef.current.opacity = 0.95 * (1 - age / 1.0);
+  });
+
+  return (
+    <mesh ref={meshRef} position={pos} visible={false}>
+      <sphereGeometry args={[0.03, 12, 12]} />
+      <meshBasicMaterial ref={matRef} color={color} transparent opacity={0} depthWrite={false} />
+    </mesh>
+  );
+}
 
 function CompassMarker({ position, label }: { position: [number, number, number]; label: 'N' | 'S' | 'E' | 'W' }) {
   return (
@@ -401,22 +517,21 @@ function PulseWave({ delay }: { delay: number }) {
     if (startRef.current === null) startRef.current = clock.elapsedTime;
 
     const t = clock.elapsedTime - startRef.current - delay;
-    if (t < 0 || t > 0.9) {
+    if (t < 0 || t > 1.0) {
       meshRef.current.visible = false;
       return;
     }
 
     meshRef.current.visible = true;
-    const progress = t / 0.9;
-    const scale = 1 + progress * 3.4;
-    meshRef.current.position.z = 0.04 + progress * 1.15;
-    meshRef.current.scale.set(scale, scale, 1);
-    matRef.current.opacity = 0.22 * (1 - progress);
+    const progress = t / 1.0;
+    meshRef.current.position.z = 0.03 + progress * 1.28;
+    meshRef.current.scale.setScalar(0.85 + progress * 3.1);
+    matRef.current.opacity = 0.34 * (1 - progress);
   });
 
   return (
-    <mesh ref={meshRef} visible={false}>
-      <planeGeometry args={[0.62, 0.46]} />
+    <mesh ref={meshRef} visible={false} rotation={[0, 0, 0]}>
+      <ringGeometry args={[0.42, 0.5, 64]} />
       <meshBasicMaterial
         ref={matRef}
         color="#38bdf8"
@@ -488,6 +603,7 @@ interface SceneProps {
   showCompassGuide: boolean;
   antennaGuideAngleDeg: 0 | 45;
   antennaPulseToken: number;
+  antennaPulseStartedAt: number;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncSide: 'A' | 'B';
@@ -496,12 +612,21 @@ interface SceneProps {
   onBoxSelect: (n: number) => void;
 }
 
-function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, antennaGuideAngleDeg, antennaPulseToken, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
+function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, antennaGuideAngleDeg, antennaPulseToken, antennaPulseStartedAt, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
   const resultMap  = useMemo(
     () => Object.fromEntries(boxResults.map((b) => [b.boxNumber, b])),
     [boxResults],
   );
   const anySelected = selectedBox !== null;
+  const antennaPose = useMemo(() => getAntennaPose(antennaGuideAngleDeg), [antennaGuideAngleDeg]);
+  const pulse = useMemo<PulseDescriptor | null>(() => {
+    if (!showAntennaGuide || antennaPulseToken <= 0 || antennaPulseStartedAt <= 0) return null;
+    return {
+      startedAt: antennaPulseStartedAt,
+      origin: antennaPose.center.clone().addScaledVector(antennaPose.direction, 0.03),
+      direction: antennaPose.direction.clone(),
+    };
+  }, [antennaPose, antennaPulseStartedAt, antennaPulseToken, showAntennaGuide]);
 
   // ── Camera animation state ────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -640,6 +765,7 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
             phaseOffset={phaseOffset}
             suppressHtmlLabels={suppressHtmlLabels}
             rssiSuffixMap={rssiSuffixMap}
+            pulse={pulse}
             onSelect={onBoxSelect}
           />
         );
@@ -672,6 +798,7 @@ export interface Rig3DCanvasProps {
 
 export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide = false, showCompassGuide = false, antennaGuideAngleDeg = 45, onAntennaGuideAngleChange, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
   const [antennaPulseToken, setAntennaPulseToken] = useState(0);
+  const [antennaPulseStartedAt, setAntennaPulseStartedAt] = useState(0);
 
   return (
     // onDoubleClick bubbles from the <canvas> DOM element — fires for any
@@ -700,7 +827,10 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           <button
             type="button"
             className="pointer-events-auto rounded-full border border-sky-200 bg-white/92 px-3 py-1.5 text-[0.62rem] font-black tracking-[0.12em] text-sky-700 shadow-sm backdrop-blur transition hover:bg-sky-50"
-            onClick={() => setAntennaPulseToken((v) => v + 1)}
+            onClick={() => {
+              setAntennaPulseStartedAt(performance.now() / 1000);
+              setAntennaPulseToken((v) => v + 1);
+            }}
           >
             Pulse Antenna
           </button>
@@ -722,6 +852,7 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           showCompassGuide={showCompassGuide}
           antennaGuideAngleDeg={antennaGuideAngleDeg}
           antennaPulseToken={antennaPulseToken}
+          antennaPulseStartedAt={antennaPulseStartedAt}
           rssiSuffixMap={rssiSuffixMap}
           isSyncActive={isSyncActive}
           syncSide={syncSide}
