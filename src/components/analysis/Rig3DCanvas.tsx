@@ -533,6 +533,9 @@ function CompassRose() {
   );
 }
 
+// PulseWave lives in world space (un-rotated), sweeping straight down in world-Y.
+// It must NOT be a child of the rotated antenna group — that's what caused all
+// the flying-backwards nonsense. Position y=0 here = antenna height (set by parent group).
 function PulseWave({ delay }: { delay: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const matRef  = useRef<THREE.MeshBasicMaterial>(null);
@@ -543,22 +546,23 @@ function PulseWave({ delay }: { delay: number }) {
     if (startRef.current === null) startRef.current = clock.elapsedTime;
 
     const t = clock.elapsedTime - startRef.current - delay;
-    if (t < 0 || t > 3.0) {
+    if (t < 0 || t > 3.2) {
       meshRef.current.visible = false;
       return;
     }
 
     meshRef.current.visible = true;
-    const progress = t / 3.0;
-    // In local antenna space, the plate face normal is -Y.
-    meshRef.current.position.y = -0.015 - progress * 1.12;
-    meshRef.current.scale.set(1.18 + progress * 1.7, 1, 1.12 + progress * 1.5);
-    matRef.current.opacity = 0.16 * (1 - progress);
+    const progress = t / 3.2;
+    // Sweep straight down in world Y — from antenna height to rig floor (~2.9 units).
+    meshRef.current.position.y = -progress * 2.9;
+    // Expand outward in XZ to cover rig footprint (rig is ~2.2 × 2.2 units).
+    meshRef.current.scale.set(0.7 + progress * 1.5, 1, 0.7 + progress * 1.3);
+    matRef.current.opacity = 0.13 * (1 - progress);
   });
 
   return (
     <mesh ref={meshRef} visible={false}>
-      <boxGeometry args={[1.02, 0.06, 0.8]} />
+      <boxGeometry args={[2.2, 0.025, 1.8]} />
       <meshBasicMaterial
         ref={matRef}
         color="#38bdf8"
@@ -606,14 +610,21 @@ function AntennaGuide({ angleDeg, pulseToken }: { angleDeg: 0 | 45; pulseToken: 
         <meshStandardMaterial color="#64748b" roughness={1} metalness={0} transparent opacity={0.55} />
       </mesh>
 
-      {/* Antenna plate + pulse waves share the same physical orientation */}
+      {/* Antenna plate only — rotated to match mount angle */}
       <group position={[0, antennaY, antennaZ]} rotation={[antennaRotationX, 0, 0]}>
         <mesh>
           <boxGeometry args={[0.62, 0.028, 0.46]} />
           <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.26} />
         </mesh>
-        {pulseToken > 0 && <PulseBurst key={pulseToken} />}
       </group>
+
+      {/* Pulse waves — world-space upright group, centered on rig XZ, starting at antenna Y.
+           NOT a child of the rotated antenna group. That was the bug. */}
+      {pulseToken > 0 && (
+        <group position={[0, antennaY, 0]}>
+          <PulseBurst key={pulseToken} />
+        </group>
+      )}
     </group>
   );
 }
