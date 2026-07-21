@@ -309,7 +309,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
       {/* Page header */}
       <div className="flex items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-retail-ink">RFID Analysis</h2>
+          <h2 className="text-2xl font-black tracking-tight text-retail-ink">Antenna Analysis</h2>
           <p className="mt-1 text-sm text-slate-500">
             Identify and visualize scan results per antenna configuration and test parameters
             across the 8-box rig.
@@ -325,43 +325,21 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
         )}
       </div>
 
-      {/* Upload panel + Actions panel */}
-      <div className="flex items-start gap-4">
-        <div className="flex-1">
-          <UploadPanel
-            scanFileName={scanFileName}
-            scanMeta={scanMeta}
-            usingTestData={usingTestData}
-            compareFileName={compareScanFileName}
-            compareUsingTestData={compareUsingTestData}
-            onScanFile={handleScanFile}
-            onScanMetaChange={handleScanMetaChange}
-            onUseTestData={handleUseTestData}
-            onScanClear={handleReset}
-            onCompareFile={handleCompareFile}
-            onCompareTestData={handleCompareTestData}
-            onCompareClear={handleCompareClear}
-          />
-        </div>
-        <div className="w-[260px] shrink-0">
-          <AnalysisActionsPanel
-            placements={activePlacements}
-            editorOpen={placementEditorOpen}
-            isSyncRotating={isSyncRotating}
-            showAntennaGuide={showAntennaGuide}
-            showCompassGuide={showCompassGuide}
-            canExport={canExport}
-            doEMetrics={doEMetrics}
-            onReset={handleReset}
-            onPlacementsChange={handlePlacementsChange}
-            onEditorOpenChange={setPlacementEditorOpen}
-            onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
-            onAntennaGuideToggle={() => setShowAntennaGuide((v) => !v)}
-            onCompassGuideToggle={() => setShowCompassGuide((v) => !v)}
-            onExportRunSummary={handleExportRunSummary}
-          />
-        </div>
-      </div>
+      {/* Upload panel — full width */}
+      <UploadPanel
+        scanFileName={scanFileName}
+        scanMeta={scanMeta}
+        usingTestData={usingTestData}
+        compareFileName={compareScanFileName}
+        compareUsingTestData={compareUsingTestData}
+        onScanFile={handleScanFile}
+        onScanMetaChange={handleScanMetaChange}
+        onUseTestData={handleUseTestData}
+        onScanClear={handleReset}
+        onCompareFile={handleCompareFile}
+        onCompareTestData={handleCompareTestData}
+        onCompareClear={handleCompareClear}
+      />
 
       {compareActive ? (
         /* ── Compare mode: two full-width canvases, no BoxDetailPanel ───── */
@@ -388,6 +366,9 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
           <IssuePanel issues={placementIssues} label="Placement database issues" />
           <IssuePanel issues={scanIssues} label="Scan file issues" />
 
+          {/* Right column: ActionsPanel at idle ↔ BoxDetailPanel when a box is selected.
+               Both live in the same grid slot — mutually exclusive by construction.
+               The 3D model (left column) never moves regardless of which is shown. */}
           <div ref={rigSectionRef} className="grid gap-6 lg:grid-cols-[1fr_380px]">
             <RigOverview
               boxResults={scanResult?.boxResults ?? []}
@@ -414,18 +395,22 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
               {selectedBoxResult ? (
                 <BoxDetailPanel boxResult={selectedBoxResult} rssiSuffixMap={rssiSuffixMap} />
               ) : (
-                <div className="flex h-full min-h-[560px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                  <div>
-                    <p className="font-black text-slate-400">
-                      {hasData ? 'Select a box' : 'Load scan data above'}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      {hasData
-                        ? 'Click any box in the rig to inspect face-level tag coverage'
-                        : 'Upload a scan CSV or use test data — the rig will colour up instantly'}
-                    </p>
-                  </div>
-                </div>
+                <AnalysisActionsPanel
+                  placements={activePlacements}
+                  editorOpen={placementEditorOpen}
+                  isSyncRotating={isSyncRotating}
+                  showAntennaGuide={showAntennaGuide}
+                  showCompassGuide={showCompassGuide}
+                  canExport={canExport}
+                  doEMetrics={doEMetrics}
+                  onReset={handleReset}
+                  onPlacementsChange={handlePlacementsChange}
+                  onEditorOpenChange={setPlacementEditorOpen}
+                  onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
+                  onAntennaGuideToggle={() => setShowAntennaGuide((v) => !v)}
+                  onCompassGuideToggle={() => setShowCompassGuide((v) => !v)}
+                  onExportRunSummary={handleExportRunSummary}
+                />
               )}
             </div>
           </div>
