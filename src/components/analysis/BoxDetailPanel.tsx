@@ -21,38 +21,38 @@ const STATE_LABEL: Record<TagReadState, string> = {
 };
 
 function TagDot({
-  state, label, position, rssiColor, rssiPct, rssiGray,
+  state, label, position, rssiColor, rssiPct,
 }: {
   state: TagReadState;
   label: string;
   position: FacePosition;
-  rssiColor?: string;  // defined when rssiMode on + state === 'read'
+  rssiColor?: string; // RSSI gradient hex — defined when read + RSSI data available
   rssiPct?: number;
-  rssiGray?: boolean;  // true when rssiMode on + tag not read (show gray)
 }) {
-  const useRssiColor = rssiColor !== undefined && state === 'read';
-  const useRssiGray  = rssiGray && state !== 'read';
+  // Missed / unresolved: always gray. Gray = nothing here.
+  // Read + RSSI data:    gradient colour. Read + no data: static green fallback.
+  const isMissed = state !== 'read';
 
-  const inlineStyle = useRssiColor
-    ? { backgroundColor: rssiColor,      outlineColor: rssiColor }
-    : useRssiGray
-      ? { backgroundColor: RSSI_MISSED_COLOR, outlineColor: RSSI_MISSED_COLOR }
+  const inlineStyle = isMissed
+    ? { backgroundColor: RSSI_MISSED_COLOR, outlineColor: RSSI_MISSED_COLOR }
+    : rssiColor
+      ? { backgroundColor: rssiColor, outlineColor: rssiColor }
       : undefined;
 
-  const tooltipLabel = useRssiColor && rssiPct !== undefined
-    ? `Signal ${rssiPct}% (RSSI heatmap)`
-    : useRssiGray
-      ? `${STATE_LABEL[state]} (no RSSI data)`
+  const tooltip = isMissed
+    ? STATE_LABEL[state]
+    : rssiPct !== undefined
+      ? `Signal ${rssiPct}%`
       : STATE_LABEL[state];
 
   return (
     <div className="group relative flex items-center justify-center">
       <div
         className={`h-5 w-5 rounded-full ring-2 ring-offset-1 transition-transform group-hover:scale-125 ${
-          useRssiColor || useRssiGray ? 'ring-white/40' : STATE_CLASSES[state]
+          isMissed || rssiColor ? 'ring-white/40' : STATE_CLASSES[state]
         }`}
         style={inlineStyle}
-        title={`${position}: ${label || 'no label'} — ${tooltipLabel}`}
+        title={`${position}: ${label || 'no label'} — ${tooltip}`}
       />
     </div>
   );
@@ -60,10 +60,9 @@ function TagDot({
 
 // ─── Single face card ─────────────────────────────────────────────────────────
 
-function FaceCard({ result, rssiMode, rssiSuffixMap }: {
+function FaceCard({ result, rssiSuffixMap }: {
   result: FaceResult | null;
   faceName: string;
-  rssiMode: boolean;
   rssiSuffixMap: Map<string, number>;
 }) {
   if (!result) {
@@ -91,7 +90,7 @@ function FaceCard({ result, rssiMode, rssiSuffixMap }: {
           const slot = slotByPos[pos];
           if (!slot) return <div key={pos} className="h-5 w-5 rounded-full bg-slate-100 ring-2 ring-slate-200 ring-offset-1" />;
           const lookupKey = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
-          const rssiDbm   = (rssiMode && slot.state === 'read') ? (rssiSuffixMap.get(lookupKey) ?? undefined) : undefined;
+          const rssiDbm   = slot.state === 'read' ? (rssiSuffixMap.get(lookupKey) ?? undefined) : undefined;
           return (
             <TagDot
               key={pos}
@@ -100,7 +99,6 @@ function FaceCard({ result, rssiMode, rssiSuffixMap }: {
               position={pos}
               rssiColor={rssiDbm !== undefined ? rssiToHex(rssiDbm) : undefined}
               rssiPct={rssiDbm !== undefined ? rssiToPct(rssiDbm) : undefined}
-              rssiGray={rssiMode && slot.state !== 'read'}
             />
           );
         })}
@@ -129,11 +127,10 @@ function FaceCard({ result, rssiMode, rssiSuffixMap }: {
 
 interface CrossLayoutProps {
   faceMap: Record<string, FaceResult>;
-  rssiMode: boolean;
   rssiSuffixMap: Map<string, number>;
 }
 
-function CrossLayout({ faceMap, rssiMode, rssiSuffixMap }: CrossLayoutProps) {
+function CrossLayout({ faceMap, rssiSuffixMap }: CrossLayoutProps) {
   const FaceLabel = ({ name }: { name: string }) => (
     <p className="mb-1 text-center text-[0.55rem] font-black uppercase tracking-[0.1em] text-slate-400">
       {name}
@@ -143,7 +140,7 @@ function CrossLayout({ faceMap, rssiMode, rssiSuffixMap }: CrossLayoutProps) {
   const face = (name: string) => (
     <div key={name}>
       <FaceLabel name={name} />
-      <FaceCard result={faceMap[name] ?? null} faceName={name} rssiMode={rssiMode} rssiSuffixMap={rssiSuffixMap} />
+      <FaceCard result={faceMap[name] ?? null} faceName={name} rssiSuffixMap={rssiSuffixMap} />
     </div>
   );
 
@@ -170,39 +167,24 @@ function CrossLayout({ faceMap, rssiMode, rssiSuffixMap }: CrossLayoutProps) {
 
 // ─── Legend ───────────────────────────────────────────────────────────────────
 
-function Legend({ rssiMode }: { rssiMode: boolean }) {
-  if (rssiMode) {
-    return (
-      <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-full ring-1 ring-offset-1 bg-[#16a34a] ring-emerald-600" />
-          Strong signal
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-full ring-1 ring-offset-1 bg-[#eab308] ring-yellow-500" />
-          Acceptable
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-full ring-1 ring-offset-1 bg-[#ef4444] ring-red-500" />
-          Marginal
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-full bg-slate-400 ring-1 ring-slate-400 ring-offset-1" />
-          Not read
-        </div>
-        <span className="text-slate-400">· hover a dot for signal %</span>
-      </div>
-    );
-  }
+function Legend({ hasRssiData }: { hasRssiData: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
-      {(['read', 'missed', 'unresolved'] as TagReadState[]).map((state) => (
-        <div key={state} className="flex items-center gap-1.5">
-          <div className={`h-3 w-3 rounded-full ring-1 ring-offset-1 ${STATE_CLASSES[state]}`} />
-          {STATE_LABEL[state]}
-        </div>
-      ))}
-      <span className="text-slate-400">· hover a dot for tag ID</span>
+      <div className="flex items-center gap-1.5">
+        <div className="h-3 w-3 rounded-full bg-[#16a34a] ring-1 ring-emerald-600 ring-offset-1" />
+        Strong signal
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div className="h-3 w-3 rounded-full bg-[#ef4444] ring-1 ring-red-500 ring-offset-1" />
+        Marginal
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div className="h-3 w-3 rounded-full bg-slate-400 ring-1 ring-slate-400 ring-offset-1" />
+        Not read
+      </div>
+      <span className="text-slate-400">
+        {hasRssiData ? '· hover a dot for signal %' : '· load a data CSV for signal strength'}
+      </span>
     </div>
   );
 }
@@ -211,12 +193,12 @@ function Legend({ rssiMode }: { rssiMode: boolean }) {
 
 interface BoxDetailPanelProps {
   boxResult: BoxResult;
-  rssiMode: boolean;
   rssiSuffixMap: Map<string, number>;
 }
 
-export function BoxDetailPanel({ boxResult, rssiMode, rssiSuffixMap }: BoxDetailPanelProps) {
-  const faceMap = Object.fromEntries(boxResult.faces.map((f) => [f.face, f]));
+export function BoxDetailPanel({ boxResult, rssiSuffixMap }: BoxDetailPanelProps) {
+  const faceMap     = Object.fromEntries(boxResult.faces.map((f) => [f.face, f]));
+  const hasRssiData = rssiSuffixMap.size > 0;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
@@ -246,10 +228,10 @@ export function BoxDetailPanel({ boxResult, rssiMode, rssiSuffixMap }: BoxDetail
       </div>
 
       {/* Box net */}
-      <CrossLayout faceMap={faceMap} rssiMode={rssiMode} rssiSuffixMap={rssiSuffixMap} />
+      <CrossLayout faceMap={faceMap} rssiSuffixMap={rssiSuffixMap} />
 
       <div className="mt-4">
-        <Legend rssiMode={rssiMode} />
+        <Legend hasRssiData={hasRssiData} />
       </div>
 
       {/* Per-face breakdown table */}

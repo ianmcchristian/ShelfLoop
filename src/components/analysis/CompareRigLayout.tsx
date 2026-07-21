@@ -17,7 +17,6 @@ interface RigPaneProps {
   selectedBox: number | null;
   scanResult: AnalysisRun | null;
   suppressHtmlLabels: boolean;
-  rssiMode: boolean;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncStateRef: React.MutableRefObject<SyncCameraState | null>;
@@ -27,7 +26,7 @@ interface RigPaneProps {
 }
 
 function RigPane({
-  side, label, selectedBox, scanResult, suppressHtmlLabels, rssiMode, rssiSuffixMap,
+  side, label, selectedBox, scanResult, suppressHtmlLabels, rssiSuffixMap,
   isSyncActive, syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect,
 }: RigPaneProps) {
   const hasData = scanResult !== null;
@@ -63,7 +62,6 @@ function RigPane({
         hasData={hasData}
         canvasHeight={COMPARE_CANVAS_HEIGHT}
         suppressHtmlLabels={suppressHtmlLabels}
-        rssiMode={rssiMode}
         rssiSuffixMap={rssiSuffixMap}
         isSyncActive={isSyncActive}
         syncSide={side}
@@ -101,7 +99,6 @@ interface CompareRigLayoutProps {
   labelB: string;
   isSyncRotating: boolean;
   suppressHtmlLabels: boolean;
-  rssiMode: boolean;
   rssiSuffixMapA: Map<string, number>;
   rssiSuffixMapB: Map<string, number>;
 }
@@ -113,7 +110,6 @@ export function CompareRigLayout({
   labelB,
   isSyncRotating,
   suppressHtmlLabels,
-  rssiMode,
   rssiSuffixMapA,
   rssiSuffixMapB,
 }: CompareRigLayoutProps) {
@@ -151,7 +147,6 @@ export function CompareRigLayout({
         selectedBox={selectedBoxA}
         scanResult={scanResultA}
         suppressHtmlLabels={suppressHtmlLabels}
-        rssiMode={rssiMode}
         rssiSuffixMap={rssiSuffixMapA}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}
@@ -165,7 +160,6 @@ export function CompareRigLayout({
         selectedBox={selectedBoxB}
         scanResult={scanResultB}
         suppressHtmlLabels={suppressHtmlLabels}
-        rssiMode={rssiMode}
         rssiSuffixMap={rssiSuffixMapB}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}

@@ -15,7 +15,7 @@ import { CompareRigLayout } from './CompareRigLayout';
 import { ExceptionsPanel } from './ExceptionsPanel';
 import type { ScanMeta } from './UploadPanel';
 import { UploadPanel } from './UploadPanel';
-import { buildRssiMap, readsHaveRssi } from './rfidColorUtils';
+import { buildRssiMap } from './rfidColorUtils';
 
 interface AnalysisSearchRequest {
   nonce: number;
@@ -81,7 +81,6 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   const [shouldScrollToRig, setShouldScrollToRig] = useState(false);
   const [placementEditorOpen, setPlacementEditorOpen] = useState(false);
   const [isSyncRotating, setIsSyncRotating] = useState(false);
-  const [isRssiMode, setIsRssiMode] = useState(false);
   const rigSectionRef = useRef<HTMLDivElement>(null);
 
   // ── Compare state ──────────────────────────────────────────────────────────
@@ -99,16 +98,8 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     [compareUsingTestData, compareScanReads],
   );
 
-  const hasRssi            = useMemo(() => readsHaveRssi(activeReads),        [activeReads]);
-  const rssiSuffixMap      = useMemo(() => buildRssiMap(activeReads),         [activeReads]);
+  const rssiSuffixMap        = useMemo(() => buildRssiMap(activeReads),         [activeReads]);
   const compareRssiSuffixMap = useMemo(() => buildRssiMap(compareActiveReads), [compareActiveReads]);
-
-  // Auto-clear RSSI mode if the user loads a file without RSSI data
-  const prevHasRssi = useRef(hasRssi);
-  useEffect(() => {
-    if (prevHasRssi.current && !hasRssi) setIsRssiMode(false);
-    prevHasRssi.current = hasRssi;
-  }, [hasRssi]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -339,13 +330,10 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             placements={activePlacements}
             editorOpen={placementEditorOpen}
             isSyncRotating={isSyncRotating}
-            isRssiMode={isRssiMode}
-            hasRssi={hasRssi}
             onReset={handleReset}
             onPlacementsChange={handlePlacementsChange}
             onEditorOpenChange={setPlacementEditorOpen}
             onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
-            onRssiModeToggle={() => setIsRssiMode((v) => !v)}
           />
         </div>
       </div>
@@ -360,7 +348,6 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             labelB={compareLabelB}
             isSyncRotating={isSyncRotating}
             suppressHtmlLabels={placementEditorOpen}
-            rssiMode={isRssiMode}
             rssiSuffixMapA={rssiSuffixMap}
             rssiSuffixMapB={compareRssiSuffixMap}
           />
@@ -379,7 +366,6 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
               highlightedTagKey={highlightedTagKey}
               hasData={hasData}
               suppressHtmlLabels={placementEditorOpen}
-              rssiMode={isRssiMode}
               rssiSuffixMap={rssiSuffixMap}
               onBoxSelect={(boxNumber) => {
                 setSelectedBox(boxNumber);
@@ -393,7 +379,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
 
             <div>
               {selectedBoxResult ? (
-                <BoxDetailPanel boxResult={selectedBoxResult} rssiMode={isRssiMode} rssiSuffixMap={rssiSuffixMap} />
+                <BoxDetailPanel boxResult={selectedBoxResult} rssiSuffixMap={rssiSuffixMap} />
               ) : (
                 <div className="flex h-full min-h-[560px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
                   <div>
