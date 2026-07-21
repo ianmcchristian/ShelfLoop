@@ -8,7 +8,7 @@
 //
 // Idle (no data)   : slow auto-rotate + retail-blue emissive pulse.
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';
@@ -22,9 +22,9 @@ import { rssiToHex, rssiToPct, RSSI_MISSED_COLOR } from './rfidColorUtils';
 
 const BOX_SIZE       = 0.92;
 const STEP           = 1.08;
-// Camera sits on the South-West side by default so North reads higher on screen
+// Camera sits on the North-West side by default so the north row is visually on top
 // and West/East still map left/right the way Ian expects.
-const DEFAULT_CAM    = new THREE.Vector3(-2.4, 2.2, -3.4);
+const DEFAULT_CAM    = new THREE.Vector3(-2.4, 2.2, 3.4);
 const DEFAULT_TARGET = new THREE.Vector3(0, 0, 0);
 const COMPASS_RADIUS = 1.72;
 const COMPASS_Y      = 1.38;
@@ -391,8 +391,58 @@ function CompassRose() {
   );
 }
 
-function AntennaGuide({ angleDeg }: { angleDeg: 0 | 45 }) {
-  const antennaZ = angleDeg === 0 ? ARM_Z + 0.114 : ANTENNA_Z;
+function PulseWave({ delay }: { delay: number }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const matRef  = useRef<THREE.MeshBasicMaterial>(null);
+  const startRef = useRef<number | null>(null);
+
+  useFrame(({ clock }) => {
+    if (!meshRef.current || !matRef.current) return;
+    if (startRef.current === null) startRef.current = clock.elapsedTime;
+
+    const t = clock.elapsedTime - startRef.current - delay;
+    if (t < 0 || t > 0.9) {
+      meshRef.current.visible = false;
+      return;
+    }
+
+    meshRef.current.visible = true;
+    const progress = t / 0.9;
+    const scale = 1 + progress * 3.4;
+    meshRef.current.position.z = 0.04 + progress * 1.15;
+    meshRef.current.scale.set(scale, scale, 1);
+    matRef.current.opacity = 0.22 * (1 - progress);
+  });
+
+  return (
+    <mesh ref={meshRef} visible={false}>
+      <planeGeometry args={[0.62, 0.46]} />
+      <meshBasicMaterial
+        ref={matRef}
+        color="#38bdf8"
+        transparent
+        opacity={0}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
+function PulseBurst() {
+  return (
+    <>
+      <PulseWave delay={0} />
+      <PulseWave delay={0.12} />
+      <PulseWave delay={0.24} />
+    </>
+  );
+}
+
+function AntennaGuide({ angleDeg, pulseToken }: { angleDeg: 0 | 45; pulseToken: number }) {
+  const antennaY = angleDeg === 0 ? ARM_Y : ANTENNA_Y;
+  const antennaZ = angleDeg === 0 ? ARM_Z + 0.33 : ANTENNA_Z;
+  const antennaRotationX = -THREE.MathUtils.degToRad(angleDeg);
 
   return (
     <group position={[0, 0, 0]}>
@@ -414,11 +464,14 @@ function AntennaGuide({ angleDeg }: { angleDeg: 0 | 45 }) {
         <meshStandardMaterial color="#64748b" roughness={1} metalness={0} transparent opacity={0.55} />
       </mesh>
 
-      {/* Antenna plate: offset out from the pole, facing North */}
-      <mesh position={[0, ANTENNA_Y, antennaZ]} rotation={[-THREE.MathUtils.degToRad(angleDeg), 0, 0]}>
-        <boxGeometry args={[0.62, 0.028, 0.46]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.26} />
-      </mesh>
+      {/* Antenna plate + pulse waves share the same physical orientation */}
+      <group position={[0, antennaY, antennaZ]} rotation={[antennaRotationX, 0, 0]}>
+        <mesh>
+          <boxGeometry args={[0.62, 0.028, 0.46]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.26} />
+        </mesh>
+        {pulseToken > 0 && <PulseBurst key={pulseToken} />}
+      </group>
     </group>
   );
 }
@@ -434,6 +487,7 @@ interface SceneProps {
   showAntennaGuide: boolean;
   showCompassGuide: boolean;
   antennaGuideAngleDeg: 0 | 45;
+  antennaPulseToken: number;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncSide: 'A' | 'B';
@@ -442,7 +496,7 @@ interface SceneProps {
   onBoxSelect: (n: number) => void;
 }
 
-function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, antennaGuideAngleDeg, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
+function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, antennaGuideAngleDeg, antennaPulseToken, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
   const resultMap  = useMemo(
     () => Object.fromEntries(boxResults.map((b) => [b.boxNumber, b])),
     [boxResults],
@@ -568,7 +622,7 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
       />
 
       {!suppressHtmlLabels && showCompassGuide && <CompassRose />}
-      {showAntennaGuide && <AntennaGuide angleDeg={antennaGuideAngleDeg} />}
+      {showAntennaGuide && <AntennaGuide angleDeg={antennaGuideAngleDeg} pulseToken={antennaPulseToken} />}
 
       {(Object.entries(RIG_LAYOUT) as [string, RigPosition][]).map(([key, pos]) => {
         const num         = Number(key);
@@ -617,12 +671,14 @@ export interface Rig3DCanvasProps {
 }
 
 export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide = false, showCompassGuide = false, antennaGuideAngleDeg = 45, onAntennaGuideAngleChange, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
+  const [antennaPulseToken, setAntennaPulseToken] = useState(0);
+
   return (
     // onDoubleClick bubbles from the <canvas> DOM element — fires for any
     // double-click within the 3D viewport, background or box, no R3F magic needed.
     <div className="relative flex flex-col" onDoubleClick={onDeselect}>
       {showAntennaGuide && onAntennaGuideAngleChange && (
-        <div className="pointer-events-none absolute left-4 top-4 z-10">
+        <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-col gap-2">
           <div className="pointer-events-auto inline-flex rounded-full border border-slate-200 bg-white/92 p-1 shadow-sm backdrop-blur">
             {([0, 45] as const).map((angle) => (
               <button
@@ -640,11 +696,19 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
               </button>
             ))}
           </div>
+
+          <button
+            type="button"
+            className="pointer-events-auto rounded-full border border-sky-200 bg-white/92 px-3 py-1.5 text-[0.62rem] font-black tracking-[0.12em] text-sky-700 shadow-sm backdrop-blur transition hover:bg-sky-50"
+            onClick={() => setAntennaPulseToken((v) => v + 1)}
+          >
+            Pulse Antenna
+          </button>
         </div>
       )}
 
       <Canvas
-        camera={{ position: [-2.4, 2.2, -3.4], fov: 44 }}
+        camera={{ position: [-2.4, 2.2, 3.4], fov: 44 }}
         style={{ width: '100%', height: canvasHeight, borderRadius: 16, background: '#ffffff', display: 'block' }}
       >
         <color attach="background" args={['#ffffff']} />
@@ -657,6 +721,7 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           showAntennaGuide={showAntennaGuide}
           showCompassGuide={showCompassGuide}
           antennaGuideAngleDeg={antennaGuideAngleDeg}
+          antennaPulseToken={antennaPulseToken}
           rssiSuffixMap={rssiSuffixMap}
           isSyncActive={isSyncActive}
           syncSide={syncSide}
