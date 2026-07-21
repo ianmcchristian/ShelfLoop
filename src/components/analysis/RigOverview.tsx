@@ -38,7 +38,6 @@ export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasDat
         </div>
       </div>
       <Rig3DCanvas
-        key={`rig-${showAntennaGuide ? 'guide' : 'plain'}-${showCompassGuide ? 'compass' : 'nocompass'}`}
         boxResults={boxResults}
         selectedBox={selectedBox}
         highlightedTagKey={highlightedTagKey}
