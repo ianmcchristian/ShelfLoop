@@ -87,6 +87,9 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
   const [compareScanFileName, setCompareScanFileName] = useState<string | null>(null);
   const [compareUsingTestData, setCompareUsingTestData] = useState(false);
 
+  // Placement override when a test scenario is loaded — null = use default (TEST_PLACEMENTS)
+  const [scenarioPlacements, setScenarioPlacements] = useState<ResolvedTagPlacement[] | null>(null);
+
   // ── RSSI derived ───────────────────────────────────────────────────────────
   // scanReads is always set (by file upload or handleUseTestData), so no branch needed.
   const activeReads        = useMemo(() => scanReads ?? [],        [scanReads]);
@@ -109,6 +112,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setScanIssues(result.issues);
     setScanFileName(name);
     setUsingTestData(false);
+    setScenarioPlacements(null); // Back to real placement DB when loading a CSV
     setShouldScrollToRig(true);
   }, []);
 
@@ -129,6 +133,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
       range:       s.meta.range       as ScanMeta['range'],
       power:       s.meta.power       as ScanMeta['power'],
     });
+    setScenarioPlacements(s.placements); // Use clean synthetic placement DB
     setSelectedBox(null);
     setHighlightedTagKey(null);
     setUsingTestData(true);
@@ -164,6 +169,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setSelectedBox(null);
     setHighlightedTagKey(null);
     setUsingTestData(false);
+    setScenarioPlacements(null);
     // Also clear compare when main scan is reset
     setCompareScanReads(null);
     setCompareScanFileName(null);
@@ -172,7 +178,9 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
 
   // ── Derived result ─────────────────────────────────────────────────────────
 
-  const activePlacements = usingTestData ? TEST_PLACEMENTS : placements;
+  // scenarioPlacements takes priority when a test scenario is loaded;
+  // falls back to the regular placements state (default = TEST_PLACEMENTS).
+  const activePlacements = scenarioPlacements ?? placements;
 
   const scanResult: AnalysisRun | null = useMemo(() => {
     if (!scanReads || activePlacements.length === 0) return null;

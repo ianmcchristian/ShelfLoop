@@ -1,4 +1,4 @@
-// ─── RFID Baked Test Data ─────────────────────────────────────────────────────
+﻿// ─── RFID Baked Test Data ─────────────────────────────────────────────────────
 // Derived from "Box vs Tag Database" CSV + scan file 3ft0largefront30s_unique.csv
 // (142 unique EPCs). Full EPCs resolved by matching last-7-char label suffixes.
 //
@@ -90,151 +90,155 @@ export const TEST_PLACEMENTS: ResolvedTagPlacement[] = RAW_PLACEMENTS.map(
   }),
 );
 
-// ─── Scenario A — Large · 45° · 3ft · Max ────────────────────────────────────
-// "Strong run" — optimal configuration. ~77% coverage (148/192 tags).
-// Physics: strong signal, wide beam, close range. Near-perfect on front/side/top
-// faces. Back faces mostly covered. Bottom faces are the consistent weak point.
-// RSSI range: -38 to -52 dBm (mostly green).
+// ─── Scenario placement database ─────────────────────────────────────────────
+// Clean 192-tag synthetic set: every slot has a unique, valid EPC — no nulls,
+// no duplicate labels, no missing face entries. Used ONLY by test scenarios;
+// real CSV uploads continue to use TEST_PLACEMENTS (the physical placement DB).
 
-const SCENARIO_A_EPCS: string[] = [
-  // Box 1 — NW Top (19/20 resolved — miss Back BR)
-  'E28011B0A502006C0283A0A5','E28011B0A502006C028452D4','E28011B0A502006C0283A055','E28011B0A502006C0283A674', // Front
-  'E28011B0A502006C028452C4','E28011B0A502006C02845224','E28011B0A502006C02844C84',                              // Back TL/TR/BL
-  'E28011B0A502006C02847884','E28011B0A502006C02835895','E28011B0A502006C0284C654','E28011B0A502006C0284C0B4', // Left
-  'E28011B0A502006C02844C24','E28011B0A502006C02845234','E28011B0A502006C028452E5','E28011B0A502006C027C8006', // Right
-  'E28011B0A502006C0283A045','E28011B0A502006C0284C6A5','E28011B0A502006C0284C0F5',                          // Top TL/BL/BR
-  'E28011B0A502006C0284C085',                                                                                 // Bottom BR
-  // Box 2 — NE Top (21/24 — miss Back BR + Bottom TL/BR)
-  'E28011B0A5020066E5C289B8','E28011B0A5020066E5C10388','E28011B0A5020066E5C16FB8','E28011B0A5020066E5C16FE8', // Front
-  'E2801191A5040076300B24C6','E28011B0A5020066E5C25B38','E2801191A5040076300B2496',                          // Back TL/TR/BL
-  'E2801191A5040076300A4E36','E2801191A5040076300A4E46','E28011B0A5020066E5C1F538','E2801191A5040076300A4E06', // Left
-  'E28011B0A5020066E5C1F5B8','E28011B0A5020066E5C1F588','E28011B0A5020066E5C1F568','E28011B0A5020066E5C1F528', // Right
-  'E28011B0A5020066E5C1F5C8','E28011B0A5020066E5C16FA8','E28011B0A5020066E5C25B08','E2801191A5040076300B24D6', // Top
-  'E2801191A5040076300A09F6','E28011B0A5020066E5C28938',                                                     // Bottom TR/BL
-  // Box 3 — SW Top (21/24 — miss Back BR + Bottom TR/BL)
-  'E28011B0A5020066E5C25B98','E28011B0A5020066E5C16F68','E28011B0A5020066E5C12948','E28011B0A5020066E5C12988', // Front
-  'E28011B0A5020066E5C28928','E2801191A5040076300A09B6','E2801191A5040076300A0986',                          // Back TL/TR/BL
-  'E28011B0A5020066E5C26318','E28011B0A5020066E5C10368','E28011B0A5020066E5C26358','E28011B0A5020066E5C26328', // Left
-  'E28011B0A5020066E5C10338','E28011B0A5020066E5C263A8','E28011B0A5020066E5C263B8','E28011B0A5020066E5C26368', // Right
-  'E2801191A5040076300AB3B6','E28011B0A5020066E5C16F08','E28011B0A5020066E5C25B48','E28011B0A5020066E5C28968', // Top
-  'E28011B0A5020066E5C25B88','E28011B0A5020066E5C25BD8',                                                     // Bottom TL/BR
-  // Box 4 — SE Top (18/20 resolved — miss Bottom BL)
-  'E28011B0A5050070B1BD341A','E28011B0A5050070B1BD34BA','E28011B0A5050070B1BD34AA','E28011B0A5050070B1BD348A', // Front
-  'E28011B0A5050070B1BE0E1A','E28011B0A502006C028478D5','E28011B0A502006C0284C095',                          // Back TL/BL/BR
-  'E28011B0A5050070B1BDC20A','E28011B0A5050070B1BDE8AA','E28011B0A5050070B1BDC2AA',                          // Left TR/BL/BR
-  'E28011B0A5050070B1BC883A','E28011B0A5050070B1BCAE9A','E28011B0A5050070B1BCAE2A',                          // Right TL/BL/BR
-  'E28011B0A5050070B1BC62CA','E28011B0A5050070B1BC62DA','E28011B0A5050070B1BDE82A','E28011B0A5050070B1BDC28A', // Top
-  'E28011B0A5050070B1BE94AA','E28011B0A5050070B1BE948A',                                                     // Bottom TL/TR
-  // Box 5 — NW Bottom (12/12 resolved — all resolvable tags read)
-  'E2801191A5040076300B6946','E2801191A5040076300B6916','E2801191A5040076300BAE56','E2801191A5040076300B69C6', // Front
-  'E2801191A5040076300AB376','E2801191A5040076300AB386','E2801191A5040076300AB3C6',                          // Back TR/BL/BR
-  'E2801191A5040076300BAE16','E2801191A5040076300B6906','E2801191A5040076300B6986',                          // Left TL/BL/BR
-  'E2801191A5040076300B6956',                                                                                 // Right BL
-  'E2801191A5040076300AF886',                                                                                 // Top BL
-  // Box 6 — NE Bottom (17/17 resolved — all resolvable tags read)
-  'E28011B0A502006C02845275','E28011B0A502006C02844CD5','E28011B0A502006C02844C85','E28011B0A502006C0283A6D5', // Front
-  'E2801191A5040076300B2446',                                                                                 // Back TL
-  'E28011B0A502006C0283A684','E28011B0A502006C0284C0E5','E28011B0A502006C0284C695','E28011B0A502006C0283A014', // Left
-  'E28011B0A502006C02835884','E28011B0A502006C02847874','E28011B0A502006C0283A0B5',                          // Right TR/BL/BR
-  'E28011B0A502006C0284C084','E28011B0A502006C02844C94','E28011B0A502006C028478E4',                          // Top TL/TR/BL
-  'E28011B0A502006C0284C664',                                                                                 // Bottom TL
-  // Box 7 — SW Bottom (21/23 resolved — miss Bottom TR/BR)
-  'E28011B0A5050070B1BDBA0A','E28011B0A5050070B1BDBAAA','E28011B0A5050070B1BD349A',                          // Front TR/BL/BR
-  'E28011B0A502006C02844C75','E28011B0A502006C02847885','E28011B0A502006C02845285','E28011B0A502006C02844CE5', // Back
-  'E28011B0A5050070B1BDBA8A','E28011B0A5050070B1BDC27A','E28011B0A5050070B1BDBA7A','E28011B0A5050070B1BDC29A', // Left
-  'E2801191A5040076300AF836','E2801191A5040076300AF8B6','E2801191A5040076300B2406','E2801191A5040076300AF8C6',  // Right
-  'E28011B0A5050070B1BC625A','E28011B0A5050070B1BCAEBA','E28011B0A5050070B1BC62BA','E28011B0A5050070B1BC88AA', // Top
-  'E28011B0A5050070B1BCAECA','E28011B0A5050070B1BC88DA',                                                     // Bottom TL/BL
-  // Box 8 — SE Bottom (19/19 resolved — all resolvable tags read)
-  'E28011B0A5020066E5C16F18','E28011B0A5020066E5C16F58','E28011B0A5020066E5C12908',                          // Front TL/TR/BL
-  'E28011B0A5050070B1BE0EAA','E28011B0A5050070B1BDE89A','E28011B0A5050070B1BDE8BA','E28011B0A5050070B1BC5A0A', // Back
-  'E28011B0A5050070B1BBD4EA','E28011B0A5050070B1BC620A','E28011B0A5050070B1BC5ADA','E28011B0A5050070B1BC5A5A', // Left
-  'E28011B0A5020066E5C263E8','E28011B0A5020066E5C263F8','E28011B0A5020066E5C103F8','E28011B0A5020066E5C129C8', // Right
-  'E2801191A5040076300A4E76','E28011B0A5020066E5C129D8','E28011B0A5020066E5C12938',                          // Top TR/BL/BR
-  'E28011B0A5050070B1BDE8CA',                                                                                 // Bottom BL
+const S_FACES     = ['Front', 'Back', 'Left', 'Right', 'Top', 'Bottom'] as const;
+const S_POSITIONS = ['TL', 'TR', 'BL', 'BR'] as const;
+
+/** Synthetic EPC — 20 zeros + 4-char hex counter (n = 1…192). 24 chars total. */
+function sEpc(box: number, fi: number, pi: number): string {
+  const n = (box - 1) * 24 + fi * 4 + pi + 1;
+  return '00000000000000000000' + n.toString(16).toUpperCase().padStart(4, '0');
+}
+
+/** Clean 192-tag placement database for test scenarios. */
+export const SCENARIO_PLACEMENTS: ResolvedTagPlacement[] = [1, 2, 3, 4, 5, 6, 7, 8].flatMap((box) =>
+  S_FACES.flatMap((face, fi) =>
+    S_POSITIONS.map((pos, pi) => ({
+      boxNumber: box,
+      face:      face as ResolvedTagPlacement['face'],
+      position:  pos  as ResolvedTagPlacement['position'],
+      label:     `SIM${box}${fi}${pi}`,
+      fullEpc:   sEpc(box, fi, pi),
+    })),
+  ),
+);
+
+// ─── Scenario read helpers ────────────────────────────────────────────────────
+
+type SlotSpec = [fi: number, pi: number];
+
+/** Convenience: generate SlotSpec pairs for a face index, optionally filtered. */
+const sface = (fi: number, pis: number[] = [0, 1, 2, 3]): SlotSpec[] =>
+  pis.map((pi): SlotSpec => [fi, pi]);
+
+/** Build RunTagReads from (box, slots) specs with a per-box RSSI value. */
+function makeReads(
+  specs: { box: number; slots: SlotSpec[] }[],
+  rssiByBox: Record<number, number>,
+): RunTagRead[] {
+  return specs.flatMap(({ box, slots }) =>
+    slots.map(([fi, pi]): RunTagRead => {
+      const epc = sEpc(box, fi, pi);
+      return { rawEpc: epc, suffix: epc.slice(-7).toUpperCase(), rssi: rssiByBox[box]! };
+    }),
+  );
+}
+
+// ─── Scenario A — Large · 45° · 3ft · Max ────────────────────────────────────
+// "Strong run" — optimal configuration. 166/192 = ~87% overall coverage.
+// All 8 boxes >= 83% — all show GREEN at the 80% threshold.
+//
+// Physics (Large antenna, 45deg tilt, 3 ft, Max power):
+//   Front / Left / Right faces: full 4/4 on every box.
+//   Back face: 4/4 on NW/NE top boxes; 3/4 elsewhere (miss BR — far corner).
+//   Top face: 4/4 on top-layer boxes; 3/4 on bottom-layer (miss BR, shielded).
+//   Bottom of top-layer boxes (1-4): TL+TR only — floor-side not illuminated.
+//   Bottom of bottom-layer boxes (5-8): TL+TR only — floor-facing.
+//
+// RSSI: -38 to -52 dBm (all strong green).
+
+const SCENARIO_A_SPECS: { box: number; slots: SlotSpec[] }[] = [
+  // NW Top (Box 1): 22/24
+  { box: 1, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
+  // NE Top (Box 2): 22/24
+  { box: 2, slots: [...sface(0), ...sface(1), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
+  // SW Top (Box 3): 21/24 — Back misses BR (SW-back is furthest from antenna axis)
+  { box: 3, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
+  // SE Top (Box 4): 21/24 — Back misses BR
+  { box: 4, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4), ...sface(5, [0, 1])] },
+  // NW Bottom (Box 5): 20/24 — Back misses BR; Top misses BR (shielded by Box 1)
+  { box: 5, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
+  // NE Bottom (Box 6): 20/24 — same pattern as Box 5
+  { box: 6, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
+  // SW Bottom (Box 7): 20/24 — same pattern
+  { box: 7, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
+  // SE Bottom (Box 8): 20/24 — same pattern
+  { box: 8, slots: [...sface(0), ...sface(1, [0, 1, 2]), ...sface(2), ...sface(3), ...sface(4, [0, 1, 2]), ...sface(5, [0, 1])] },
 ];
+
+const RSSI_A: Record<number, number> = {
+  1: -40, 2: -38, 3: -44, 4: -46,
+  5: -48, 6: -46, 7: -52, 8: -50,
+};
 
 // ─── Scenario B — Medium · 0° · 6ft · Base ───────────────────────────────────
-// "Distance penalty" — challenging configuration. ~39% coverage (74/192 tags).
-// Physics: weaker signal, flat beam, double the range, base power. Front faces
-// of near boxes (NW/NE) still readable. SW/SE bottom boxes are near-blind.
-// Clear spatial falloff pattern makes blind spots immediately obvious in the rig.
-// RSSI range: -58 to -78 dBm (mostly red).
+// "Distance penalty" — challenging configuration. 59/192 = ~31% overall coverage.
+// All 8 boxes red. Spatial falloff pattern tells the blind-spot story clearly:
+//
+//   Box 2 NE Top   58%  best: front + partial sides + some top reads
+//   Box 1 NW Top   42%  good front, partial sides
+//   Box 3 SW Top   37%  only front + minimal sides
+//   Box 4 SE Top   37%  only front + minimal sides
+//   Box 6 NE Bot   33%  decent front, minimal sides
+//   Box 5 NW Bot   21%  partial front only
+//   Box 7 SW Bot    8%  near-blind, front TL+TR only
+//   Box 8 SE Bot    8%  near-total blind spot
+//
+// Physics (Medium antenna, 0deg flat, 6 ft, Base power):
+//   0deg flat beam: top/bottom-facing tags nearly invisible (no angle advantage).
+//   6 ft + Base power: ~-15 dB vs Scenario A; steep falloff by row and layer.
+//   Front-facing (North) tags are essentially the only reliable reads.
+//   Back-facing: zero at this range. Bottom layer: ~-6 dB from top-layer shielding.
+//
+// RSSI: -58 to -78 dBm (all deep red).
 
-const SCENARIO_B_EPCS: string[] = [
-  // Box 1 — NW Top (10/20 — front face + near-side TL/TR only)
-  'E28011B0A502006C0283A0A5','E28011B0A502006C028452D4','E28011B0A502006C0283A055','E28011B0A502006C0283A674', // Front
-  'E28011B0A502006C028452C4',                                                                                 // Back TL only
-  'E28011B0A502006C02847884','E28011B0A502006C02835895',                                                     // Left TL/TR
-  'E28011B0A502006C02844C24','E28011B0A502006C02845234',                                                     // Right TL/TR
-  'E28011B0A502006C0283A045',                                                                                 // Top TL only
-  // Box 2 — NE Top (18/24 — best box at this range, most faces partially covered)
-  'E28011B0A5020066E5C289B8','E28011B0A5020066E5C10388','E28011B0A5020066E5C16FB8','E28011B0A5020066E5C16FE8', // Front
-  'E2801191A5040076300B24C6','E28011B0A5020066E5C25B38',                                                     // Back TL/TR
-  'E2801191A5040076300A4E36','E2801191A5040076300A4E46','E28011B0A5020066E5C1F538',                          // Left TL/TR/BL
-  'E28011B0A5020066E5C1F5B8','E28011B0A5020066E5C1F588','E28011B0A5020066E5C1F568','E28011B0A5020066E5C1F528', // Right
-  'E28011B0A5020066E5C1F5C8','E28011B0A5020066E5C16FA8','E28011B0A5020066E5C25B08','E2801191A5040076300B24D6', // Top
-  'E2801191A5040076300A09F6',                                                                                 // Bottom TR only
-  // Box 3 — SW Top (10/24 — front face + lead edges of sides, no back, no bottom)
-  'E28011B0A5020066E5C25B98','E28011B0A5020066E5C16F68','E28011B0A5020066E5C12948',                          // Front TL/TR/BL
-  'E28011B0A5020066E5C28928',                                                                                 // Back TL only
-  'E28011B0A5020066E5C26318','E28011B0A5020066E5C10368',                                                     // Left TL/TR
-  'E28011B0A5020066E5C10338','E28011B0A5020066E5C263A8',                                                     // Right TL/TR
-  'E2801191A5040076300AB3B6','E28011B0A5020066E5C25B48',                                                     // Top TL/BL
-  // Box 4 — SE Top (10/20 — front face + sparse coverage elsewhere)
-  'E28011B0A5050070B1BD341A','E28011B0A5050070B1BD34BA','E28011B0A5050070B1BD34AA','E28011B0A5050070B1BD348A', // Front
-  'E28011B0A5050070B1BE0E1A',                                                                                 // Back TL only
-  'E28011B0A5050070B1BDC20A',                                                                                 // Left TR only
-  'E28011B0A5050070B1BC883A',                                                                                 // Right TL only
-  'E28011B0A5050070B1BC62CA','E28011B0A5050070B1BC62DA',                                                     // Top TL/TR
-  'E28011B0A5050070B1BE94AA',                                                                                 // Bottom TL only
-  // Box 5 — NW Bottom (6/12 — front face mostly, 1 back, 1 left)
-  'E2801191A5040076300B6946','E2801191A5040076300B6916','E2801191A5040076300BAE56',                          // Front TL/TR/BL
-  'E2801191A5040076300AB376','E2801191A5040076300AB386',                                                     // Back TR/BL
-  'E2801191A5040076300BAE16',                                                                                 // Left TL only
-  // Box 6 — NE Bottom (12/17 — best bottom box; front + sides partially covered)
-  'E28011B0A502006C02845275','E28011B0A502006C02844CD5','E28011B0A502006C02844C85','E28011B0A502006C0283A6D5', // Front
-  'E2801191A5040076300B2446',                                                                                 // Back TL
-  'E28011B0A502006C0283A684','E28011B0A502006C0284C0E5','E28011B0A502006C0284C695',                          // Left TL/TR/BL
-  'E28011B0A502006C02835884','E28011B0A502006C02847874',                                                     // Right TR/BL
-  'E28011B0A502006C0284C084','E28011B0A502006C02844C94',                                                     // Top TL/TR
-  // Box 7 — SW Bottom (5/23 — severe falloff; front face edge + single slots)
-  'E28011B0A5050070B1BDBA0A','E28011B0A5050070B1BDBAAA',                                                     // Front TR/BL
-  'E28011B0A5050070B1BDBA8A',                                                                                 // Left TL only
-  'E28011B0A5050070B1BC625A',                                                                                 // Top TL only
-  'E28011B0A5050070B1BCAECA',                                                                                 // Bottom TL only
-  // Box 8 — SE Bottom (3/19 — near-total blind spot; only front TL/TR + 1 left)
-  'E28011B0A5020066E5C16F18','E28011B0A5020066E5C16F58',                                                     // Front TL/TR
-  'E28011B0A5050070B1BBD4EA',                                                                                 // Left TL only
+const SCENARIO_B_SPECS: { box: number; slots: SlotSpec[] }[] = [
+  // NW Top (Box 1): 10/24
+  { box: 1, slots: [...sface(0), ...sface(1, [0]), ...sface(2, [0, 1]), ...sface(3, [0, 1]), ...sface(4, [0])] },
+  // NE Top (Box 2): 14/24 — closest to antenna axis, best reads
+  { box: 2, slots: [...sface(0), ...sface(1, [0, 1]), ...sface(2, [0, 1, 2]), ...sface(3, [0, 1, 2]), ...sface(4, [0, 1])] },
+  // SW Top (Box 3): 9/24 — further from antenna, only front + trace sides
+  { box: 3, slots: [...sface(0), ...sface(1, [0]), ...sface(2, [0, 1]), ...sface(3, [0]), ...sface(4, [0])] },
+  // SE Top (Box 4): 9/24
+  { box: 4, slots: [...sface(0), ...sface(1, [0]), ...sface(2, [0]), ...sface(3, [0, 1]), ...sface(4, [0])] },
+  // NW Bottom (Box 5): 5/24 — partial front, one left, one top-gap read
+  { box: 5, slots: [...sface(0, [0, 1, 2]), ...sface(2, [0]), ...sface(4, [0])] },
+  // NE Bottom (Box 6): 8/24 — full front, minimal sides
+  { box: 6, slots: [...sface(0), ...sface(2, [0]), ...sface(3, [0, 1]), ...sface(4, [0])] },
+  // SW Bottom (Box 7): 2/24 — near-blind
+  { box: 7, slots: [...sface(0, [0, 1])] },
+  // SE Bottom (Box 8): 2/24 — near-total blind spot
+  { box: 8, slots: [...sface(0, [0, 1])] },
 ];
+
+const RSSI_B: Record<number, number> = {
+  1: -62, 2: -58, 3: -68, 4: -70,
+  5: -72, 6: -68, 7: -78, 8: -78,
+};
 
 // ─── Scenario objects ─────────────────────────────────────────────────────────
 
-const RSSI_A = [-38, -42, -44, -46, -48, -40, -51, -43, -47, -39] as const; // strong: mostly green
-const RSSI_B = [-58, -62, -65, -68, -71, -60, -74, -66, -72, -78] as const; // weak:   mostly red
-
-function toReads(epcs: string[], rssiCycle: readonly number[]): RunTagRead[] {
-  return epcs.map((epc, i) => ({
-    rawEpc: epc,
-    suffix: epc.slice(-7).toUpperCase(),
-    rssi:   rssiCycle[i % rssiCycle.length],
-  }));
-}
-
 export interface TestScenario {
-  label: string;
-  meta:  RunMeta;
-  reads: RunTagRead[];
+  label:      string;
+  meta:       RunMeta;
+  reads:      RunTagRead[];
+  placements: ResolvedTagPlacement[];
 }
 
 export const SCENARIO_A: TestScenario = {
-  label: 'Example A — Strong (Large · 45° · 3ft · Max)',
-  meta: { name: 'Example A', antenna: 'Large', orientation: '45°', range: '3ft', power: 'Max' },
-  reads: toReads(SCENARIO_A_EPCS, RSSI_A),
+  label:      'Example A \u2014 Strong (Large \u00b7 45\u00b0 \u00b7 3ft \u00b7 Max)',
+  meta:       { name: 'Example A', antenna: 'Large', orientation: '45\u00b0', range: '3ft', power: 'Max' },
+  reads:      makeReads(SCENARIO_A_SPECS, RSSI_A),
+  placements: SCENARIO_PLACEMENTS,
 };
 
 export const SCENARIO_B: TestScenario = {
-  label: 'Example B — Weak (Medium · 0° · 6ft · Base)',
-  meta: { name: 'Example B', antenna: 'Medium', orientation: '0°', range: '6ft', power: 'Base' },
-  reads: toReads(SCENARIO_B_EPCS, RSSI_B),
+  label:      'Example B \u2014 Weak (Medium \u00b7 0\u00b0 \u00b7 6ft \u00b7 Base)',
+  meta:       { name: 'Example B', antenna: 'Medium', orientation: '0\u00b0', range: '6ft', power: 'Base' },
+  reads:      makeReads(SCENARIO_B_SPECS, RSSI_B),
+  placements: SCENARIO_PLACEMENTS,
 };

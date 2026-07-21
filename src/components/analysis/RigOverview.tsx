@@ -25,11 +25,11 @@ export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasDat
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <div className="h-2 w-2 rounded-sm bg-[#ef4444]" />
-            <span className="text-[0.6rem] font-semibold text-slate-400">&lt;85% reads</span>
+            <span className="text-[0.6rem] font-semibold text-slate-400">&lt;80% reads</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="h-2 w-2 rounded-sm bg-[#22c55e]" />
-            <span className="text-[0.6rem] font-semibold text-slate-400">≥85% reads</span>
+            <span className="text-[0.6rem] font-semibold text-slate-400">≥80% reads</span>
           </div>
         </div>
       </div>

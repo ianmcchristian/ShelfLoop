@@ -50,9 +50,9 @@ const COLOR_STOPS: ColorStop[] = [
   [0,   '#7f1d1d'], // maroon / blood red — flat at exactly 0%
   [1,   '#ef4444'], // vivid red — instant snap at 1%
   [50,  '#ef4444'], // vivid red stays flat through 50%
-  [70,  '#f87171'], // medium red
-  [84,  '#fca5a5'], // light red — red-300, still clearly red not pink
-  [85,  '#bbf7d0'], // light green — green entry
+  [65,  '#f87171'], // medium red
+  [79,  '#fca5a5'], // light red — approaching threshold
+  [80,  '#bbf7d0'], // light green — green entry at 80%
   [93,  '#22c55e'], // vivid green
   [100, '#16a34a'], // rich green
 ];
