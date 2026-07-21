@@ -551,15 +551,15 @@ function PulseWave({ delay }: { delay: number }) {
     meshRef.current.visible = true;
     const progress = t / 3.2;
     // In local antenna space, the plate face normal is -Y. Arc expands outward
-    // while drifting gently along the emitted direction.
+    // on the FRONT side of the plate instead of behind it.
     meshRef.current.position.y = -0.03 - progress * 0.94;
-    meshRef.current.position.z = progress * 0.22;
+    meshRef.current.position.z = -progress * 0.22;
     meshRef.current.scale.setScalar(0.78 + progress * 1.52);
     matRef.current.opacity = 0.26 * (1 - progress);
   });
 
   return (
-    <mesh ref={meshRef} visible={false} rotation={[0, Math.PI / 2, 0.26]}>
+    <mesh ref={meshRef} visible={false} rotation={[0, -Math.PI / 2, -0.26]}>
       <torusGeometry args={[0.52, 0.028, 18, 72, Math.PI * 0.82]} />
       <meshBasicMaterial
         ref={matRef}
