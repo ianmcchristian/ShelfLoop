@@ -15,6 +15,8 @@ import { CompareRigLayout } from './CompareRigLayout';
 import { ExceptionsPanel } from './ExceptionsPanel';
 import { UploadPanel } from './UploadPanel';
 import { buildRssiMap } from './rfidColorUtils';
+import { buildRunSummaryCsv, buildTagDetailCsv, buildExportFilename, downloadCsv } from './rfidExport';
+import { scanMetaIsComplete } from './rfidTypes';
 
 interface AnalysisSearchRequest {
   nonce: number;
@@ -203,6 +205,24 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
 
   const hasData = scanResult !== null;
 
+  // ── Export ─────────────────────────────────────────────────────────────────
+
+  const canExport = scanResult !== null && scanMetaIsComplete(scanMeta);
+
+  const handleExportSummary = useCallback(() => {
+    if (!scanResult) return;
+    const csv  = buildRunSummaryCsv(scanResult, rssiSuffixMap);
+    const name = buildExportFilename(scanResult, 'summary');
+    downloadCsv(csv, name);
+  }, [scanResult, rssiSuffixMap]);
+
+  const handleExportDetail = useCallback(() => {
+    if (!scanResult) return;
+    const csv  = buildTagDetailCsv(scanResult, rssiSuffixMap);
+    const name = buildExportFilename(scanResult, 'detail');
+    downloadCsv(csv, name);
+  }, [scanResult, rssiSuffixMap]);
+
   // ── Compare derived ────────────────────────────────────────────────────────
   const compareActive = compareScanReads !== null || compareUsingTestData;
 
@@ -332,12 +352,15 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
             isSyncRotating={isSyncRotating}
             showAntennaGuide={showAntennaGuide}
             showCompassGuide={showCompassGuide}
+            canExport={canExport}
             onReset={handleReset}
             onPlacementsChange={handlePlacementsChange}
             onEditorOpenChange={setPlacementEditorOpen}
             onSyncRotatingToggle={() => setIsSyncRotating((v) => !v)}
             onAntennaGuideToggle={() => setShowAntennaGuide((v) => !v)}
             onCompassGuideToggle={() => setShowCompassGuide((v) => !v)}
+            onExportSummary={handleExportSummary}
+            onExportDetail={handleExportDetail}
           />
         </div>
       </div>
