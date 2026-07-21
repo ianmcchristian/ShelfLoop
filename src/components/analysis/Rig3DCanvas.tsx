@@ -44,7 +44,7 @@ const FOCUS_DIST     = 4.0;
 
 function rigTo3D({ col, layer, row }: RigPosition): THREE.Vector3 {
   return new THREE.Vector3(
-    (col   - 0.5) * STEP,
+    (0.5   - col) * STEP,
     (layer - 0.5) * STEP,
     (0.5   - row) * STEP,
   );
