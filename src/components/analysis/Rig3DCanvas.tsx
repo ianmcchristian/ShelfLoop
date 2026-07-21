@@ -65,6 +65,16 @@ interface PulseDescriptor {
   startedAt: number;
   origin: THREE.Vector3;
   direction: THREE.Vector3;
+  speed: number;
+  spreadBase: number;
+  spreadSlope: number;
+}
+
+interface PulseTagDatum {
+  key: string;
+  pos: [number, number, number];
+  color: string | null;
+  hitAt: number;
 }
 
 function getAntennaPose(angleDeg: 0 | 45): AntennaPose {
@@ -80,7 +90,7 @@ function getAntennaPose(angleDeg: 0 | 45): AntennaPose {
   return { center, direction, rotationX };
 }
 
-function tagPulseColor(
+function tagDisplayColor(
   slot: TagSlotResult,
   lookupKey: string,
   rssiSuffixMap: Map<string, number>,
@@ -89,6 +99,15 @@ function tagPulseColor(
   if (slot.state !== 'read') return '#94a3b8';
   if (rssiDbm !== null) return rssiToHex(rssiDbm);
   return '#14532d';
+}
+
+function tagPulseColor(
+  slot: TagSlotResult,
+  lookupKey: string,
+  rssiSuffixMap: Map<string, number>,
+): string | null {
+  if (slot.state !== 'read') return null;
+  return tagDisplayColor(slot, lookupKey, rssiSuffixMap);
 }
 
 // Precise red scale per spec, green entry at 85%.
@@ -191,20 +210,22 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
   const _wp         = useRef(new THREE.Vector3());
   const _rigCenter  = useRef(new THREE.Vector3());
   const colorHex    = useMemo(() => boxHex(result), [result]);
-  const pulseTagData = useMemo(() => {
-    if (!result) return [] as { key: string; pos: [number, number, number]; color: string; hitAt: number }[];
+  const pulseTagData = useMemo<PulseTagDatum[]>(() => {
+    if (!result) return [];
     return result.faces.flatMap((faceResult) =>
       faceResult.slots.flatMap((slot) => {
         const pos = FACE_CORNERS[slot.face]?.[slot.position];
         if (!pos) return [];
         const lookupKey = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
-        if (!pulse) {
-          return [{
+        const pulseColor = tagPulseColor(slot, lookupKey, rssiSuffixMap);
+        if (!pulse || pulseColor === null) {
+          const item: PulseTagDatum = {
             key: `${slot.face}-${slot.position}`,
             pos: pos as [number, number, number],
-            color: tagPulseColor(slot, lookupKey, rssiSuffixMap),
+            color: null,
             hitAt: Number.POSITIVE_INFINITY,
-          }];
+          };
+          return [item];
         }
 
         const world = new THREE.Vector3(position[0] + pos[0], position[1] + pos[1], position[2] + pos[2]);
@@ -212,14 +233,15 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
         const along = rel.dot(pulse.direction);
         const closest = pulse.direction.clone().multiplyScalar(along);
         const radial = rel.sub(closest).length();
-        const spread = along > 0 ? 0.5 + along * 1.1 : 0;
-        const hitAt = along > 0 && radial <= spread ? pulse.startedAt + along * 0.42 : Number.POSITIVE_INFINITY;
-        return [{
+        const spread = along > 0 ? pulse.spreadBase + along * pulse.spreadSlope : 0;
+        const hitAt = along > 0 && radial <= spread ? pulse.startedAt + along * pulse.speed : Number.POSITIVE_INFINITY;
+        const item: PulseTagDatum = {
           key: `${slot.face}-${slot.position}`,
           pos: pos as [number, number, number],
-          color: tagPulseColor(slot, lookupKey, rssiSuffixMap),
+          color: pulseColor,
           hitAt,
-        }];
+        };
+        return [item];
       }),
     );
   }, [position, pulse, result, rssiSuffixMap]);
@@ -238,7 +260,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
     }
 
     const pulseNow = pulse ? performance.now() / 1000 - pulse.startedAt : null;
-    const pulseActive = pulseNow !== null && pulseNow >= 0 && pulseNow <= 1.9;
+    const pulseActive = pulseNow !== null && pulseNow >= 0 && pulseNow <= 3.1;
 
     // ── Colour: dimmed boxes go neutral grey, others keep coverage colour ──────
     const wantColor = anySelected && !isSelected ? DIMMED_CLR : coverageClr.current;
@@ -287,7 +309,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
     }
 
     if (pulseActive) {
-      const glow = Math.max(0, 1 - Math.abs((pulseNow ?? 0) - 0.9) / 0.9) * 0.16;
+      const glow = Math.max(0, 1 - Math.abs((pulseNow ?? 0) - 1.4) / 1.4) * 0.14;
       matRef.current.emissive.set('#67e8f9');
       matRef.current.emissiveIntensity = Math.max(matRef.current.emissiveIntensity, glow);
     }
@@ -380,7 +402,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
           const rssiDbm   = slot.state === 'read' ? (rssiSuffixMap.get(lookupKey) ?? null) : null;
           let tagBg: string;
           if (isHighlighted) { tagBg = 'rgba(0,113,220,0.96)'; }
-          else { tagBg = tagPulseColor(slot, lookupKey, rssiSuffixMap); }
+          else { tagBg = tagDisplayColor(slot, lookupKey, rssiSuffixMap); }
 
           return (
             <Html
@@ -429,8 +451,8 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
       )}
 
       {/* Pulse-only tag pings on box faces while wavefront is travelling */}
-      {!suppressHtmlLabels && pulse && pulseTagData.map((tag) => (
-        <PulseTagPing key={tag.key} pos={tag.pos} color={tag.color} hitAt={tag.hitAt} pulseStart={pulse.startedAt} />
+      {!suppressHtmlLabels && pulse && pulseTagData.filter((tag) => tag.color !== null).map((tag) => (
+        <PulseTagPing key={tag.key} pos={tag.pos} color={tag.color!} hitAt={tag.hitAt} pulseStart={pulse.startedAt} />
       ))}
     </mesh>
   );
@@ -457,7 +479,7 @@ function PulseTagPing({
     const now = performance.now() / 1000;
     const age = now - hitAt;
     const pulseAge = now - pulseStart;
-    const active = Number.isFinite(hitAt) && age >= 0 && age <= 1.0 && pulseAge <= 1.9;
+    const active = Number.isFinite(hitAt) && age >= 0 && age <= 1.0 && pulseAge <= 3.1;
     meshRef.current.visible = active;
     if (!active) return;
 
@@ -519,22 +541,22 @@ function PulseWave({ delay }: { delay: number }) {
     if (startRef.current === null) startRef.current = clock.elapsedTime;
 
     const t = clock.elapsedTime - startRef.current - delay;
-    if (t < 0 || t > 1.0) {
+    if (t < 0 || t > 1.8) {
       meshRef.current.visible = false;
       return;
     }
 
     meshRef.current.visible = true;
-    const progress = t / 1.0;
+    const progress = t / 1.8;
     // In local antenna space, the plate face normal is -Y.
-    meshRef.current.position.y = -0.03 - progress * 1.28;
-    meshRef.current.scale.setScalar(0.85 + progress * 3.1);
-    matRef.current.opacity = 0.34 * (1 - progress);
+    meshRef.current.position.y = -0.03 - progress * 1.7;
+    meshRef.current.scale.setScalar(1.15 + progress * 4.9);
+    matRef.current.opacity = 0.3 * (1 - progress);
   });
 
   return (
     <mesh ref={meshRef} visible={false} rotation={[Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.42, 0.5, 64]} />
+      <ringGeometry args={[0.62, 0.74, 64]} />
       <meshBasicMaterial
         ref={matRef}
         color="#38bdf8"
@@ -628,6 +650,9 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
       startedAt: antennaPulseStartedAt,
       origin: antennaPose.center.clone().addScaledVector(antennaPose.direction, 0.02),
       direction: antennaPose.direction.clone(),
+      speed: 0.68,
+      spreadBase: 0.86,
+      spreadSlope: 1.55,
     };
   }, [antennaPose, antennaPulseStartedAt, antennaPulseToken, showAntennaGuide]);
 
