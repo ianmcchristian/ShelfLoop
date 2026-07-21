@@ -260,7 +260,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
     }
 
     const pulseNow = pulse ? performance.now() / 1000 - pulse.startedAt : null;
-    const pulseActive = pulseNow !== null && pulseNow >= 0 && pulseNow <= 4.2;
+    const pulseActive = pulseNow !== null && pulseNow >= 0 && pulseNow <= 4.8;
 
     // ── Colour: dimmed boxes go neutral grey, others keep coverage colour ──────
     const wantColor = anySelected && !isSelected ? DIMMED_CLR : coverageClr.current;
@@ -309,7 +309,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
     }
 
     if (pulseActive) {
-      const glow = Math.max(0, 1 - Math.abs((pulseNow ?? 0) - 1.9) / 1.9) * 0.12;
+      const glow = Math.max(0, 1 - Math.abs((pulseNow ?? 0) - 2.1) / 2.1) * 0.1;
       matRef.current.emissive.set('#67e8f9');
       matRef.current.emissiveIntensity = Math.max(matRef.current.emissiveIntensity, glow);
     }
@@ -363,6 +363,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
             center
             position={pos}
             distanceFactor={5.5}
+            zIndexRange={[180, 0]}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             occlude={[meshRef] as any}
             style={{ pointerEvents: 'none' }}
@@ -410,6 +411,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
               center
               position={pos as [number, number, number]}
               distanceFactor={5}
+              zIndexRange={[200, 0]}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               occlude={[meshRef] as any}
               style={{ pointerEvents: 'none' }}
@@ -479,7 +481,7 @@ function PulseTagPing({
     const now = performance.now() / 1000;
     const age = now - hitAt;
     const pulseAge = now - pulseStart;
-    const active = Number.isFinite(hitAt) && age >= 0 && age <= 1.0 && pulseAge <= 4.2;
+    const active = Number.isFinite(hitAt) && age >= 0 && age <= 1.0 && pulseAge <= 4.8;
     meshRef.current.visible = active;
     if (!active) return;
 
@@ -541,22 +543,22 @@ function PulseWave({ delay }: { delay: number }) {
     if (startRef.current === null) startRef.current = clock.elapsedTime;
 
     const t = clock.elapsedTime - startRef.current - delay;
-    if (t < 0 || t > 2.5) {
+    if (t < 0 || t > 3.0) {
       meshRef.current.visible = false;
       return;
     }
 
     meshRef.current.visible = true;
-    const progress = t / 2.5;
+    const progress = t / 3.0;
     // In local antenna space, the plate face normal is -Y.
-    meshRef.current.position.y = -0.02 - progress * 1.18;
-    meshRef.current.scale.setScalar(1.02 + progress * 2.35);
-    matRef.current.opacity = 0.34 * (1 - progress);
+    meshRef.current.position.y = -0.015 - progress * 1.04;
+    meshRef.current.scale.set(1.0 + progress * 1.35, 1, 1.0 + progress * 1.15);
+    matRef.current.opacity = 0.28 * (1 - progress);
   });
 
   return (
-    <mesh ref={meshRef} visible={false} rotation={[Math.PI / 2, 0, 0]}>
-      <torusGeometry args={[0.62, 0.09, 20, 64]} />
+    <mesh ref={meshRef} visible={false}>
+      <boxGeometry args={[0.78, 0.14, 0.58]} />
       <meshBasicMaterial
         ref={matRef}
         color="#38bdf8"
@@ -573,8 +575,8 @@ function PulseBurst() {
   return (
     <>
       <PulseWave delay={0} />
-      <PulseWave delay={0.22} />
-      <PulseWave delay={0.44} />
+      <PulseWave delay={0.34} />
+      <PulseWave delay={0.68} />
     </>
   );
 }
@@ -650,9 +652,9 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
       startedAt: antennaPulseStartedAt,
       origin: antennaPose.center.clone().addScaledVector(antennaPose.direction, 0.02),
       direction: antennaPose.direction.clone(),
-      speed: 0.92,
-      spreadBase: 0.96,
-      spreadSlope: 1.1,
+      speed: 1.08,
+      spreadBase: 1.02,
+      spreadSlope: 0.72,
     };
   }, [antennaPose, antennaPulseStartedAt, antennaPulseToken, showAntennaGuide]);
 
