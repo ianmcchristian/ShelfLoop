@@ -74,7 +74,9 @@ function getAntennaPose(angleDeg: 0 | 45): AntennaPose {
     angleDeg === 0 ? ARM_Z + 0.33 : ANTENNA_Z,
   );
   const rotationX = -THREE.MathUtils.degToRad(angleDeg);
-  const direction = new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(rotationX, 0, 0)).normalize();
+  // Plate broad face lies in the local XZ plane (thin Y dimension), so the
+  // emitted wave should travel along the face normal: local -Y, not the tip/+Z.
+  const direction = new THREE.Vector3(0, -1, 0).applyEuler(new THREE.Euler(rotationX, 0, 0)).normalize();
   return { center, direction, rotationX };
 }
 
@@ -210,8 +212,8 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
         const along = rel.dot(pulse.direction);
         const closest = pulse.direction.clone().multiplyScalar(along);
         const radial = rel.sub(closest).length();
-        const spread = along > 0 ? 0.42 + along * 0.72 : 0;
-        const hitAt = along > 0 && radial <= spread ? pulse.startedAt + along * 0.34 : Number.POSITIVE_INFINITY;
+        const spread = along > 0 ? 0.5 + along * 1.1 : 0;
+        const hitAt = along > 0 && radial <= spread ? pulse.startedAt + along * 0.42 : Number.POSITIVE_INFINITY;
         return [{
           key: `${slot.face}-${slot.position}`,
           pos: pos as [number, number, number],
@@ -524,13 +526,14 @@ function PulseWave({ delay }: { delay: number }) {
 
     meshRef.current.visible = true;
     const progress = t / 1.0;
-    meshRef.current.position.z = 0.03 + progress * 1.28;
+    // In local antenna space, the plate face normal is -Y.
+    meshRef.current.position.y = -0.03 - progress * 1.28;
     meshRef.current.scale.setScalar(0.85 + progress * 3.1);
     matRef.current.opacity = 0.34 * (1 - progress);
   });
 
   return (
-    <mesh ref={meshRef} visible={false} rotation={[0, 0, 0]}>
+    <mesh ref={meshRef} visible={false} rotation={[Math.PI / 2, 0, 0]}>
       <ringGeometry args={[0.42, 0.5, 64]} />
       <meshBasicMaterial
         ref={matRef}
@@ -623,7 +626,7 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
     if (!showAntennaGuide || antennaPulseToken <= 0 || antennaPulseStartedAt <= 0) return null;
     return {
       startedAt: antennaPulseStartedAt,
-      origin: antennaPose.center.clone().addScaledVector(antennaPose.direction, 0.03),
+      origin: antennaPose.center.clone().addScaledVector(antennaPose.direction, 0.02),
       direction: antennaPose.direction.clone(),
     };
   }, [antennaPose, antennaPulseStartedAt, antennaPulseToken, showAntennaGuide]);
