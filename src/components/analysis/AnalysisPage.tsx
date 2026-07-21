@@ -6,14 +6,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseRunCsv } from './rfidRunParser';
 import { matchRun } from './rfidMatcher';
 import { TEST_PLACEMENTS, TEST_RUN_META, TEST_RUN_READS } from './rfidTestData';
-import type { AnalysisRun, ParseIssue, ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
+import type { AnalysisRun, ParseIssue, ResolvedTagPlacement, RunMeta, RunTagRead, ScanMeta } from './rfidTypes';
 import { BoxDetailPanel } from './BoxDetailPanel';
 import { RigOverview } from './RigOverview';
 import { AnalysisActionsPanel } from './AnalysisActionsPanel';
 import { CoverageGauge } from './CoverageGauge';
 import { CompareRigLayout } from './CompareRigLayout';
 import { ExceptionsPanel } from './ExceptionsPanel';
-import type { ScanMeta } from './UploadPanel';
 import { UploadPanel } from './UploadPanel';
 import { buildRssiMap } from './rfidColorUtils';
 
@@ -29,7 +28,7 @@ interface AnalysisPageProps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const EMPTY_SCAN_META: ScanMeta = { antennaType: '', angle: '', distance: '', timeout: '' };
+const EMPTY_SCAN_META: ScanMeta = { antenna: '', orientation: '', range: '', power: '' };
 
 function toRunMeta(meta: ScanMeta): RunMeta {
   return { name: '', ...meta };
@@ -118,7 +117,7 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setShouldScrollToRig(true);
   }, []);
 
-  const handleScanMetaChange = useCallback((field: string, value: string) => {
+  const handleScanMetaChange = useCallback((field: keyof ScanMeta, value: string) => {
     setScanMeta((m) => ({ ...m, [field]: value }));
   }, []);
 
@@ -129,10 +128,10 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setScanIssues([]);
     setScanFileName(null);
     setScanMeta({
-      antennaType: TEST_RUN_META.antennaType,
-      angle: TEST_RUN_META.angle,
-      distance: TEST_RUN_META.distance,
-      timeout: TEST_RUN_META.timeout,
+      antenna:     TEST_RUN_META.antenna     as ScanMeta['antenna'],
+      orientation: TEST_RUN_META.orientation as ScanMeta['orientation'],
+      range:       TEST_RUN_META.range       as ScanMeta['range'],
+      power:       TEST_RUN_META.power       as ScanMeta['power'],
     });
     setSelectedBox(null);
     setHighlightedTagKey(null);
@@ -184,8 +183,10 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     return matchRun(
       toRunMeta(
         usingTestData
-          ? { antennaType: TEST_RUN_META.antennaType, angle: TEST_RUN_META.angle,
-              distance: TEST_RUN_META.distance, timeout: TEST_RUN_META.timeout }
+          ? { antenna: TEST_RUN_META.antenna as ScanMeta['antenna'],
+              orientation: TEST_RUN_META.orientation as ScanMeta['orientation'],
+              range: TEST_RUN_META.range as ScanMeta['range'],
+              power: TEST_RUN_META.power as ScanMeta['power'] }
           : scanMeta,
       ),
       reads,

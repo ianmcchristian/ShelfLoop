@@ -115,11 +115,11 @@ const MOCK_READ_EPCS = [
 ];
 
 export const TEST_RUN_META: RunMeta = {
-  name: 'Mock Run — Demo',
-  antennaType: 'Directional 9dBi',
-  angle: '45°',
-  distance: '6 ft',
-  timeout: '5s',
+  name:        'Mock Run — Demo',
+  antenna:     'Large',
+  orientation: '45°',
+  range:       '3ft',
+  power:       'Base',
 };
 
 // Mock RSSI values (-40 to -72 dBm) so the RSSI heatmap toggle is testable

@@ -3,6 +3,8 @@
 // Action Menu lives in its own sibling panel — not here.
 
 import { useRef } from 'react';
+import type { ScanMeta } from './rfidTypes';
+import { scanMetaIsComplete } from './rfidTypes';
 
 // ─── Compare source picker ────────────────────────────────────────────────────
 
@@ -149,43 +151,65 @@ function ScanSource({ scanFileName, usingTestData, onScanFile, onUseTestData, on
   );
 }
 
-// ─── Antenna config — single-column label + input rows ───────────────────────
+// ─── Antenna config — option pickers matching Experiment 2 variables ──────────
+// ScanMeta type and scanMetaIsComplete() live in rfidTypes.ts (re-exported from there).
 
-export interface ScanMeta {
-  antennaType: string;
-  angle: string;
-  distance: string;
-  timeout: string;
-}
+// Rows in display order — label maps directly to ScanMeta key.
+const CONFIG_ROWS: { label: string; key: keyof ScanMeta; options: readonly string[] }[] = [
+  { label: 'Antenna',     key: 'antenna',     options: ['Medium', 'Large'] },
+  { label: 'Orientation', key: 'orientation', options: ['0°', '45°']       },
+  { label: 'Range',       key: 'range',       options: ['3ft', '6ft']      },
+  { label: 'Power',       key: 'power',       options: ['Base', 'Max']     },
+];
 
-interface AntennaConfigProps extends ScanMeta {
+interface AntennaConfigProps {
+  meta: ScanMeta;
   disabled: boolean;
-  onChange: (field: string, value: string) => void;
+  onChange: (field: keyof ScanMeta, value: string) => void;
 }
 
-function AntennaConfig({ antennaType, angle, distance, timeout, disabled, onChange }: AntennaConfigProps) {
-  const row = (label: string, key: string, value: string, placeholder: string) => (
-    <div key={key} className="flex items-center gap-3">
-      <label className="w-24 shrink-0 text-[0.62rem] font-black uppercase tracking-[0.1em] text-slate-400">
-        {label}
-      </label>
-      <input
-        type="text"
-        value={value}
-        placeholder={placeholder}
-        disabled={disabled}
-        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-retail-ink outline-none placeholder:text-slate-400 focus:border-retail-blue focus:ring-1 focus:ring-retail-blue/30 disabled:cursor-not-allowed disabled:opacity-50"
-        onChange={(e) => onChange(key, e.target.value)}
-      />
-    </div>
-  );
-
+function AntennaConfig({ meta, disabled, onChange }: AntennaConfigProps) {
   return (
     <div className="flex flex-col gap-2.5">
-      {row('Antenna type', 'antennaType', antennaType, 'e.g. 9dBi Directional')}
-      {row('Angle', 'angle', angle, 'e.g. 45 deg')}
-      {row('Distance', 'distance', distance, 'e.g. 6 ft')}
-      {row('Timeout', 'timeout', timeout, 'e.g. 5s')}
+      {CONFIG_ROWS.map(({ label, key, options }) => {
+        const current = meta[key];
+        return (
+          <div key={key} className="flex items-center gap-3">
+            <span className="w-24 shrink-0 text-[0.62rem] font-black uppercase tracking-[0.1em] text-slate-400">
+              {label}
+            </span>
+            <div className="flex flex-1 gap-1.5">
+              {options.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  disabled={disabled}
+                  aria-pressed={current === opt}
+                  onClick={() => onChange(key, current === opt ? '' : opt)}
+                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition focus:outline-none focus-visible:ring-2 focus-visible:ring-retail-blue/35 disabled:cursor-not-allowed disabled:opacity-40 ${
+                    current === opt
+                      ? 'bg-retail-blue text-white shadow-sm'
+                      : 'border border-slate-200 bg-white text-slate-500 hover:border-retail-blue hover:text-retail-blue'
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Completion indicator — shows which fields still need a selection */}
+      {!disabled && (
+        <p className="text-[0.58rem] font-semibold text-slate-400">
+          {scanMetaIsComplete(meta)
+            ? '✓ Config complete — ready for export'
+            : `${Object.values(meta).filter((v) => v === '').length} field${
+                Object.values(meta).filter((v) => v === '').length !== 1 ? 's' : ''
+              } unset`}
+        </p>
+      )}
     </div>
   );
 }
@@ -199,7 +223,7 @@ export interface UploadPanelProps {
   compareFileName: string | null;
   compareUsingTestData: boolean;
   onScanFile: (text: string, name: string) => void;
-  onScanMetaChange: (field: string, value: string) => void;
+  onScanMetaChange: (field: keyof ScanMeta, value: string) => void;
   onUseTestData: () => void;
   onScanClear: () => void;
   onCompareFile: (text: string, name: string) => void;
@@ -250,7 +274,7 @@ export function UploadPanel({
         <div className="flex flex-col gap-4 border-t border-slate-100 pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
           <h2 className="eyebrow">Antenna configuration</h2>
           <AntennaConfig
-            {...scanMeta}
+            meta={scanMeta}
             disabled={usingTestData}
             onChange={onScanMetaChange}
           />
