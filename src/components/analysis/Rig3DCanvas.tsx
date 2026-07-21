@@ -16,7 +16,7 @@ import * as THREE from 'three';
 
 import type { BoxResult, RigPosition } from './rfidTypes';
 import { RIG_LAYOUT } from './rfidTypes';
-import { rssiToHex } from './rfidColorUtils';
+import { rssiToHex, RSSI_MISSED_COLOR } from './rfidColorUtils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -289,15 +289,16 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
           const slotKey = `${boxNumber}-${slot.face}-${slot.position}`;
           const isHighlighted = highlightedTagKey === slotKey;
 
-          // RSSI heatmap: colour read tags by signal strength, leave missed/unresolved as-is
+          // RSSI heatmap: read tags get signal-strength gradient, unread get gray.
+          // Gray = no read. Colour = read. Shade of colour = signal quality.
           const lookupKey = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
-          const rssiDbm = (rssiMode && slot.state === 'read')
+          const rssiDbm   = (rssiMode && slot.state === 'read')
             ? (rssiSuffixMap.get(lookupKey) ?? null)
             : null;
           const tagBg = isHighlighted
             ? 'rgba(0,113,220,0.96)'
-            : rssiDbm !== null
-              ? rssiToHex(rssiDbm)
+            : rssiMode
+              ? (rssiDbm !== null ? rssiToHex(rssiDbm) : RSSI_MISSED_COLOR)
               : (STATE_BG[slot.state] ?? STATE_BG.unresolved);
 
           return (

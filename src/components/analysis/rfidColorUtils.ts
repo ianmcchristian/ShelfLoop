@@ -6,21 +6,33 @@ import type { RunTagRead } from './rfidTypes';
 
 // ─── RSSI gradient ────────────────────────────────────────────────────────────
 // Scale: -30 dBm = 100% (best) · -80 dBm = 0% (barely readable)
-// Practical UHF RFID thresholds at 3 ft with a large antenna:
-//   strong (-30 to -50 dBm) → green family
-//   acceptable (-50 to -65 dBm) → yellow / orange
-//   marginal (-65 to -80 dBm) → red family
+//
+// Cliff at 50% (≈ -55 dBm) mirrors the dramatic red/green split used on the
+// 3D boxes (which cliffs at 85% coverage). Same visual language: red = bad,
+// green = good, no orange or yellow in between.
+//
+// Practical thresholds for UHF RFID at 3 ft with large antenna:
+//   ≥ -55 dBm → green family (good / strong)
+//   < -55 dBm → red family  (marginal / weak)
 
 type ColorStop = [number, string];
 
 const RSSI_STOPS: ColorStop[] = [
-  [0,   '#7f1d1d'], // maroon      — extremely weak / -80 dBm
-  [15,  '#dc2626'], // vivid red   — weak          / -72.5 dBm
-  [35,  '#f97316'], // orange      — marginal       / -62.5 dBm
-  [55,  '#eab308'], // yellow      — acceptable     / -52.5 dBm
-  [72,  '#22c55e'], // vivid green — good           / -44 dBm
-  [100, '#16a34a'], // rich green  — strong         / -30 dBm
+  [0,   '#7f1d1d'], // maroon     — extremely weak / -80 dBm
+  [1,   '#ef4444'], // vivid red  — instant snap (matches box scale)
+  [30,  '#ef4444'], // flat vivid red
+  [45,  '#f87171'], // medium red  / -57.5 dBm
+  [49,  '#fca5a5'], // light red   / -55.5 dBm (approaching cliff)
+  [50,  '#bbf7d0'], // light green — cliff at ≈ -55 dBm
+  [70,  '#22c55e'], // vivid green / -45 dBm
+  [100, '#16a34a'], // rich green  / -30 dBm (strong)
 ];
+
+/** CSS color used for unread/missed tags in RSSI heatmap mode.
+ *  Gray = no data. The gradient only speaks to tags that were actually read. */
+export const RSSI_MISSED_COLOR = 'rgba(100,116,139,0.72)'; // slate-500
+
+// ─── Hex interpolation ───────────────────────────────────────────────────────
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);
@@ -36,7 +48,9 @@ function lerpHex(a: string, b: string, t: number): string {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${bl.toString(16).padStart(2, '0')}`;
 }
 
-/** Convert an RSSI dBm value to a CSS hex colour. */
+// ─── Public color functions ───────────────────────────────────────────────────
+
+/** Convert an RSSI dBm value to a CSS hex colour using the red/green cliff scale. */
 export function rssiToHex(rssiDbm: number): string {
   const clamped = Math.max(-80, Math.min(-30, rssiDbm));
   const pct = ((clamped + 80) / 50) * 100;
@@ -53,7 +67,9 @@ export function rssiToHex(rssiDbm: number): string {
 
 /** Convert RSSI dBm to a normalised 0–100 percentage for display. */
 export function rssiToPct(rssiDbm: number): number {
-  return Math.round(Math.max(0, Math.min(100, ((Math.max(-80, Math.min(-30, rssiDbm)) + 80) / 50) * 100)));
+  return Math.round(
+    Math.max(0, Math.min(100, ((Math.max(-80, Math.min(-30, rssiDbm)) + 80) / 50) * 100)),
+  );
 }
 
 // ─── RSSI suffix map ──────────────────────────────────────────────────────────

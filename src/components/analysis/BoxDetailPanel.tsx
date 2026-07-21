@@ -4,7 +4,7 @@
 
 import type { BoxResult, FaceResult, FacePosition, TagReadState } from './rfidTypes';
 import { BOX_FACES } from './rfidTypes';
-import { rssiToHex, rssiToPct } from './rfidColorUtils';
+import { rssiToHex, rssiToPct, RSSI_MISSED_COLOR } from './rfidColorUtils';
 
 // ─── Slot dot ────────────────────────────────────────────────────────────────
 
@@ -21,27 +21,38 @@ const STATE_LABEL: Record<TagReadState, string> = {
 };
 
 function TagDot({
-  state, label, position, rssiColor, rssiPct,
+  state, label, position, rssiColor, rssiPct, rssiGray,
 }: {
   state: TagReadState;
   label: string;
   position: FacePosition;
-  rssiColor?: string;  // defined only when rssiMode is on and state === 'read'
+  rssiColor?: string;  // defined when rssiMode on + state === 'read'
   rssiPct?: number;
+  rssiGray?: boolean;  // true when rssiMode on + tag not read (show gray)
 }) {
-  const useRssi = rssiColor !== undefined && state === 'read';
+  const useRssiColor = rssiColor !== undefined && state === 'read';
+  const useRssiGray  = rssiGray && state !== 'read';
+
+  const inlineStyle = useRssiColor
+    ? { backgroundColor: rssiColor,      outlineColor: rssiColor }
+    : useRssiGray
+      ? { backgroundColor: RSSI_MISSED_COLOR, outlineColor: RSSI_MISSED_COLOR }
+      : undefined;
+
+  const tooltipLabel = useRssiColor && rssiPct !== undefined
+    ? `Signal ${rssiPct}% (RSSI heatmap)`
+    : useRssiGray
+      ? `${STATE_LABEL[state]} (no RSSI data)`
+      : STATE_LABEL[state];
+
   return (
     <div className="group relative flex items-center justify-center">
       <div
         className={`h-5 w-5 rounded-full ring-2 ring-offset-1 transition-transform group-hover:scale-125 ${
-          useRssi ? 'ring-white/40' : STATE_CLASSES[state]
+          useRssiColor || useRssiGray ? 'ring-white/40' : STATE_CLASSES[state]
         }`}
-        style={useRssi ? { backgroundColor: rssiColor, outlineColor: rssiColor } : undefined}
-        title={`${position}: ${label || 'no label'} — ${
-          useRssi && rssiPct !== undefined
-            ? `Signal ${rssiPct}% (RSSI heatmap)`
-            : STATE_LABEL[state]
-        }`}
+        style={inlineStyle}
+        title={`${position}: ${label || 'no label'} — ${tooltipLabel}`}
       />
     </div>
   );
@@ -80,7 +91,7 @@ function FaceCard({ result, rssiMode, rssiSuffixMap }: {
           const slot = slotByPos[pos];
           if (!slot) return <div key={pos} className="h-5 w-5 rounded-full bg-slate-100 ring-2 ring-slate-200 ring-offset-1" />;
           const lookupKey = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
-          const rssiDbm = (rssiMode && slot.state === 'read') ? (rssiSuffixMap.get(lookupKey) ?? undefined) : undefined;
+          const rssiDbm   = (rssiMode && slot.state === 'read') ? (rssiSuffixMap.get(lookupKey) ?? undefined) : undefined;
           return (
             <TagDot
               key={pos}
@@ -89,6 +100,7 @@ function FaceCard({ result, rssiMode, rssiSuffixMap }: {
               position={pos}
               rssiColor={rssiDbm !== undefined ? rssiToHex(rssiDbm) : undefined}
               rssiPct={rssiDbm !== undefined ? rssiToPct(rssiDbm) : undefined}
+              rssiGray={rssiMode && slot.state !== 'read'}
             />
           );
         })}
@@ -175,8 +187,8 @@ function Legend({ rssiMode }: { rssiMode: boolean }) {
           Marginal
         </div>
         <div className="flex items-center gap-1.5">
-          <div className={`h-3 w-3 rounded-full ring-1 ring-offset-1 ${STATE_CLASSES.missed}`} />
-          Missed
+          <div className="h-3 w-3 rounded-full bg-slate-400 ring-1 ring-slate-400 ring-offset-1" />
+          Not read
         </div>
         <span className="text-slate-400">· hover a dot for signal %</span>
       </div>
