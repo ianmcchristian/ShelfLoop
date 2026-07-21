@@ -142,10 +142,10 @@ export function AnalysisPage({ searchRequest, onSearchEntriesChange }: AnalysisP
     setCompareUsingTestData(false);
   }, []);
 
-  const handleCompareTestData = useCallback(() => {
-    // Compare test data defaults to Scenario A reads
-    setCompareScanReads(SCENARIO_A.reads);
-    setCompareScanFileName(SCENARIO_A.label);
+  const handleCompareTestData = useCallback((scenario: 'A' | 'B') => {
+    const s = scenario === 'A' ? SCENARIO_A : SCENARIO_B;
+    setCompareScanReads(s.reads);
+    setCompareScanFileName(s.label);
     setCompareUsingTestData(true);
   }, []);
 

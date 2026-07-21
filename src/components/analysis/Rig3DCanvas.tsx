@@ -103,8 +103,8 @@ const FACE_SHORT_LABEL: Record<string, string> = {
   Back: 'B',
   Left: 'L',
   Right: 'R',
-  Top: 'U',
-  Bottom: 'D',
+  Top: 'T',
+  Bottom: 'B',
 };
 
 // ─── Camera sync state (shared between two canvas instances in compare mode) ──
