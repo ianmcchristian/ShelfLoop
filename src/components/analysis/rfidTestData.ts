@@ -180,49 +180,90 @@ const RSSI_A: Record<number, number> = {
 };
 
 // ─── Scenario B — Medium · 0° · 6ft · Base ───────────────────────────────────
-// "Distance penalty" — challenging configuration. 59/192 = ~31% overall coverage.
-// All 8 boxes red. Spatial falloff pattern tells the blind-spot story clearly:
+// "Distance penalty" — per-tag RSSI gradient. 62/192 = ~32% overall coverage.
+// All 8 boxes red. Spatial pattern: signal radiates from the Top-Right edge
+// (boxes 2,4) and Top-Left edge (boxes 1,3), decaying outward per tag.
 //
-//   Box 2 NE Top   58%  best: front + partial sides + some top reads
-//   Box 1 NW Top   42%  good front, partial sides
-//   Box 3 SW Top   37%  only front + minimal sides
-//   Box 4 SE Top   37%  only front + minimal sides
-//   Box 6 NE Bot   33%  decent front, minimal sides
-//   Box 5 NW Bot   21%  partial front only
-//   Box 7 SW Bot    8%  near-blind, front TL+TR only
-//   Box 8 SE Bot    8%  near-total blind spot
+//   Box 1 NW Top   50%  strong Top-Left edge, decays across Top + Front
+//   Box 2 NE Top   50%  strong Top-Right edge, decays across Top + Front
+//   Box 3 SW Top   46%  same as Box 1 but weaker (further south)
+//   Box 4 SE Top   46%  same as Box 2 but weaker (further south)
+//   Box 5 NW Bot   17%  Top-Left edge barely read, everything else missed
+//   Box 6 NE Bot   17%  Top-Right edge barely read, everything else missed
+//   Box 7 SW Bot   17%  Top-Left edge barely read, everything else missed
+//   Box 8 SE Bot   17%  Top-Right edge barely read, everything else missed
 //
-// Physics (Medium antenna, 0deg flat, 6 ft, Base power):
-//   0deg flat beam: top/bottom-facing tags nearly invisible (no angle advantage).
-//   6 ft + Base power: ~-15 dB vs Scenario A; steep falloff by row and layer.
-//   Front-facing (North) tags are essentially the only reliable reads.
-//   Back-facing: zero at this range. Bottom layer: ~-6 dB from top-layer shielding.
+// Physics (Medium antenna, 0° flat, 6ft, Base power):
+//   At 6ft base power, signal barely reaches the rig at all.
+//   Strongest reads: Top face tags on the antenna-proximal edge (centre of rig)
+//   plus the adjacent side face top row — total 4 "primary" tags per box.
+//   Signal decays outward: remaining Top tags are medium-weak, Front reads
+//   are tertiary, Back/Bottom are total blind spots at this range.
+//   Bottom layer additionally attenuated ~-3 dB by top-layer shielding.
 //
-// RSSI: -58 to -78 dBm (all deep red).
+// RSSI: -54 to -76 dBm (primary edge green-ish, everything else red).
 
-const SCENARIO_B_SPECS: { box: number; slots: SlotSpec[] }[] = [
-  // NW Top (Box 1): 10/24
-  { box: 1, slots: [...sface(0), ...sface(1, [0]), ...sface(2, [0, 1]), ...sface(3, [0, 1]), ...sface(4, [0])] },
-  // NE Top (Box 2): 14/24 — closest to antenna axis, best reads
-  { box: 2, slots: [...sface(0), ...sface(1, [0, 1]), ...sface(2, [0, 1, 2]), ...sface(3, [0, 1, 2]), ...sface(4, [0, 1])] },
-  // SW Top (Box 3): 9/24 — further from antenna, only front + trace sides
-  { box: 3, slots: [...sface(0), ...sface(1, [0]), ...sface(2, [0, 1]), ...sface(3, [0]), ...sface(4, [0])] },
-  // SE Top (Box 4): 9/24
-  { box: 4, slots: [...sface(0), ...sface(1, [0]), ...sface(2, [0]), ...sface(3, [0, 1]), ...sface(4, [0])] },
-  // NW Bottom (Box 5): 5/24 — partial front, one left, one top-gap read
-  { box: 5, slots: [...sface(0, [0, 1, 2]), ...sface(2, [0]), ...sface(4, [0])] },
-  // NE Bottom (Box 6): 8/24 — full front, minimal sides
-  { box: 6, slots: [...sface(0), ...sface(2, [0]), ...sface(3, [0, 1]), ...sface(4, [0])] },
-  // SW Bottom (Box 7): 2/24 — near-blind
-  { box: 7, slots: [...sface(0, [0, 1])] },
-  // SE Bottom (Box 8): 2/24 — near-total blind spot
-  { box: 8, slots: [...sface(0, [0, 1])] },
+// Per-slot RSSI support for Scenario B — [faceIdx, posIdx, rssi].
+// face: 0=Front 1=Back 2=Left 3=Right 4=Top 5=Bottom
+// pos:  0=TL    1=TR   2=BL   3=BR
+type DetailedSlotSpec = [fi: number, pi: number, rssi: number];
+
+function makeDetailedReads(
+  specs: { box: number; slots: DetailedSlotSpec[] }[],
+): RunTagRead[] {
+  return specs.flatMap(({ box, slots }) =>
+    slots.map(([fi, pi, rssi]): RunTagRead => {
+      const epc = sEpc(box, fi, pi);
+      return { rawEpc: epc, suffix: epc.slice(-7).toUpperCase(), rssi };
+    }),
+  );
+}
+
+// prettier-ignore
+const SCENARIO_B_DETAILED: { box: number; slots: DetailedSlotSpec[] }[] = [
+  // ── NW Top (Box 1) — UPPER/LEFT EDGE primary, radiates right + front ──────
+  // Primary: Top-TL + Top-BL share edge with Left face; Left-TL + Left-TR top row
+  { box: 1, slots: [
+    [4, 0, -54], [4, 2, -56], [2, 0, -56], [2, 1, -58], // primary edge
+    [4, 1, -64], [4, 3, -67], [2, 2, -63], [2, 3, -68], // Top right half + Left bottom
+    [0, 0, -61], [0, 2, -64], [0, 1, -68], [0, 3, -70], // Front (N-facing)
+  ]},
+  // ── NE Top (Box 2) — UPPER/RIGHT EDGE primary, radiates left + front ──────
+  // Primary: Top-TR + Top-BR share edge with Right face; Right-TL + Right-TR top row
+  { box: 2, slots: [
+    [4, 1, -54], [4, 3, -56], [3, 0, -56], [3, 1, -58], // primary edge
+    [4, 0, -64], [4, 2, -67], [3, 2, -63], [3, 3, -68], // Top left half + Right bottom
+    [0, 1, -61], [0, 3, -64], [0, 0, -68], [0, 2, -70], // Front (N-facing)
+  ]},
+  // ── SW Top (Box 3) — same as Box 1 but ~-2 dB further south ─────────────
+  { box: 3, slots: [
+    [4, 0, -56], [4, 2, -58], [2, 0, -58], [2, 1, -60], // primary edge
+    [4, 1, -66], [4, 3, -69], [2, 2, -66], [2, 3, -71], // Top right half + Left bottom
+    [0, 0, -64], [0, 2, -67], [0, 1, -71],               // Front (fewer tertiary reads)
+  ]},
+  // ── SE Top (Box 4) — same as Box 2 but ~-2 dB further south ─────────────
+  { box: 4, slots: [
+    [4, 1, -56], [4, 3, -58], [3, 0, -58], [3, 1, -60], // primary edge
+    [4, 0, -66], [4, 2, -69], [3, 2, -66], [3, 3, -71], // Top left half + Right bottom
+    [0, 1, -64], [0, 3, -67], [0, 0, -71],               // Front (fewer tertiary reads)
+  ]},
+  // ── NW Bottom (Box 5) — Top-Left edge only, near threshold ───────────────
+  { box: 5, slots: [
+    [4, 0, -71], [4, 2, -73], [2, 0, -73], [2, 1, -74],
+  ]},
+  // ── NE Bottom (Box 6) — Top-Right edge only, near threshold ──────────────
+  { box: 6, slots: [
+    [4, 1, -71], [4, 3, -73], [3, 0, -73], [3, 1, -74],
+  ]},
+  // ── SW Bottom (Box 7) — Top-Left edge barely, ~-2 dB vs Box 5 ───────────
+  { box: 7, slots: [
+    [4, 0, -73], [4, 2, -75], [2, 0, -75], [2, 1, -76],
+  ]},
+  // ── SE Bottom (Box 8) — Top-Right edge barely, ~-2 dB vs Box 6 ──────────
+  { box: 8, slots: [
+    [4, 1, -73], [4, 3, -75], [3, 0, -75], [3, 1, -76],
+  ]},
 ];
-
-const RSSI_B: Record<number, number> = {
-  1: -62, 2: -58, 3: -68, 4: -70,
-  5: -72, 6: -68, 7: -78, 8: -78,
-};
 
 // ─── Scenario objects ─────────────────────────────────────────────────────────
 
@@ -243,6 +284,6 @@ export const SCENARIO_A: TestScenario = {
 export const SCENARIO_B: TestScenario = {
   label:      'Example B \u2014 Weak (Medium \u00b7 0\u00b0 \u00b7 6ft \u00b7 Base)',
   meta:       { name: 'Example B', antenna: 'Medium', orientation: '0\u00b0', range: '6ft', power: 'Base' },
-  reads:      makeReads(SCENARIO_B_SPECS, RSSI_B),
+  reads:      makeDetailedReads(SCENARIO_B_DETAILED),
   placements: SCENARIO_PLACEMENTS,
 };
