@@ -551,14 +551,14 @@ function PulseWave({ delay }: { delay: number }) {
     meshRef.current.visible = true;
     const progress = t / 3.0;
     // In local antenna space, the plate face normal is -Y.
-    meshRef.current.position.y = -0.015 - progress * 1.04;
-    meshRef.current.scale.set(1.0 + progress * 1.35, 1, 1.0 + progress * 1.15);
-    matRef.current.opacity = 0.28 * (1 - progress);
+    meshRef.current.position.y = -0.015 - progress * 1.12;
+    meshRef.current.scale.set(1.18 + progress * 1.7, 1, 1.12 + progress * 1.5);
+    matRef.current.opacity = 0.16 * (1 - progress);
   });
 
   return (
     <mesh ref={meshRef} visible={false}>
-      <boxGeometry args={[0.78, 0.14, 0.58]} />
+      <boxGeometry args={[1.02, 0.06, 0.8]} />
       <meshBasicMaterial
         ref={matRef}
         color="#38bdf8"
