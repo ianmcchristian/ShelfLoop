@@ -22,8 +22,15 @@ import { rssiToHex, rssiToPct, RSSI_MISSED_COLOR } from './rfidColorUtils';
 
 const BOX_SIZE       = 0.92;
 const STEP           = 1.08;
-const DEFAULT_CAM    = new THREE.Vector3(2.4, 2.2, 3.4);
+// Camera sits on the North-West side by default so screen-left = West and
+// screen-right = East, matching the physical box numbering Ian expects.
+const DEFAULT_CAM    = new THREE.Vector3(-2.4, 2.2, 3.4);
 const DEFAULT_TARGET = new THREE.Vector3(0, 0, 0);
+const COMPASS_RADIUS = 1.72;
+const COMPASS_Y      = 1.38;
+const POST_HEIGHT    = 2.55;
+const POST_Y         = 0.48;
+const ANTENNA_Y      = 1.86;
 // At scale 1.75, box is ~1.61 units wide. With fov=44°, half-height at D is
 // D * tan(22°) ≈ D * 0.404. Need D * 0.404 > box_half_diagonal (≈1.14) plus
 // margin → D ≥ 4.0 keeps all corners fully in frame.
@@ -343,6 +350,67 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
   );
 }
 
+// ─── Orientation helpers / rig guide ─────────────────────────────────────────
+
+function CompassMarker({ position, label }: { position: [number, number, number]; label: 'N' | 'S' | 'E' | 'W' }) {
+  return (
+    <Html position={position} center style={{ pointerEvents: 'none' }}>
+      <div
+        style={{
+          fontFamily: 'monospace',
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: '0.16em',
+          color: label === 'N' ? '#0f172a' : '#64748b',
+          background: 'rgba(255,255,255,0.82)',
+          border: '1px solid rgba(148,163,184,0.25)',
+          borderRadius: 999,
+          padding: '1px 5px',
+          userSelect: 'none',
+          boxShadow: '0 1px 8px rgba(15,23,42,0.08)',
+        }}
+      >
+        {label}
+      </div>
+    </Html>
+  );
+}
+
+function CompassRose() {
+  return (
+    <>
+      <CompassMarker position={[0, COMPASS_Y,  COMPASS_RADIUS]} label="N" />
+      <CompassMarker position={[0, COMPASS_Y, -COMPASS_RADIUS]} label="S" />
+      <CompassMarker position={[ COMPASS_RADIUS, COMPASS_Y, 0]} label="E" />
+      <CompassMarker position={[-COMPASS_RADIUS, COMPASS_Y, 0]} label="W" />
+    </>
+  );
+}
+
+function AntennaGuide() {
+  return (
+    <group position={[0, 0, 0]}>
+      {/* PVC post */}
+      <mesh position={[0, POST_Y, 0]}>
+        <cylinderGeometry args={[0.028, 0.028, POST_HEIGHT, 12]} />
+        <meshStandardMaterial color="#94a3b8" roughness={1} metalness={0} transparent opacity={0.45} />
+      </mesh>
+
+      {/* Antenna plate: centered in rig, facing North. 45° tilt = top edge leans North. */}
+      <mesh position={[0, ANTENNA_Y, 0.04]} rotation={[-Math.PI / 4, 0, 0]}>
+        <boxGeometry args={[0.58, 0.03, 0.42]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.18} />
+      </mesh>
+
+      {/* Tiny north tick on the antenna itself */}
+      <mesh position={[0, ANTENNA_Y + 0.02, 0.29]} rotation={[-Math.PI / 4, 0, 0]}>
+        <boxGeometry args={[0.16, 0.01, 0.04]} />
+        <meshStandardMaterial color="#2563eb" roughness={1} metalness={0} transparent opacity={0.45} />
+      </mesh>
+    </group>
+  );
+}
+
 // ─── Scene (owns camera animation) ───────────────────────────────────────────
 
 interface SceneProps {
@@ -484,6 +552,9 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
         }}
       />
 
+      {!suppressHtmlLabels && <CompassRose />}
+      <AntennaGuide />
+
       {(Object.entries(RIG_LAYOUT) as [string, RigPosition][]).map(([key, pos]) => {
         const num         = Number(key);
         const phaseOffset = (pos.col + pos.row + pos.layer) * (Math.PI / 2);
@@ -532,7 +603,7 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
     // double-click within the 3D viewport, background or box, no R3F magic needed.
     <div className="flex flex-col" onDoubleClick={onDeselect}>
       <Canvas
-        camera={{ position: [2.4, 2.2, 3.4], fov: 44 }}
+        camera={{ position: [-2.4, 2.2, 3.4], fov: 44 }}
         style={{ width: '100%', height: canvasHeight, borderRadius: 16, background: '#ffffff', display: 'block' }}
       >
         <color attach="background" args={['#ffffff']} />
