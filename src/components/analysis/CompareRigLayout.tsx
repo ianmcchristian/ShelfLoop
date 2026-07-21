@@ -17,6 +17,8 @@ interface RigPaneProps {
   selectedBox: number | null;
   scanResult: AnalysisRun | null;
   suppressHtmlLabels: boolean;
+  rssiMode: boolean;
+  rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncStateRef: React.MutableRefObject<SyncCameraState | null>;
   lastActiveSideRef: React.MutableRefObject<'A' | 'B' | null>;
@@ -25,7 +27,7 @@ interface RigPaneProps {
 }
 
 function RigPane({
-  side, label, selectedBox, scanResult, suppressHtmlLabels,
+  side, label, selectedBox, scanResult, suppressHtmlLabels, rssiMode, rssiSuffixMap,
   isSyncActive, syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect,
 }: RigPaneProps) {
   const hasData = scanResult !== null;
@@ -61,6 +63,8 @@ function RigPane({
         hasData={hasData}
         canvasHeight={COMPARE_CANVAS_HEIGHT}
         suppressHtmlLabels={suppressHtmlLabels}
+        rssiMode={rssiMode}
+        rssiSuffixMap={rssiSuffixMap}
         isSyncActive={isSyncActive}
         syncSide={side}
         syncStateRef={syncStateRef}
@@ -97,6 +101,9 @@ interface CompareRigLayoutProps {
   labelB: string;
   isSyncRotating: boolean;
   suppressHtmlLabels: boolean;
+  rssiMode: boolean;
+  rssiSuffixMapA: Map<string, number>;
+  rssiSuffixMapB: Map<string, number>;
 }
 
 export function CompareRigLayout({
@@ -106,6 +113,9 @@ export function CompareRigLayout({
   labelB,
   isSyncRotating,
   suppressHtmlLabels,
+  rssiMode,
+  rssiSuffixMapA,
+  rssiSuffixMapB,
 }: CompareRigLayoutProps) {
   // ── Box selection — lifted so sync can mirror across sides ────────────────
   const [selectedBoxA, setSelectedBoxA] = useState<number | null>(null);
@@ -141,6 +151,8 @@ export function CompareRigLayout({
         selectedBox={selectedBoxA}
         scanResult={scanResultA}
         suppressHtmlLabels={suppressHtmlLabels}
+        rssiMode={rssiMode}
+        rssiSuffixMap={rssiSuffixMapA}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}
         lastActiveSideRef={lastActiveSideRef}
@@ -153,6 +165,8 @@ export function CompareRigLayout({
         selectedBox={selectedBoxB}
         scanResult={scanResultB}
         suppressHtmlLabels={suppressHtmlLabels}
+        rssiMode={rssiMode}
+        rssiSuffixMap={rssiSuffixMapB}
         isSyncActive={isSyncRotating}
         syncStateRef={syncStateRef}
         lastActiveSideRef={lastActiveSideRef}

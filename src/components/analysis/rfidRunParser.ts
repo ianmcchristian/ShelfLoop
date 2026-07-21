@@ -1,9 +1,14 @@
 // ─── RFID Run / Scan CSV Parser ──────────────────────────────────────────────
-// Supports two common formats from engineering scan exports:
-//   1. Unique-tags CSV  — one EPC per row (simplest, MVP target)
-//   2. Sequential CSV   — timestamped rows with repeated reads
+// Supports two formats from engineering scan exports:
 //
-// Column detection is header-based and case-insensitive.
+//   unique-tags CSV   — ID,count
+//     One row per unique EPC, no RSSI data.
+//
+//   data CSV          — ID,tick,rssi,count
+//     One row per read event; same EPC may appear many times.
+//     RSSI (dBm) is averaged across all reads of the same EPC.
+//
+// Format is detected from the header row. Column matching is case-insensitive.
 // Duplicate EPCs are de-duplicated — seen once = seen.
 
 import type { ParseIssue, RunParseResult, RunTagRead } from './rfidTypes';
@@ -28,42 +33,54 @@ function findEpcColumnIndex(headers: string[]): number {
     const idx = headers.findIndex((h) => h.toLowerCase().includes(candidate));
     if (idx !== -1) return idx;
   }
-  // Fallback: first column that looks like it could have EPCs
-  return 0;
+  return 0; // fallback
+}
+
+/** Returns the column index for RSSI, or -1 if this file has no RSSI column. */
+function findRssiColumnIndex(headers: string[]): number {
+  return headers.findIndex((h) => h.toLowerCase() === 'rssi');
 }
 
 /**
  * Parse a run/scan CSV into de-duplicated tag reads.
- * Accepts both unique-tag and sequential-read formats.
+ *
+ * When the file has an `rssi` column, reads are grouped by EPC and the RSSI
+ * is averaged across all events. The resulting RunTagRead will carry `rssi`.
+ * When no `rssi` column is present, `rssi` is omitted from each read.
  */
 export function parseRunCsv(csvText: string): RunParseResult {
   const issues: ParseIssue[] = [];
-  const seen = new Set<string>();
-  const reads: RunTagRead[] = [];
 
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim() !== '');
   if (lines.length < 2) {
     return {
-      reads,
+      reads: [],
       issues: [{ severity: 'error', message: 'Run file appears empty or has only a header.' }],
     };
   }
 
   const headers = (lines[0] ?? '').split(',').map(clean);
-  const epcCol = findEpcColumnIndex(headers);
+  const epcCol  = findEpcColumnIndex(headers);
+  const rssiCol = findRssiColumnIndex(headers);
+  const hasRssi = rssiCol !== -1;
+
+  // For data-format files: accumulate RSSI values per suffix before de-duping.
+  // { suffix -> { sum, count, rawEpc } }
+  const rssiAcc = new Map<string, { sum: number; count: number; rawEpc: string }>();
+  // For unique-format files (or fallback): simple seen-set de-dup.
+  const seenSuffixes = new Set<string>();
+  const reads: RunTagRead[] = [];
 
   let rowIndex = 1;
   for (const rawLine of lines.slice(1)) {
     rowIndex++;
-    const cols = rawLine.split(',').map(clean);
+    const cols   = rawLine.split(',').map(clean);
     const rawEpc = cols[epcCol] ?? '';
 
     if (rawEpc === '') {
       issues.push({ severity: 'warn', message: `Row ${rowIndex}: empty EPC — skipped.`, row: rowIndex });
       continue;
     }
-
-    // Basic sanity: RFID EPCs are hex strings
     if (!/^[0-9A-Fa-f]+$/.test(rawEpc)) {
       issues.push({
         severity: 'warn',
@@ -75,10 +92,34 @@ export function parseRunCsv(csvText: string): RunParseResult {
 
     const suffix = toSuffix(rawEpc);
 
-    if (seen.has(suffix)) continue; // de-duplicate
-    seen.add(suffix);
+    if (hasRssi) {
+      // Data format: accumulate RSSI, de-dup later
+      const rssiRaw = parseFloat(cols[rssiCol] ?? '');
+      const rssiVal = isNaN(rssiRaw) ? null : rssiRaw;
+      const existing = rssiAcc.get(suffix);
+      if (existing) {
+        if (rssiVal !== null) { existing.sum += rssiVal; existing.count++; }
+      } else {
+        rssiAcc.set(suffix, {
+          rawEpc: rawEpc.toUpperCase(),
+          sum:   rssiVal ?? 0,
+          count: rssiVal !== null ? 1 : 0,
+        });
+      }
+    } else {
+      // Unique format: simple de-dup
+      if (seenSuffixes.has(suffix)) continue;
+      seenSuffixes.add(suffix);
+      reads.push({ rawEpc: rawEpc.toUpperCase(), suffix });
+    }
+  }
 
-    reads.push({ rawEpc: rawEpc.toUpperCase(), suffix });
+  // Flush accumulated RSSI data into final reads
+  if (hasRssi) {
+    for (const [suffix, { rawEpc, sum, count }] of rssiAcc) {
+      const avgRssi = count > 0 ? sum / count : undefined;
+      reads.push({ rawEpc, suffix, ...(avgRssi !== undefined && { rssi: avgRssi }) });
+    }
   }
 
   if (reads.length === 0) {

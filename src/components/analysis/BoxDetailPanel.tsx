@@ -4,6 +4,7 @@
 
 import type { BoxResult, FaceResult, FacePosition, TagReadState } from './rfidTypes';
 import { BOX_FACES } from './rfidTypes';
+import { rssiToHex, rssiToPct } from './rfidColorUtils';
 
 // ─── Slot dot ────────────────────────────────────────────────────────────────
 
@@ -19,12 +20,28 @@ const STATE_LABEL: Record<TagReadState, string> = {
   unresolved: 'Unresolved',
 };
 
-function TagDot({ state, label, position }: { state: TagReadState; label: string; position: FacePosition }) {
+function TagDot({
+  state, label, position, rssiColor, rssiPct,
+}: {
+  state: TagReadState;
+  label: string;
+  position: FacePosition;
+  rssiColor?: string;  // defined only when rssiMode is on and state === 'read'
+  rssiPct?: number;
+}) {
+  const useRssi = rssiColor !== undefined && state === 'read';
   return (
     <div className="group relative flex items-center justify-center">
       <div
-        className={`h-5 w-5 rounded-full ring-2 ring-offset-1 transition-transform group-hover:scale-125 ${STATE_CLASSES[state]}`}
-        title={`${position}: ${label || 'no label'} — ${STATE_LABEL[state]}`}
+        className={`h-5 w-5 rounded-full ring-2 ring-offset-1 transition-transform group-hover:scale-125 ${
+          useRssi ? 'ring-white/40' : STATE_CLASSES[state]
+        }`}
+        style={useRssi ? { backgroundColor: rssiColor, outlineColor: rssiColor } : undefined}
+        title={`${position}: ${label || 'no label'} — ${
+          useRssi && rssiPct !== undefined
+            ? `Signal ${rssiPct}% (RSSI heatmap)`
+            : STATE_LABEL[state]
+        }`}
       />
     </div>
   );
@@ -32,7 +49,12 @@ function TagDot({ state, label, position }: { state: TagReadState; label: string
 
 // ─── Single face card ─────────────────────────────────────────────────────────
 
-function FaceCard({ result }: { result: FaceResult | null; faceName: string }) {
+function FaceCard({ result, rssiMode, rssiSuffixMap }: {
+  result: FaceResult | null;
+  faceName: string;
+  rssiMode: boolean;
+  rssiSuffixMap: Map<string, number>;
+}) {
   if (!result) {
     return (
       <div className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3">
@@ -56,10 +78,18 @@ function FaceCard({ result }: { result: FaceResult | null; faceName: string }) {
       <div className="grid grid-cols-2 gap-1.5">
         {(['TL', 'TR', 'BL', 'BR'] as FacePosition[]).map((pos) => {
           const slot = slotByPos[pos];
-          return slot ? (
-            <TagDot key={pos} state={slot.state} label={slot.label} position={pos} />
-          ) : (
-            <div key={pos} className="h-5 w-5 rounded-full bg-slate-100 ring-2 ring-slate-200 ring-offset-1" />
+          if (!slot) return <div key={pos} className="h-5 w-5 rounded-full bg-slate-100 ring-2 ring-slate-200 ring-offset-1" />;
+          const lookupKey = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
+          const rssiDbm = (rssiMode && slot.state === 'read') ? (rssiSuffixMap.get(lookupKey) ?? undefined) : undefined;
+          return (
+            <TagDot
+              key={pos}
+              state={slot.state}
+              label={slot.label}
+              position={pos}
+              rssiColor={rssiDbm !== undefined ? rssiToHex(rssiDbm) : undefined}
+              rssiPct={rssiDbm !== undefined ? rssiToPct(rssiDbm) : undefined}
+            />
           );
         })}
       </div>
@@ -87,9 +117,11 @@ function FaceCard({ result }: { result: FaceResult | null; faceName: string }) {
 
 interface CrossLayoutProps {
   faceMap: Record<string, FaceResult>;
+  rssiMode: boolean;
+  rssiSuffixMap: Map<string, number>;
 }
 
-function CrossLayout({ faceMap }: CrossLayoutProps) {
+function CrossLayout({ faceMap, rssiMode, rssiSuffixMap }: CrossLayoutProps) {
   const FaceLabel = ({ name }: { name: string }) => (
     <p className="mb-1 text-center text-[0.55rem] font-black uppercase tracking-[0.1em] text-slate-400">
       {name}
@@ -99,7 +131,7 @@ function CrossLayout({ faceMap }: CrossLayoutProps) {
   const face = (name: string) => (
     <div key={name}>
       <FaceLabel name={name} />
-      <FaceCard result={faceMap[name] ?? null} faceName={name} />
+      <FaceCard result={faceMap[name] ?? null} faceName={name} rssiMode={rssiMode} rssiSuffixMap={rssiSuffixMap} />
     </div>
   );
 
@@ -126,7 +158,30 @@ function CrossLayout({ faceMap }: CrossLayoutProps) {
 
 // ─── Legend ───────────────────────────────────────────────────────────────────
 
-function Legend() {
+function Legend({ rssiMode }: { rssiMode: boolean }) {
+  if (rssiMode) {
+    return (
+      <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
+        <div className="flex items-center gap-1.5">
+          <div className="h-3 w-3 rounded-full ring-1 ring-offset-1 bg-[#16a34a] ring-emerald-600" />
+          Strong signal
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-3 w-3 rounded-full ring-1 ring-offset-1 bg-[#eab308] ring-yellow-500" />
+          Acceptable
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-3 w-3 rounded-full ring-1 ring-offset-1 bg-[#ef4444] ring-red-500" />
+          Marginal
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className={`h-3 w-3 rounded-full ring-1 ring-offset-1 ${STATE_CLASSES.missed}`} />
+          Missed
+        </div>
+        <span className="text-slate-400">· hover a dot for signal %</span>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600">
       {(['read', 'missed', 'unresolved'] as TagReadState[]).map((state) => (
@@ -144,9 +199,11 @@ function Legend() {
 
 interface BoxDetailPanelProps {
   boxResult: BoxResult;
+  rssiMode: boolean;
+  rssiSuffixMap: Map<string, number>;
 }
 
-export function BoxDetailPanel({ boxResult }: BoxDetailPanelProps) {
+export function BoxDetailPanel({ boxResult, rssiMode, rssiSuffixMap }: BoxDetailPanelProps) {
   const faceMap = Object.fromEntries(boxResult.faces.map((f) => [f.face, f]));
 
   return (
@@ -177,11 +234,10 @@ export function BoxDetailPanel({ boxResult }: BoxDetailPanelProps) {
       </div>
 
       {/* Box net */}
-      <CrossLayout faceMap={faceMap} />
-
+      <CrossLayout faceMap={faceMap} rssiMode={rssiMode} rssiSuffixMap={rssiSuffixMap} />
 
       <div className="mt-4">
-        <Legend />
+        <Legend rssiMode={rssiMode} />
       </div>
 
       {/* Per-face breakdown table */}

@@ -122,9 +122,14 @@ export const TEST_RUN_META: RunMeta = {
   timeout: '5s',
 };
 
-export const TEST_RUN_READS: RunTagRead[] = MOCK_READ_EPCS.map((epc) => ({
+// Mock RSSI values (-40 to -72 dBm) so the RSSI heatmap toggle is testable
+// without uploading a real _data.csv. Cycles through a representative spread.
+const MOCK_RSSI_CYCLE = [-42, -51, -58, -46, -64, -43, -55, -68, -49, -72] as const;
+
+export const TEST_RUN_READS: RunTagRead[] = MOCK_READ_EPCS.map((epc, i) => ({
   rawEpc: epc,
   suffix: epc.slice(-7).toUpperCase(),
+  rssi:   MOCK_RSSI_CYCLE[i % MOCK_RSSI_CYCLE.length],
 }));
 
 /** Minimal CSV text that represents the mock run — used for download/copy. */

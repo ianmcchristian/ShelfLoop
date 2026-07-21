@@ -63,8 +63,9 @@ export interface RunMeta {
 
 /** A tag read row from a scan run CSV. */
 export interface RunTagRead {
-  rawEpc: string; // as it appeared in the file
-  suffix: string; // last 7 chars, normalised uppercase
+  rawEpc: string;    // as it appeared in the file
+  suffix: string;    // last 7 chars, normalised uppercase
+  rssi?: number;     // average RSSI (dBm) — present only when parsed from a _data.csv
 }
 
 /** A fully parsed + matched run. */

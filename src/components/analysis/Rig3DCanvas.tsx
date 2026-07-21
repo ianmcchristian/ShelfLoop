@@ -16,6 +16,7 @@ import * as THREE from 'three';
 
 import type { BoxResult, RigPosition } from './rfidTypes';
 import { RIG_LAYOUT } from './rfidTypes';
+import { rssiToHex } from './rfidColorUtils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -134,10 +135,12 @@ interface BoxMeshProps {
   hasData: boolean;
   phaseOffset: number;
   suppressHtmlLabels: boolean;
+  rssiMode: boolean;
+  rssiSuffixMap: Map<string, number>;
   onSelect: (n: number) => void;
 }
 
-function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, anySelected, hasData, phaseOffset, suppressHtmlLabels, onSelect }: BoxMeshProps) {
+function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, anySelected, hasData, phaseOffset, suppressHtmlLabels, rssiMode, rssiSuffixMap, onSelect }: BoxMeshProps) {
   const meshRef     = useRef<THREE.Mesh>(null);
   const matRef      = useRef<THREE.MeshStandardMaterial>(null);
   const labelRef    = useRef<HTMLDivElement>(null);
@@ -285,6 +288,18 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
           const text = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
           const slotKey = `${boxNumber}-${slot.face}-${slot.position}`;
           const isHighlighted = highlightedTagKey === slotKey;
+
+          // RSSI heatmap: colour read tags by signal strength, leave missed/unresolved as-is
+          const lookupKey = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
+          const rssiDbm = (rssiMode && slot.state === 'read')
+            ? (rssiSuffixMap.get(lookupKey) ?? null)
+            : null;
+          const tagBg = isHighlighted
+            ? 'rgba(0,113,220,0.96)'
+            : rssiDbm !== null
+              ? rssiToHex(rssiDbm)
+              : (STATE_BG[slot.state] ?? STATE_BG.unresolved);
+
           return (
             <Html
               key={`${slot.face}-${slot.position}`}
@@ -302,7 +317,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
                   fontFamily: 'monospace',
                   fontWeight: 700,
                   letterSpacing: '0.06em',
-                  background: isHighlighted ? 'rgba(0,113,220,0.96)' : (STATE_BG[slot.state] ?? STATE_BG.unresolved),
+                  background: tagBg,
                   color: '#ffffff',
                   padding: '1px 3px',
                   borderRadius: 2,
@@ -331,6 +346,8 @@ interface SceneProps {
   highlightedTagKey: string | null;
   hasData: boolean;
   suppressHtmlLabels: boolean;
+  rssiMode: boolean;
+  rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncSide: 'A' | 'B';
   syncStateRef: React.MutableRefObject<SyncCameraState | null> | undefined;
@@ -338,7 +355,7 @@ interface SceneProps {
   onBoxSelect: (n: number) => void;
 }
 
-function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
+function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, rssiMode, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
   const resultMap  = useMemo(
     () => Object.fromEntries(boxResults.map((b) => [b.boxNumber, b])),
     [boxResults],
@@ -478,6 +495,8 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
             hasData={hasData}
             phaseOffset={phaseOffset}
             suppressHtmlLabels={suppressHtmlLabels}
+            rssiMode={rssiMode}
+            rssiSuffixMap={rssiSuffixMap}
             onSelect={onBoxSelect}
           />
         );
@@ -494,6 +513,8 @@ export interface Rig3DCanvasProps {
   highlightedTagKey: string | null;
   hasData: boolean;
   suppressHtmlLabels: boolean;
+  rssiMode: boolean;
+  rssiSuffixMap: Map<string, number>;
   canvasHeight?: number;
   isSyncActive?: boolean;
   syncSide?: 'A' | 'B';
@@ -503,7 +524,7 @@ export interface Rig3DCanvasProps {
   onDeselect: () => void;
 }
 
-export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
+export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, rssiMode, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
   return (
     // onDoubleClick bubbles from the <canvas> DOM element — fires for any
     // double-click within the 3D viewport, background or box, no R3F magic needed.
@@ -519,6 +540,8 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           highlightedTagKey={highlightedTagKey}
           hasData={hasData}
           suppressHtmlLabels={suppressHtmlLabels}
+          rssiMode={rssiMode}
+          rssiSuffixMap={rssiSuffixMap}
           isSyncActive={isSyncActive}
           syncSide={syncSide}
           syncStateRef={syncStateRef}

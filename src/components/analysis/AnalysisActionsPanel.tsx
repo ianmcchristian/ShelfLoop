@@ -9,20 +9,26 @@ interface AnalysisActionsPanelProps {
   placements: ResolvedTagPlacement[];
   editorOpen: boolean;
   isSyncRotating: boolean;
+  isRssiMode: boolean;
+  hasRssi: boolean;
   onReset: () => void;
   onPlacementsChange: (placements: ResolvedTagPlacement[]) => void;
   onEditorOpenChange: (open: boolean) => void;
   onSyncRotatingToggle: () => void;
+  onRssiModeToggle: () => void;
 }
 
 export function AnalysisActionsPanel({
   placements,
   editorOpen,
   isSyncRotating,
+  isRssiMode,
+  hasRssi,
   onReset,
   onPlacementsChange,
   onEditorOpenChange,
   onSyncRotatingToggle,
+  onRssiModeToggle,
 }: AnalysisActionsPanelProps) {
 
   return (
@@ -50,6 +56,34 @@ export function AnalysisActionsPanel({
           </summary>
 
           <div className="mt-4 space-y-3 text-center text-sm font-semibold text-slate-600">
+            {/* RSSI Heatmap toggle */}
+            <div className="relative">
+              <button
+                type="button"
+                aria-pressed={isRssiMode}
+                disabled={!hasRssi}
+                title={hasRssi ? 'Colour read tags by signal strength' : 'Load a _data.csv file to enable RSSI heatmap'}
+                className={`mx-auto flex items-center justify-center gap-2 rounded-full px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/35 ${
+                  !hasRssi
+                    ? 'cursor-not-allowed opacity-40 bg-slate-100 text-slate-400'
+                    : isRssiMode
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white'
+                }`}
+                onClick={hasRssi ? onRssiModeToggle : undefined}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                    isRssiMode && hasRssi
+                      ? 'bg-emerald-200 shadow-[0_0_8px_rgba(110,231,183,0.9)]'
+                      : 'bg-slate-300'
+                  }`}
+                />
+                RSSI Heatmap
+              </button>
+            </div>
+
             <button
               type="button"
               aria-pressed={isSyncRotating}
