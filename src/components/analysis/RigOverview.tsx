@@ -3,6 +3,7 @@
 
 import type { BoxResult } from './rfidTypes';
 import { Rig3DCanvas } from './Rig3DCanvas';
+import { InfoTooltip } from './InfoTooltip';
 
 export interface RigOverviewProps {
   boxResults: BoxResult[];
@@ -24,7 +25,10 @@ export function RigOverview({ boxResults, selectedBox, highlightedTagKey, hasDat
     <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-500">
-          Scan Zone
+          <InfoTooltip
+            label="Scan Zone"
+            text="RSSI uses a -80 dBm to -30 dBm range. -80 = 0 percent and -30 = 100 percent. Stronger reads show a higher percent."
+          />
         </p>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">

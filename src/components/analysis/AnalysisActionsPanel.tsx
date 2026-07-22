@@ -6,6 +6,7 @@
 import { useEffect, useRef } from 'react';
 import type { ResolvedTagPlacement } from './rfidTypes';
 import { PlacementEditorModal } from './PlacementEditorModal';
+import { InfoTooltip } from './InfoTooltip';
 
 interface DoEMetrics {
   y1: number; // overall coverage %
@@ -142,7 +143,12 @@ export function AnalysisActionsPanel({
                 {/* Y1 */}
                 <div>
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[0.62rem] font-bold text-slate-500">Y1&nbsp;&nbsp;Coverage</span>
+                    <span className="text-[0.62rem] font-bold text-slate-500">
+                      <InfoTooltip
+                        label="Y1 Coverage"
+                        text="Overall percent of expected tags that were read. Higher is better."
+                      />
+                    </span>
                     <span className="text-[0.78rem] font-black tabular-nums text-emerald-600">
                       {doEMetrics.y1.toFixed(1)}%
                     </span>
@@ -152,7 +158,12 @@ export function AnalysisActionsPanel({
                 {/* Y2 */}
                 <div>
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[0.62rem] font-bold text-slate-500">Y2&nbsp;&nbsp;Distribution CV</span>
+                    <span className="text-[0.62rem] font-bold text-slate-500">
+                      <InfoTooltip
+                        label="Y2 Distribution CV"
+                        text="Shows how evenly the reads are spread across boxes. Lower is better."
+                      />
+                    </span>
                     <span className="text-[0.78rem] font-black tabular-nums text-retail-blue">
                       {doEMetrics.y2.toFixed(1)}%
                     </span>
