@@ -66,27 +66,27 @@ export function AntennaSignalPulse({ pulseTrigger, angleDeg }: AntennaSignalPuls
   const _meshPos  = useRef(new THREE.Vector3());
 
   // --- Geometry derived from angleDeg ----------------------------------------
-  const antennaY = angleDeg === 0 ? _ARM_Y     : _ANTENNA_Y;
+  const antennaY = angleDeg === 0 ? _ARM_Y       : _ANTENNA_Y;
   const antennaZ = angleDeg === 0 ? _ARM_Z + 0.33 : _ANTENNA_Z;
-  const radAngle = THREE.MathUtils.degToRad(angleDeg);
 
-  // Antenna face centre (plate centre -- offset to true face is ~0.014 units, negligible)
+  // Antenna face centre -- starting position of the pulse (changes with angle)
   const facePos = useMemo(
     () => new THREE.Vector3(0, antennaY, antennaZ),
     [antennaY, antennaZ],
   );
 
-  // Face normal -- direction the dome tip travels toward the rig
-  //   0deg  -> (0, -1,    0   )   straight down
-  //   45deg -> (0, -0.707,+0.707) down + northward
-  const faceNormal = useMemo(
-    () => new THREE.Vector3(0, -Math.cos(radAngle), Math.sin(radAngle)),
-    [radAngle],
-  );
+  // Travel direction: always straight DOWN regardless of antenna angle.
+  //
+  // Why not use the face normal?
+  // At 45deg the face normal is (0, -0.707, +0.707) -- the +Z component sends the
+  // pulse toward the camera/south side of the rig, completely missing the boxes on
+  // the opposite side. Straight down ensures the dish sweeps through ALL 8 boxes.
+  // The antenna model already communicates the angle visually.
+  const travelDir = useMemo(() => new THREE.Vector3(0, -1, 0), []);
 
-  // Cap rotation: rotation.x = PI - radAngle aligns the +Y pole with faceNormal
-  //   Verified: R_x(PI-a) applied to (0,1,0) gives (0,-cos(a),sin(a)) = faceNormal
-  const capRotX = Math.PI - radAngle;
+  // Cap rotation: PI aligns the sphere pole (+Y local) with the -Y travel direction
+  //   R_x(PI) applied to (0,1,0) = (0,-1,0) = straight down
+  const capRotX = Math.PI;
 
   // Shared cap geometry -- all sheets reuse the same buffer
   const capGeo = useMemo(
@@ -140,16 +140,16 @@ export function AntennaSignalPulse({ pulseTrigger, angleDeg }: AntennaSignalPuls
       const s = SCALE_START + (SCALE_END - SCALE_START) * te;
       mesh.scale.set(s * WIDTH_MULT, s, s * WIDTH_MULT);
 
-      // Pole (leading tip) position along the face normal
+      // Pole (leading tip) travels straight down from the antenna face
       _polePos.current
         .copy(facePos)
-        .addScaledVector(faceNormal, te * TRAVEL);
+        .addScaledVector(travelDir, te * TRAVEL);
 
-      // Mesh centre is behind the pole by exactly one scaled unit in face normal
-      // polePos = meshPos + faceNormal * s  =>  meshPos = polePos - faceNormal * s
+      // Mesh centre is behind the pole by one scaled unit along travel direction
+      // polePos = meshPos + travelDir * s  =>  meshPos = polePos - travelDir * s
       _meshPos.current
         .copy(_polePos.current)
-        .addScaledVector(faceNormal, -s);
+        .addScaledVector(travelDir, -s);
       mesh.position.copy(_meshPos.current);
 
       // Fade: bright at birth (0.4), invisible at death
