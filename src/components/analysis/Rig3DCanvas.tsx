@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import type { BoxResult, RigPosition, TagSlotResult } from './rfidTypes';
 import { RIG_LAYOUT } from './rfidTypes';
 import { rssiToHex, rssiToPct } from './rfidColorUtils';
+import { AntennaSignalPulse } from './AntennaSignalPulse';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -411,7 +412,7 @@ function CompassRose() {
   );
 }
 
-function AntennaGuide({ angleDeg }: { angleDeg: 0 | 45 }) {
+function AntennaGuide({ angleDeg, pulseTrigger }: { angleDeg: 0 | 45; pulseTrigger: number }) {
   const antennaY = angleDeg === 0 ? ARM_Y : ANTENNA_Y;
   const antennaZ = angleDeg === 0 ? ARM_Z + 0.33 : ANTENNA_Z;
   const antennaRotationX = -THREE.MathUtils.degToRad(angleDeg);
@@ -436,13 +437,16 @@ function AntennaGuide({ angleDeg }: { angleDeg: 0 | 45 }) {
         <meshStandardMaterial color="#64748b" roughness={1} metalness={0} transparent opacity={0.55} />
       </mesh>
 
-      {/* Antenna plate — rotated to match mount angle */}
+      {/* Antenna plate -- rotated to match mount angle */}
       <group position={[0, antennaY, antennaZ]} rotation={[antennaRotationX, 0, 0]}>
         <mesh>
           <boxGeometry args={[0.62, 0.028, 0.46]} />
           <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0} transparent opacity={0.26} />
         </mesh>
       </group>
+
+      {/* Signal pulse rings -- triggered by pulseTrigger increment */}
+      <AntennaSignalPulse pulseTrigger={pulseTrigger} angleDeg={angleDeg} />
     </group>
   );
 }
@@ -458,6 +462,7 @@ interface SceneProps {
   showAntennaGuide: boolean;
   showCompassGuide: boolean;
   antennaGuideAngleDeg: 0 | 45;
+  pulseTrigger: number;
   rssiSuffixMap: Map<string, number>;
   isSyncActive: boolean;
   syncSide: 'A' | 'B';
@@ -466,7 +471,7 @@ interface SceneProps {
   onBoxSelect: (n: number) => void;
 }
 
-function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, antennaGuideAngleDeg, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
+function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide, showCompassGuide, antennaGuideAngleDeg, pulseTrigger, rssiSuffixMap, isSyncActive, syncSide, syncStateRef, lastActiveSideRef, onBoxSelect }: SceneProps) {
   const resultMap  = useMemo(
     () => Object.fromEntries(boxResults.map((b) => [b.boxNumber, b])),
     [boxResults],
@@ -664,7 +669,7 @@ function Scene({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHt
       />
 
       {!suppressHtmlLabels && showCompassGuide && <CompassRose />}
-      {showAntennaGuide && <AntennaGuide angleDeg={antennaGuideAngleDeg} />}
+      {showAntennaGuide && <AntennaGuide angleDeg={antennaGuideAngleDeg} pulseTrigger={pulseTrigger} />}
 
       {(Object.entries(RIG_LAYOUT) as [string, RigPosition][]).map(([key, pos]) => {
         const num         = Number(key);
@@ -713,12 +718,15 @@ export interface Rig3DCanvasProps {
 }
 
 export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasData, suppressHtmlLabels, showAntennaGuide = false, showCompassGuide = false, antennaGuideAngleDeg = 45, onAntennaGuideAngleChange, rssiSuffixMap, canvasHeight = 560, isSyncActive = false, syncSide = 'A', syncStateRef, lastActiveSideRef, onBoxSelect, onDeselect }: Rig3DCanvasProps) {
+  const [pulseTrigger, setPulseTrigger] = React.useState(0);
+
   return (
-    // onDoubleClick bubbles from the <canvas> DOM element — fires for any
+    // onDoubleClick bubbles from the <canvas> DOM element -- fires for any
     // double-click within the 3D viewport, background or box, no R3F magic needed.
     <div className="relative flex flex-col" onDoubleClick={onDeselect}>
       {showAntennaGuide && onAntennaGuideAngleChange && (
         <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-col gap-2">
+          {/* Angle picker */}
           <div className="pointer-events-auto inline-flex rounded-full border border-slate-200 bg-white/92 p-1 shadow-sm backdrop-blur">
             {([0, 45] as const).map((angle) => (
               <button
@@ -732,11 +740,23 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
                 }`}
                 onClick={() => onAntennaGuideAngleChange(angle)}
               >
-                {angle}°
+                {angle}&deg;
               </button>
             ))}
           </div>
 
+          {/* Pulse trigger button -- below the angle picker */}
+          <button
+            type="button"
+            className="pointer-events-auto inline-flex items-center gap-1.5 self-start rounded-full border border-retail-blue/30 bg-white/92 px-3 py-1 text-[0.62rem] font-black tracking-[0.12em] text-retail-blue shadow-sm backdrop-blur transition hover:bg-retail-blue hover:text-white focus:outline-none"
+            onClick={() => setPulseTrigger((v) => v + 1)}
+          >
+            <svg aria-hidden="true" className="h-2.5 w-2.5" viewBox="0 0 10 10" fill="none">
+              <circle cx="5" cy="5" r="2" fill="currentColor" />
+              <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1" opacity="0.5" />
+            </svg>
+            Pulse
+          </button>
         </div>
       )}
 
@@ -757,6 +777,7 @@ export function Rig3DCanvas({ boxResults, selectedBox, highlightedTagKey, hasDat
           showAntennaGuide={showAntennaGuide}
           showCompassGuide={showCompassGuide}
           antennaGuideAngleDeg={antennaGuideAngleDeg}
+          pulseTrigger={pulseTrigger}
           rssiSuffixMap={rssiSuffixMap}
           isSyncActive={isSyncActive}
           syncSide={syncSide}
