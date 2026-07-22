@@ -27,11 +27,14 @@ import * as THREE from 'three';
 // --- Pulse tuning ------------------------------------------------------------
 
 const SHEET_COUNT   = 3;
-const SHEET_STAGGER = 0.28;  // s between consecutive sheets
-const SHEET_LIFE    = 1.8;   // s each sheet lives
-const SCALE_START   = 0.05;  // initial cap radius (units)
-const SCALE_END     = 1.8;   // final cap radius (units)
-const TRAVEL        = 2.6;   // distance the pole travels (units) -- well past rig
+const SHEET_STAGGER = 0.30;   // s between consecutive sheets
+const SHEET_LIFE    = 2.5;    // s each sheet lives -- rig entry ~0.4s, exit ~2.25s
+const SCALE_START   = 0.05;   // initial cap radius (units)
+const SCALE_END     = 1.8;    // Y-scale at peak (controls depth + pole offset)
+const WIDTH_MULT    = 1.5;    // XZ-scale multiplier -- widens the dish without deepening
+                              // rim radius = sin(CAP_THETA) * SCALE_END * WIDTH_MULT
+                              // = 0.643 * 1.8 * 1.5 = 1.74 units (20%+ overhang on all 8 boxes)
+const TRAVEL        = 2.82;   // pole travels from antenna face (Y=1.82) to rig bottom (Y=-1.0)
 const CAP_THETA     = Math.PI * 0.22; // ~40deg polar angle -- shallow dish depth
 
 // Antenna geometry mirrored from Rig3DCanvas.tsx
@@ -132,9 +135,10 @@ export function AntennaSignalPulse({ pulseTrigger, angleDeg }: AntennaSignalPuls
       const t  = age / SHEET_LIFE;          // linear 0->1
       const te = 1 - (1 - t) * (1 - t);    // quadratic ease-out: fast expand, slow tail
 
-      // Scale: cap grows from SCALE_START to SCALE_END
+      // Scale: Y controls depth + pole-to-mesh offset; XZ widened by WIDTH_MULT
+      // This keeps the dish shallow while giving it enough diameter to cover all 8 boxes.
       const s = SCALE_START + (SCALE_END - SCALE_START) * te;
-      mesh.scale.setScalar(s);
+      mesh.scale.set(s * WIDTH_MULT, s, s * WIDTH_MULT);
 
       // Pole (leading tip) position along the face normal
       _polePos.current
