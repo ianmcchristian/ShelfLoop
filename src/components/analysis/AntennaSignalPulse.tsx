@@ -1,102 +1,105 @@
-// ─── Antenna Signal Pulse ─────────────────────────────────────────────────────
-// Animates 3 expanding flat rings from the antenna face to simulate an RFID
-// read field. Triggered by incrementing `pulseTrigger`.
+// --- Antenna Signal Pulse ----------------------------------------------------
+// Animates 2-3 shallow spherical-cap "sheets" propagating from the antenna face
+// toward the rig, simulating an expanding RFID read-field wavefront.
 //
-// Ring behaviour:
-//   - 3 rings fire in a tight staggered cluster (0 / 0.22 / 0.44 s delay)
-//   - Each ring starts at the antenna face, expands radius 0→1.5 units over 2 s
-//   - Rings travel forward along the face normal (hemisphere-forward direction)
-//   - Opacity fades 0.55→0 over the ring's lifetime
-//   - Ring plane is always perpendicular to the antenna face normal:
-//       rotation.x = PI/2 − angleDeg_in_radians
-//       At 0°  → PI/2  (ring in XZ plane, normal = -Y, travels straight down)
-//       At 45° → PI/4  (ring tilted, normal = (0,−0.707,+0.707))
+// Shape: SphereGeometry cap (~40deg polar angle) -- a shallow radar-dish
+//        profile. Convex dome side leads toward the rig; concave opens back
+//        toward the antenna.
+//
+// Motion:
+//   - Pole (tip of dome, leading edge) starts at the antenna face and travels
+//     TRAVEL units along the face normal over LIFETIME seconds.
+//   - Cap expands uniformly: scale 0.05 -> 1.8 (the whole dish grows wider as
+//     it propagates, like a real radio wavefront diverging from the source).
+//   - mesh position = polePos - faceNormal * currentScale
+//     so the pole is always at the front of the mesh regardless of scale.
+//   - Passes through the rig and keeps going; fades continuously from 0.4 -> 0.
+//
+// Orientation:
+//   rotation.x = PI - angleDeg_in_rad
+//   At 0deg : rotation.x = PI   -> pole points (0,-1, 0) -- straight down
+//   At 45deg: rotation.x = 3PI/4 -> pole points (0,-0.707,+0.707) -- down+north
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// ─── Pulse tuning ─────────────────────────────────────────────────────────────
+// --- Pulse tuning ------------------------------------------------------------
 
-const RING_COUNT    = 3;
-const RING_STAGGER  = 0.22;   // s between consecutive rings in the burst
-const RING_LIFETIME = 2.0;    // s each ring lives
-const RING_MAX_R    = 1.5;    // max scale (radius in units)
-const RING_TRAVEL   = 1.1;    // distance the ring moves along face normal (units)
-const RING_INNER_R  = 0.82;   // inner radius fraction of ring geometry
-const RING_OUTER_R  = 1.0;    // outer radius (unit; scaled in useFrame)
-const RING_SEGMENTS = 72;     // polygon count — smooth enough at any radius
+const SHEET_COUNT   = 3;
+const SHEET_STAGGER = 0.28;  // s between consecutive sheets
+const SHEET_LIFE    = 1.8;   // s each sheet lives
+const SCALE_START   = 0.05;  // initial cap radius (units)
+const SCALE_END     = 1.8;   // final cap radius (units)
+const TRAVEL        = 2.6;   // distance the pole travels (units) -- well past rig
+const CAP_THETA     = Math.PI * 0.22; // ~40deg polar angle -- shallow dish depth
 
-// Antenna geometry — mirrors the constants in Rig3DCanvas.tsx
-// (these define where the antenna plate sits in world space)
+// Antenna geometry mirrored from Rig3DCanvas.tsx
 const _ARM_Y     = 1.82;
 const _ARM_Z     = 0.09;
 const _ANTENNA_Y = 1.88;
 const _ANTENNA_Z = 0.31;
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// --- Component ---------------------------------------------------------------
 
 export interface AntennaSignalPulseProps {
-  /** Increment to fire a burst of 3 rings. Value 0 = no burst on mount. */
+  /** Increment each press to fire a burst of sheets. 0 = no burst on mount. */
   pulseTrigger: number;
   angleDeg: 0 | 45;
 }
 
 export function AntennaSignalPulse({ pulseTrigger, angleDeg }: AntennaSignalPulseProps) {
-  // Three individual refs — avoids calling useRef in a loop (hooks rules)
+  // One mesh ref per sheet -- avoids calling useRef inside a loop
   const ref0 = useRef<THREE.Mesh>(null);
   const ref1 = useRef<THREE.Mesh>(null);
   const ref2 = useRef<THREE.Mesh>(null);
   const meshRefs = [ref0, ref1, ref2] as const;
 
-  // Burst start time in R3F clock seconds.
-  // null  = no active burst
-  // -1    = pending — will be assigned from clock on the next useFrame
+  // null = idle, -1 = pending (clock captured next frame), number = active burst start
   const burstStartRef = useRef<number | null>(null);
 
-  // Pre-allocated scratch vector — zero heap allocation inside useFrame
-  const _pos = useRef(new THREE.Vector3());
+  // Pre-allocated scratch -- zero heap allocation in useFrame
+  const _polePos  = useRef(new THREE.Vector3());
+  const _meshPos  = useRef(new THREE.Vector3());
 
-  // ── Antenna geometry derived from angle ──────────────────────────────────
-  const antennaY  = angleDeg === 0 ? _ARM_Y     : _ANTENNA_Y;
-  const antennaZ  = angleDeg === 0 ? _ARM_Z + 0.33 : _ANTENNA_Z;
-  const radAngle  = THREE.MathUtils.degToRad(angleDeg);
+  // --- Geometry derived from angleDeg ----------------------------------------
+  const antennaY = angleDeg === 0 ? _ARM_Y     : _ANTENNA_Y;
+  const antennaZ = angleDeg === 0 ? _ARM_Z + 0.33 : _ANTENNA_Z;
+  const radAngle = THREE.MathUtils.degToRad(angleDeg);
 
-  // Plate centre — negligible (~0.01 unit) offset vs. actual face; not worth the math
+  // Antenna face centre (plate centre -- offset to true face is ~0.014 units, negligible)
   const facePos = useMemo(
     () => new THREE.Vector3(0, antennaY, antennaZ),
     [antennaY, antennaZ],
   );
 
-  // Face normal: (0, -cos(angle), sin(angle))
-  //   At 0° → (0, -1, 0)   — straight down
-  //   At 45° → (0, -0.707, +0.707) — down + south toward rig
+  // Face normal -- direction the dome tip travels toward the rig
+  //   0deg  -> (0, -1,    0   )   straight down
+  //   45deg -> (0, -0.707,+0.707) down + northward
   const faceNormal = useMemo(
     () => new THREE.Vector3(0, -Math.cos(radAngle), Math.sin(radAngle)),
     [radAngle],
   );
 
-  // Ring orientation: rotate the XY-plane ring so its normal matches faceNormal
-  //   rotation.x = PI/2 − radAngle  →  normal = (0, -sin(rotation.x), cos(rotation.x))
-  //                                           = (0, -cos(angle), sin(angle)) 
-  const ringRotX = Math.PI / 2 - radAngle;
+  // Cap rotation: rotation.x = PI - radAngle aligns the +Y pole with faceNormal
+  //   Verified: R_x(PI-a) applied to (0,1,0) gives (0,-cos(a),sin(a)) = faceNormal
+  const capRotX = Math.PI - radAngle;
 
-  // Shared geometry — all 3 meshes reference this; materials are separate
-  const ringGeo = useMemo(
-    () => new THREE.RingGeometry(RING_INNER_R, RING_OUTER_R, RING_SEGMENTS),
+  // Shared cap geometry -- all sheets reuse the same buffer
+  const capGeo = useMemo(
+    () => new THREE.SphereGeometry(1, 36, 8, 0, Math.PI * 2, 0, CAP_THETA),
     [],
   );
 
-  // ── Trigger ───────────────────────────────────────────────────────────────
+  // --- Trigger ---------------------------------------------------------------
   useEffect(() => {
-    // pulseTrigger === 0 is the initial render — ignore it
-    if (pulseTrigger === 0) return;
-    burstStartRef.current = -1; // sentinel: clock time captured on next frame
+    if (pulseTrigger === 0) return; // ignore initial mount
+    burstStartRef.current = -1;     // sentinel: captured from R3F clock next frame
   }, [pulseTrigger]);
 
-  // ── Animation ─────────────────────────────────────────────────────────────
+  // --- Animation -------------------------------------------------------------
   useFrame(({ clock }) => {
-    // Capture burst start from R3F clock (avoids wall-clock / R3F clock mismatch)
+    // Capture burst start from R3F clock (avoids wall-clock / R3F mismatch)
     if (burstStartRef.current === -1) {
       burstStartRef.current = clock.elapsedTime;
     }
@@ -104,54 +107,62 @@ export function AntennaSignalPulse({ pulseTrigger, angleDeg }: AntennaSignalPuls
     const burstStart = burstStartRef.current;
     const now        = clock.elapsedTime;
 
-    // Expire burst once all rings have finished
-    const totalDuration = RING_LIFETIME + (RING_COUNT - 1) * RING_STAGGER + 0.05;
+    // Expire burst once all sheets have finished
+    const totalDuration = SHEET_LIFE + (SHEET_COUNT - 1) * SHEET_STAGGER + 0.05;
     if (burstStart !== null && now - burstStart > totalDuration) {
       burstStartRef.current = null;
     }
 
-    for (let i = 0; i < RING_COUNT; i++) {
+    for (let i = 0; i < SHEET_COUNT; i++) {
       const mesh = meshRefs[i]?.current;
       if (!mesh) continue;
 
-      // Always keep rotation correct (handles hot-switching angle mid-burst)
-      mesh.rotation.x = ringRotX;
+      // Maintain correct orientation even if angleDeg changes between bursts
+      mesh.rotation.x = capRotX;
 
       if (burstStart === null) { mesh.visible = false; continue; }
 
-      const ringStart = burstStart + i * RING_STAGGER;
-      const age       = now - ringStart;
+      const sheetStart = burstStart + i * SHEET_STAGGER;
+      const age        = now - sheetStart;
 
-      if (age < 0 || age > RING_LIFETIME) { mesh.visible = false; continue; }
+      if (age < 0 || age > SHEET_LIFE) { mesh.visible = false; continue; }
 
       mesh.visible = true;
 
-      const t  = age / RING_LIFETIME;        // linear 0 → 1
-      const te = 1 - (1 - t) * (1 - t);     // quadratic ease-out (fast start, slow end)
+      const t  = age / SHEET_LIFE;          // linear 0->1
+      const te = 1 - (1 - t) * (1 - t);    // quadratic ease-out: fast expand, slow tail
 
-      // Radius expansion
-      mesh.scale.setScalar(RING_MAX_R * te);
+      // Scale: cap grows from SCALE_START to SCALE_END
+      const s = SCALE_START + (SCALE_END - SCALE_START) * te;
+      mesh.scale.setScalar(s);
 
-      // Forward travel along the face normal
-      _pos.current
+      // Pole (leading tip) position along the face normal
+      _polePos.current
         .copy(facePos)
-        .addScaledVector(faceNormal, te * RING_TRAVEL);
-      mesh.position.copy(_pos.current);
+        .addScaledVector(faceNormal, te * TRAVEL);
 
-      // Fade out — brightest at birth, fully transparent at death
-      const mat    = mesh.material as THREE.MeshBasicMaterial;
-      mat.opacity  = 0.55 * (1 - t);
+      // Mesh centre is behind the pole by exactly one scaled unit in face normal
+      // polePos = meshPos + faceNormal * s  =>  meshPos = polePos - faceNormal * s
+      _meshPos.current
+        .copy(_polePos.current)
+        .addScaledVector(faceNormal, -s);
+      mesh.position.copy(_meshPos.current);
+
+      // Fade: bright at birth (0.4), invisible at death
+      const mat   = mesh.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.38 * (1 - t);
     }
   });
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  // All rings start hidden (visible=false in useFrame on first tick).
-  // Each gets its own material instance so opacity can be animated independently.
+  // --- Render ----------------------------------------------------------------
+  // Each mesh gets its own MeshBasicMaterial so opacity is independent per sheet.
+  // Geometry is shared (read-only buffer, safe to reference from multiple meshes).
+  // depthWrite:false prevents the transparent cap from clipping geometry behind it.
   return (
     <>
       {meshRefs.map((ref, i) => (
         <mesh key={i} ref={ref} visible={false}>
-          <primitive object={ringGeo} attach="geometry" />
+          <primitive object={capGeo} attach="geometry" />
           <meshBasicMaterial
             color="#2563eb"
             transparent
