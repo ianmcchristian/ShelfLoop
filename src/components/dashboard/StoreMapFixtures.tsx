@@ -220,7 +220,7 @@ export function BackstockRoom({
   occupiedBoxes: boolean[];
 }) {
   return (
-    <div className="absolute inset-x-[5%] bottom-[4%] z-30 h-[35%] bg-slate-50/55">
+    <div className="absolute inset-x-[5%] bottom-[4%] z-30 h-[37%] bg-slate-50/55">
       <div aria-hidden="true" className="absolute inset-x-0 top-[15%] h-1">
         <span className="absolute left-0 top-0 h-full w-[39%] rounded-full bg-slate-800" />
         <span className="absolute right-0 top-0 h-full w-[39%] rounded-full bg-slate-800" />

@@ -63,56 +63,55 @@ select {
 
 @keyframes showcase-worker-to-box {
   /*
-   * 4-leg path from employee corridor to box 12 in backroom column 1.
-   * Entry at 60% map height = corridor level (between racks at 50% and backroom at 61%).
+   * 4-leg path from employee corridor to box 12 -- routed DOWN THE AISLE
+   * (gap between column 0 and column 1, centre x=24%) so the worker never
+   * overlaps a storage column. Box 12 is the left box of column 1 (~30% x);
+   * the worker reaches RIGHT into it from the aisle.
+   *
+   * Layout refs (backroom h-[37%], top 59%): columns start ~71%, box 12 y ~82%.
+   * Aisle 0-1 spans map 18.9%-28.4% (9.5% wide); worker icon is only 3.7% wide.
    *
    * Keyframe split (8.5s total):
-   *   0   - 52%  (0s    - 4.42s) Leg 1: walk LEFT along corridor at 60% height
-   *   52% - 61%  (4.42s - 5.19s) Leg 2: turn DOWN past separator to column-top level (72%)
-   *   61% - 75%  (5.19s - 6.38s) Leg 3: walk LEFT to column 1 centre (32%)
-   *   75% - 85%  (6.38s - 7.23s) Leg 4: walk DOWN to box 12 (84%)
-   *   85% - 90%  (7.23s - 7.65s) nudge LEFT (reach sideways into shelf)
-   *   90% - 95%  (7.65s - 8.08s) nudge RIGHT (pull back through)
-   *   95% - 100% (8.08s - 8.5s)  settle at box centre
+   *   0   - 45%  (0s    - 3.83s) Leg 1: walk LEFT along corridor at 54% height
+   *   45% - 53%  (3.83s - 4.51s) Leg 2: turn DOWN into backroom header (66%)
+   *   53% - 73%  (4.51s - 6.21s) Leg 3: walk LEFT to aisle 0-1 (x=24%)
+   *   73% - 85%  (6.21s - 7.23s) Leg 4: walk DOWN the aisle to box level (82%)
+   *   85% - 92%  (7.23s - 7.82s) reach RIGHT into box 12 (x=28%)
+   *   92% - 100% (7.82s - 8.5s)  pull back into the aisle with the reserve box
    */
   0% {
     left: 110%;
-    top: 60%;
+    top: 54%;
     animation-timing-function: ease-in-out;
   }
-  52% {
+  45% {
     left: 50%;
-    top: 60%;
+    top: 54%;
     animation-timing-function: ease-in-out;
   }
-  61% {
+  53% {
     left: 50%;
-    top: 72%;
+    top: 66%;
     animation-timing-function: ease-in-out;
   }
-  75% {
-    left: 32%;
-    top: 72%;
+  73% {
+    left: 24%;
+    top: 66%;
     animation-timing-function: ease-in-out;
   }
   85% {
-    left: 32%;
-    top: 84%;
+    left: 24%;
+    top: 82%;
     animation-timing-function: ease-in-out;
   }
-  90% {
-    left: 29%;
-    top: 84%;
-    animation-timing-function: ease-in-out;
-  }
-  95% {
-    left: 35%;
-    top: 84%;
+  92% {
+    left: 28%;
+    top: 82%;
     animation-timing-function: ease-in-out;
   }
   100% {
-    left: 32%;
-    top: 84%;
+    left: 24%;
+    top: 82%;
   }
 }
 
@@ -126,10 +125,10 @@ select {
 }
 
 @keyframes showcase-worker-guided {
-  /* FROM: where worker-to-box settles (box 12, column 1 centre = 32% x, 84% y) */
+  /* FROM: where worker-to-box settles (aisle 0-1 at box-12 level = 24% x, 82% y) */
   from {
-    left: 32%;
-    top: 84%;
+    left: 24%;
+    top: 82%;
   }
   to {
     left: 27%;
@@ -160,7 +159,7 @@ select {
   }
   to {
     left: 110%;
-    top: 60%;
+    top: 54%;
   }
 }
 
