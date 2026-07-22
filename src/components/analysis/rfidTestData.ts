@@ -9,11 +9,11 @@
 //   • Box 3 Front BR + Box 8 Top TL both claim '5C12988' / same full EPC —
 //     documented as a known duplicate in the source sheet (both rows carry the
 //     note "3/FRONT/BR and 8/TOP/TL duplicates"). Physical resolution pending.
-//   • Box 5 Bottom TR 'B2456' — no full EPC scan match yet.
+//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet (moved from Box 5 after swap).
 //   • Box 6 Back — 0 confirmed tags (B2446 was mis-entered here, belongs to Box 5).
-//   • Box 6 Bottom — values match ODS but ODS Box5/Box6 Bottom were duplicated
-//     during the scientific-notation fix. Box 5 Bottom is confirmed correct;
-//     Box 6 Bottom needs physical verification.
+//   • Box 6 Top — ⚠ ODS photo shows F806/AB3F6/F886/F846 but TR/BL/BR duplicate
+//     Box 5 Top. Likely another Box5/Box6 face swap — keeping old DB values.
+//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
 //   • A few observed EPCs still do not belong to any placement slot.
 //
 // Synthetic scenarios below are still used only for test/demo mode.
@@ -72,7 +72,9 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [5,'Left','TL','283A684','E28011B0A502006C0283A684'],[5,'Left','TR','284C0E5','E28011B0A502006C0284C0E5'],[5,'Left','BL','284C695','E28011B0A502006C0284C695'],[5,'Left','BR','283A014','E28011B0A502006C0283A014'],
   [5,'Right','TL','28452D5','E28011B0A502006C028452D5'],[5,'Right','TR','2835884','E28011B0A502006C02835884'],[5,'Right','BL','2847874','E28011B0A502006C02847874'],[5,'Right','BR','283A0B5','E28011B0A502006C0283A0B5'],
   [5,'Top','TL','AF806','E2801191A5040076300AF806'],[5,'Top','TR','AB3F6','E2801191A5040076300AB3F6'],[5,'Top','BL','F886','E2801191A5040076300AF886'],[5,'Top','BR','F846','E2801191A5040076300AF846'],
-  [5,'Bottom','TL','F876','E2801191A5040076300AF876'],[5,'Bottom','TR','B2456',null],[5,'Bottom','BL','B2416','E2801191A5040076300B2416'],[5,'Bottom','BR','2486','E2801191A5040076300B2486'],
+  // Box 5 Bottom — swapped from Box 6 in DB (Ian photo-confirmed ODS values are correct).
+  // Former DB entry F876/B2456/B2416/2486 physically belongs to Box 6 Bottom.
+  [5,'Bottom','TL','284C664','E28011B0A502006C0284C664'],[5,'Bottom','TR','28478D4','E28011B0A502006C028478D4'],[5,'Bottom','BL','283A655','E28011B0A502006C0283A655'],[5,'Bottom','BR','28478E5','E28011B0A502006C028478E5'],
   // Box 6 — Front + Right corrected from photo verification.
   // Back face: B2446 was mis-entered here; Ian confirmed it belongs to Box 5 Back TL.
   // Box 6 Back has 0 confirmed physical tags — removed from DB.
@@ -81,11 +83,13 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   // Box 6 Back — no confirmed tags
   [6,'Left','TL','AE16','E2801191A5040076300BAE16'],[6,'Left','TR','6996','E2801191A5040076300B6996'],[6,'Left','BL','6906','E2801191A5040076300B6906'],[6,'Left','BR','6985','E2801191A5040076300B6985'],
   [6,'Right','TL','6986','E2801191A5040076300B6986'],[6,'Right','TR','AE46','E2801191A5040076300BAE46'],[6,'Right','BL','6956','E2801191A5040076300B6956'],[6,'Right','BR','AE06','E2801191A5040076300BAE06'],
+  // Box 6 Top — ⚠ ODS updated from Ian photo but TR/BL/BR (AB3F6/F886/F846) duplicate
+  // Box 5 Top — physically impossible. Possible Box5/Box6 Top swap (same pattern as
+  // Bottom/Front/Right). Keeping old DB values pending verification.
   [6,'Top','TL','284C084','E28011B0A502006C0284C084'],[6,'Top','TR','2844C94','E28011B0A502006C02844C94'],[6,'Top','BL','28478E4','E28011B0A502006C028478E4'],[6,'Top','BR','284C0C4','E28011B0A502006C0284C0C4'],
-  // Box 6 Bottom — ⚠ NEEDS PHYSICAL VERIFICATION. ODS Box5+Box6 Bottom were
-  // identical after scientific-notation fix (suspected copy-paste). Box 5 Bottom
-  // confirmed correct separately; Box 6 Bottom values below unverified.
-  [6,'Bottom','TL','284C664','E28011B0A502006C0284C664'],[6,'Bottom','TR','28478D4','E28011B0A502006C028478D4'],[6,'Bottom','BL','283A655','E28011B0A502006C0283A655'],[6,'Bottom','BR','28478E5','E28011B0A502006C028478E5'],
+  // Box 6 Bottom — swapped from Box 5 in DB (Ian photo-confirmed F876/B2456/B2416/2486).
+  // Former DB entry 284C664/28478D4/283A655/28478E5 physically belongs to Box 5 Bottom.
+  [6,'Bottom','TL','F876','E2801191A5040076300AF876'],[6,'Bottom','TR','B2456',null],[6,'Bottom','BL','B2416','E2801191A5040076300B2416'],[6,'Bottom','BR','2486','E2801191A5040076300B2486'],
   // Box 7 — Front TL verified by photo as 1BCAEBA; Top TR still a known duplicate.
   // Bottom labels were physically applied upside-down on the box; DB uses TL=1BC88BA
   // as the correct orientation anchor (Ian confirmed).
