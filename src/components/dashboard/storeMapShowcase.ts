@@ -18,9 +18,10 @@ export const showcaseRackAItemPosition = 15;
 
 /**
  * Global box index for the tap-to-light target in the backroom.
- * Column 1 (2nd from left), row 2 (3rd from top), left box → local index 4, global index 12.
+ * With 6 boxes/column (2 wide x 3 tall): column 1 (2nd from left),
+ * middle row, left box → local index 2, global index 8.
  */
-export const showcaseBackroomGlowBoxIndex = 12;
+export const showcaseBackroomGlowBoxIndex = 8;
 
 export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
   return phase === 'worker-to-box';

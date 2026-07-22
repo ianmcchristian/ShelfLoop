@@ -10,14 +10,16 @@ import { getPositionDetails } from './storeMapMerchandiseDetails';
 export { TieredDisplayMerchandise } from './TieredDisplayMerchandise';
 export type { MerchandiseDotDetails, MerchandisePositionHighlight } from './StoreMapMerchandise';
 
-const boxesPerStorageColumn = 8;
+const boxesPerStorageColumn = 6;
 
+// Shelves are 2 wide x 3 tall (was 4). h-[46%] = 61% x 3/4 keeps box size the
+// same while making each shelf shorter -- frees up vertical room in the backroom.
 const backroomStorageColumns = [
-  'left-[6.5%] top-[32%] h-[61%] w-[9%]',
-  'left-[26%] top-[32%] h-[61%] w-[9%]',
-  'left-[45.5%] top-[32%] h-[61%] w-[9%]',
-  'left-[65%] top-[32%] h-[61%] w-[9%]',
-  'left-[84.5%] top-[32%] h-[61%] w-[9%]',
+  'left-[6.5%] top-[32%] h-[46%] w-[9%]',
+  'left-[26%] top-[32%] h-[46%] w-[9%]',
+  'left-[45.5%] top-[32%] h-[46%] w-[9%]',
+  'left-[65%] top-[32%] h-[46%] w-[9%]',
+  'left-[84.5%] top-[32%] h-[46%] w-[9%]',
 ];
 
 export const backroomBoxCount = backroomStorageColumns.length * boxesPerStorageColumn;
@@ -203,7 +205,7 @@ function BackroomStorageColumn({
 }) {
   return (
     <div className={`absolute border-2 border-slate-800 bg-white/95 p-1.5 ${className}`}>
-      <div className="grid h-full grid-cols-2 grid-rows-4 place-items-center gap-1">
+      <div className="grid h-full grid-cols-2 grid-rows-3 place-items-center gap-1">
         {boxes.map((active, index) => (
           <CardboardBox key={index} active={active} glowing={index === glowingLocalIndex} />
         ))}

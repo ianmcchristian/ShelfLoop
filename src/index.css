@@ -75,8 +75,8 @@ select {
    *   0   - 45%  (0s    - 3.83s) Leg 1: walk LEFT along corridor at 54% height
    *   45% - 53%  (3.83s - 4.51s) Leg 2: turn DOWN into backroom header (66%)
    *   53% - 73%  (4.51s - 6.21s) Leg 3: walk LEFT to aisle 0-1 (x=24%)
-   *   73% - 85%  (6.21s - 7.23s) Leg 4: walk DOWN the aisle to box level (82%)
-   *   85% - 92%  (7.23s - 7.82s) reach RIGHT into box 12 (x=28%)
+   *   73% - 85%  (6.21s - 7.23s) Leg 4: walk DOWN the aisle to box level (79%)
+   *   85% - 92%  (7.23s - 7.82s) reach RIGHT into box 8 (x=28%)
    *   92% - 100% (7.82s - 8.5s)  pull back into the aisle with the reserve box
    */
   0% {
@@ -101,17 +101,17 @@ select {
   }
   85% {
     left: 24%;
-    top: 82%;
+    top: 79%;
     animation-timing-function: ease-in-out;
   }
   92% {
     left: 28%;
-    top: 82%;
+    top: 79%;
     animation-timing-function: ease-in-out;
   }
   100% {
     left: 24%;
-    top: 82%;
+    top: 79%;
   }
 }
 
@@ -125,10 +125,10 @@ select {
 }
 
 @keyframes showcase-worker-guided {
-  /* FROM: where worker-to-box settles (aisle 0-1 at box-12 level = 24% x, 82% y) */
+  /* FROM: where worker-to-box settles (aisle 0-1 at box-8 level = 24% x, 79% y) */
   from {
     left: 24%;
-    top: 82%;
+    top: 79%;
   }
   to {
     left: 27%;

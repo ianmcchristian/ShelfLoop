@@ -234,12 +234,12 @@ function GuidancePath({ phase }: { phase: ShowcasePhase }) {
       viewBox="0 0 100 100"
     >
       {/*
-       * Path from the aisle at box-12 level (24%, 82%) to Rack A (28%, 48%).
+       * Path from the aisle at box-8 level (24%, 79%) to Rack A (28%, 48%).
        * Gentle upward curve -- worker walks up out of the backroom to the sales floor.
        */}
       <path
         className="animate-showcase-dash"
-        d="M 24 82 C 24 64, 28 55, 28 48"
+        d="M 24 79 C 24 63, 28 54, 28 48"
         fill="none"
         stroke="rgba(0,113,220,0.88)"
         strokeDasharray="4 4"
