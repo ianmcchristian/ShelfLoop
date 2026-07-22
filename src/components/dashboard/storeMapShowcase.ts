@@ -10,7 +10,8 @@ export type ShowcasePhase =
   | 'task-alert'
   | 'worker-to-box'
   | 'worker-guided'
-  | 'worker-restock';
+  | 'worker-restock'
+  | 'worker-exit';
 
 export const showcaseRackId: RackId = 'rack-a';
 export const showcaseRackAItemPosition = 15;
@@ -41,15 +42,26 @@ interface ShowcaseTimelineStep {
 }
 
 export const showcaseTimeline: ShowcaseTimelineStep[] = [
-  { delayMs: 2_500, phase: 'shopper-pick' },
-  { delayMs: 3_100, phase: 'shopper-pick', action: 'pick-item' },
-  { delayMs: 4_000, phase: 'shopper-exit', action: 'scan-rack' },
-  { delayMs: 7_000, phase: 'rfid-scan' },
-  { delayMs: 9_500, phase: 'rfid-detect' },
-  { delayMs: 12_000, phase: 'task-alert', action: 'assign-task' },
-  // Phone owns the ending beat: press Tap-to-Light, slide down (fully gone ~25,250ms).
-  // Generous margin so the phase flip can never cut the exit animation short.
-  { delayMs: 26_500, phase: 'idle' },
+  { delayMs: 2_500,  phase: 'shopper-pick' },
+  { delayMs: 3_100,  phase: 'shopper-pick',    action: 'pick-item' },
+  { delayMs: 4_000,  phase: 'shopper-exit',    action: 'scan-rack' },
+  { delayMs: 7_000,  phase: 'rfid-scan' },
+  { delayMs: 9_500,  phase: 'rfid-detect' },
+  { delayMs: 12_000, phase: 'task-alert',      action: 'assign-task' },
+  // Phone owns the ending beat: TTL press + slide-down, fully gone ~25,250ms.
+  // Worker enters at 26,000ms (small beat after phone clears).
+  { delayMs: 26_000, phase: 'worker-to-box',   action: 'dispatch-worker' },
+  // worker-to-box: 4.0s (2.0s corridor walk + 0.7s down into backroom + 1.3s L/R nudge)
+  // Animation ends ~30,000ms; +400ms beat before guided walk.
+  { delayMs: 30_400, phase: 'worker-guided',   action: 'guide-worker' },
+  // worker-guided: 2.2s walk from box-12 (30%,84%) to Rack A (27%,48%).
+  { delayMs: 32_600, phase: 'worker-restock',  action: 'arrive-at-rack' },
+  // Restock nudge: 1.3s. Item reappears at nudge peak (35% × 1.3s = 455ms in).
+  { delayMs: 33_055, phase: 'worker-restock',  action: 'complete-restock' },
+  // +400ms beat after nudge completes, then worker exits.
+  { delayMs: 34_300, phase: 'worker-exit' },
+  // worker-exit: 2.2s walk off right edge.
+  { delayMs: 36_500, phase: 'idle' },
 ];
 
 export interface ShowcaseCheckpoint {
@@ -69,6 +81,8 @@ export const showcaseCheckpoints: ShowcaseCheckpoint[] = [
   { label: 'Shopper exits',  phase: 'shopper-exit',    itemMissing: true  },
   { label: 'RFID scan',      phase: 'rfid-scan',       itemMissing: true  },
   { label: 'Phone popup',    phase: 'task-alert',      itemMissing: true  },
+  { label: 'Worker enters',  phase: 'worker-to-box',   itemMissing: true  },
+  { label: 'Worker at rack', phase: 'worker-restock',  itemMissing: false },
 ];
 
 export function isShowcaseRunning(phase: ShowcasePhase): boolean {

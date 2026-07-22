@@ -78,7 +78,12 @@ function WorkerActor({ phase }: { phase: ShowcasePhase }) {
     }
 
     if (phase === 'worker-restock') {
-      return 'left-[27%] top-[48%]';
+      // left-[27%] anchors the horizontal position; animation handles top (nudge UP/DOWN)
+      return 'left-[27%] animate-showcase-worker-restock-nudge';
+    }
+
+    if (phase === 'worker-exit') {
+      return 'animate-showcase-worker-exit';
     }
 
     return 'hidden';
@@ -228,9 +233,13 @@ function GuidancePath({ phase }: { phase: ShowcasePhase }) {
       preserveAspectRatio="none"
       viewBox="0 0 100 100"
     >
+      {/*
+       * Path from box 12 (30%, 84%) to Rack A (28%, 48%).
+       * Gentle upward curve -- worker walks up out of the backroom to the sales floor.
+       */}
       <path
         className="animate-showcase-dash"
-        d="M 50 82 C 50 67, 36 62, 28 48"
+        d="M 30 84 C 30 65, 28 55, 28 48"
         fill="none"
         stroke="rgba(0,113,220,0.88)"
         strokeDasharray="4 4"

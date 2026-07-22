@@ -62,15 +62,41 @@ select {
 }
 
 @keyframes showcase-worker-to-box {
-  /* Enters from the right at corridor level, walks left, turns down into 2nd backroom column */
+  /*
+   * Enters from right at SHOPPER height (52%), walks left along the corridor,
+   * turns down into backroom column 1, then does a left-right sideways nudge
+   * to grab the reserve box before heading back to the sales floor.
+   *
+   * Keyframe split (4.0s total):
+   *   0   - 50%  (0s   - 2.0s)  horizontal corridor walk at 52% height
+   *   50% - 68%  (2.0s - 2.72s) vertical walk down into backroom to box 12
+   *   68% - 79%  (2.72s- 3.16s) nudge LEFT (reach in sideways)
+   *   79% - 90%  (3.16s- 3.60s) nudge RIGHT (pull back through)
+   *   90% - 100% (3.60s- 4.0s)  settle at box centre
+   */
   0% {
     left: 110%;
-    top: 62%;
+    top: 52%;
     animation-timing-function: ease-in-out;
   }
-  60% {
+  50% {
     left: 30%;
-    top: 62%;
+    top: 52%;
+    animation-timing-function: ease-in-out;
+  }
+  68% {
+    left: 30%;
+    top: 84%;
+    animation-timing-function: ease-in-out;
+  }
+  79% {
+    left: 27%;
+    top: 84%;
+    animation-timing-function: ease-in-out;
+  }
+  90% {
+    left: 33%;
+    top: 84%;
     animation-timing-function: ease-in-out;
   }
   100% {
@@ -89,13 +115,38 @@ select {
 }
 
 @keyframes showcase-worker-guided {
+  /* FROM: where worker-to-box settles (box 12 at column 1 in backroom) */
   from {
-    left: 50%;
-    top: 82%;
+    left: 30%;
+    top: 84%;
   }
   to {
     left: 27%;
     top: 48%;
+  }
+}
+
+@keyframes showcase-worker-restock-nudge {
+  /*
+   * Worker places the reserve box on the shelf -- UP then DOWN,
+   * same mechanic as the shopper pick animation.
+   * complete-restock fires at the nudge peak (35% in = ~455ms).
+   */
+  0%   { top: 48%; }
+  35%  { top: 44%; }
+  70%  { top: 48%; }
+  100% { top: 48%; }
+}
+
+@keyframes showcase-worker-exit {
+  /* Mirror of entry: walk right off the map from Rack A back to employee area */
+  from {
+    left: 27%;
+    top: 48%;
+  }
+  to {
+    left: 110%;
+    top: 52%;
   }
 }
 
@@ -284,8 +335,8 @@ select {
   }
 
   .animate-showcase-worker-to-box {
-    /* ease handled per-segment inside the keyframe */
-    animation: showcase-worker-to-box 2.8s linear forwards;
+    /* timing is per-segment inside the keyframe; outer curve is linear */
+    animation: showcase-worker-to-box 4.0s linear forwards;
   }
 
   .animate-showcase-backroom-ttl {
@@ -294,6 +345,14 @@ select {
 
   .animate-showcase-worker-guided {
     animation: showcase-worker-guided 2.2s ease-in-out forwards;
+  }
+
+  .animate-showcase-worker-restock-nudge {
+    animation: showcase-worker-restock-nudge 1.3s ease-in-out forwards;
+  }
+
+  .animate-showcase-worker-exit {
+    animation: showcase-worker-exit 2.2s ease-in-out forwards;
   }
 
   .animate-showcase-dash {
