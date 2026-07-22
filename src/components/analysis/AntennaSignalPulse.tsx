@@ -75,18 +75,22 @@ export function AntennaSignalPulse({ pulseTrigger, angleDeg }: AntennaSignalPuls
     [antennaY, antennaZ],
   );
 
-  // Travel direction: always straight DOWN regardless of antenna angle.
-  //
-  // Why not use the face normal?
-  // At 45deg the face normal is (0, -0.707, +0.707) -- the +Z component sends the
-  // pulse toward the camera/south side of the rig, completely missing the boxes on
-  // the opposite side. Straight down ensures the dish sweeps through ALL 8 boxes.
-  // The antenna model already communicates the angle visually.
-  const travelDir = useMemo(() => new THREE.Vector3(0, -1, 0), []);
+  const radAngle = THREE.MathUtils.degToRad(angleDeg);
 
-  // Cap rotation: PI aligns the sphere pole (+Y local) with the -Y travel direction
-  //   R_x(PI) applied to (0,1,0) = (0,-1,0) = straight down
-  const capRotX = Math.PI;
+  // Travel direction matches the antenna face angle:
+  //   0deg  -> (0, -1,     0    ) straight down
+  //   45deg -> (0, -0.707, 0.707) diagonal -- physically shows why the south-side
+  //            boxes receive weaker signal when the antenna is tilted away from them
+  const travelDir = useMemo(
+    () => new THREE.Vector3(0, -Math.cos(radAngle), Math.sin(radAngle)),
+    [radAngle],
+  );
+
+  // Cap rotation aligns the sphere pole (+Y local) with travelDir:
+  //   R_x(PI - radAngle) applied to (0,1,0) = (0, -cos(a), sin(a)) = travelDir
+  //   0deg  -> PI       (flat horizontal dish, straight down)
+  //   45deg -> 3*PI/4   (dish tilted 45deg, matches antenna face)
+  const capRotX = Math.PI - radAngle;
 
   // Shared cap geometry -- all sheets reuse the same buffer
   const capGeo = useMemo(
@@ -140,12 +144,12 @@ export function AntennaSignalPulse({ pulseTrigger, angleDeg }: AntennaSignalPuls
       const s = SCALE_START + (SCALE_END - SCALE_START) * te;
       mesh.scale.set(s * WIDTH_MULT, s, s * WIDTH_MULT);
 
-      // Pole (leading tip) travels straight down from the antenna face
+      // Pole (leading tip) travels along the antenna face direction
       _polePos.current
         .copy(facePos)
         .addScaledVector(travelDir, te * TRAVEL);
 
-      // Mesh centre is behind the pole by one scaled unit along travel direction
+      // Mesh centre sits behind the pole by one scaled unit
       // polePos = meshPos + travelDir * s  =>  meshPos = polePos - travelDir * s
       _meshPos.current
         .copy(_polePos.current)
