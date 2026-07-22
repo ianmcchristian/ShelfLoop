@@ -161,7 +161,7 @@ export function AnalysisActionsPanel({
                     <span className="text-[0.62rem] font-bold text-slate-500">
                       <InfoTooltip
                         label="Y2 Distribution CV"
-                        text="Shows how evenly the reads are spread across boxes. Lower is better."
+                        text="Shows how evenly the reads are spread across boxes. Lower is better. We compute it as standard deviation divided by average, times 100."
                       />
                     </span>
                     <span className="text-[0.78rem] font-black tabular-nums text-retail-blue">

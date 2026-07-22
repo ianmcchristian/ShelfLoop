@@ -84,14 +84,16 @@ function buildExceptions(
     }
 
     // ── Missing expected tags (warn) ────────────────────────────────────────
-    // Only warn on placements with a resolved full EPC. Unresolved/null slots
-    // are internal DB cleanup work and should NOT pollute the warnings tab.
+    // Show any tag on a box that was not read in this run. If we have the full
+    // EPC, show that. If not, fall back to the known label. This avoids the old
+    // separate unresolved-placement spam while still surfacing real missed tags.
     for (const placement of placements) {
-      if (!placement.fullEpc) continue;
       if (!scanResult.reads.some((read) => readMatchesPlacement(read, placement))) {
+        const tagId = placement.fullEpc ?? placement.label;
+        if (!tagId) continue;
         items.push({
           severity: 'warn',
-          message: `Tag not read — Box ${placement.boxNumber} ${placement.face} ${placement.position} (${placement.fullEpc}) was not seen in this run.`,
+          message: `Tag not read — Box ${placement.boxNumber} ${placement.face} ${placement.position} (${tagId}) was not seen in this run.`,
         });
       }
     }
