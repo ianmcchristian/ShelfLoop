@@ -13,13 +13,14 @@ export type { MerchandiseDotDetails, MerchandisePositionHighlight } from './Stor
 const boxesPerStorageColumn = 6;
 
 // Shelves are 2 wide x 3 tall (was 4). h-[46%] = 61% x 3/4 keeps box size the
-// same while making each shelf shorter -- frees up vertical room in the backroom.
+// same while making each shelf shorter. top-[52%] pushes them to the bottom of
+// the backroom, opening up the upper area (62%-77%) for the worker to move.
 const backroomStorageColumns = [
-  'left-[6.5%] top-[32%] h-[46%] w-[9%]',
-  'left-[26%] top-[32%] h-[46%] w-[9%]',
-  'left-[45.5%] top-[32%] h-[46%] w-[9%]',
-  'left-[65%] top-[32%] h-[46%] w-[9%]',
-  'left-[84.5%] top-[32%] h-[46%] w-[9%]',
+  'left-[6.5%] top-[52%] h-[46%] w-[9%]',
+  'left-[26%] top-[52%] h-[46%] w-[9%]',
+  'left-[45.5%] top-[52%] h-[46%] w-[9%]',
+  'left-[65%] top-[52%] h-[46%] w-[9%]',
+  'left-[84.5%] top-[52%] h-[46%] w-[9%]',
 ];
 
 export const backroomBoxCount = backroomStorageColumns.length * boxesPerStorageColumn;
@@ -222,7 +223,7 @@ export function BackstockRoom({
   occupiedBoxes: boolean[];
 }) {
   return (
-    <div className="absolute inset-x-[5%] bottom-[4%] z-30 h-[37%] bg-slate-50/55">
+    <div className="absolute inset-x-[5%] bottom-[4%] z-30 h-[40%] bg-slate-50/55">
       <div aria-hidden="true" className="absolute inset-x-0 top-[15%] h-1">
         <span className="absolute left-0 top-0 h-full w-[39%] rounded-full bg-slate-800" />
         <span className="absolute right-0 top-0 h-full w-[39%] rounded-full bg-slate-800" />

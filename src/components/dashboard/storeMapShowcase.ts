@@ -49,20 +49,19 @@ export const showcaseTimeline: ShowcaseTimelineStep[] = [
   { delayMs: 7_000,  phase: 'rfid-scan' },
   { delayMs: 9_500,  phase: 'rfid-detect' },
   { delayMs: 12_000, phase: 'task-alert',      action: 'assign-task' },
-  // Phone owns the ending beat: TTL press + slide-down, fully gone ~25,250ms.
-  // Worker enters at 26,000ms (small beat after phone clears).
-  { delayMs: 26_000, phase: 'worker-to-box',   action: 'dispatch-worker' },
-  // worker-to-box: 8.5s (4-leg path: corridor → down → left → down to box 12 + L/R nudge)
-  // Animation ends 34,500ms; +400ms beat before guided walk.
-  { delayMs: 34_900, phase: 'worker-guided',   action: 'guide-worker' },
-  // worker-guided: 3.0s walk from box-12 (32%,84%) to Rack A (27%,48%).
-  { delayMs: 37_900, phase: 'worker-restock',  action: 'arrive-at-rack' },
+  // Phone slides off-screen by ~23,250ms (TTL press then slide-down).
+  // Worker enters at 23,700ms -- tight handoff right after the phone clears.
+  { delayMs: 23_700, phase: 'worker-to-box',   action: 'dispatch-worker' },
+  // worker-to-box: 8.5s (4-leg aisle path to box 8 + reach). Ends 32,200ms; +400ms beat.
+  { delayMs: 32_600, phase: 'worker-guided',   action: 'guide-worker' },
+  // worker-guided: 3.0s walk from box-8 (24%,86%) to Rack A (27%,48%).
+  { delayMs: 35_600, phase: 'worker-restock',  action: 'arrive-at-rack' },
   // Restock nudge: 1.3s. Item reappears at nudge peak (35% × 1.3s = 455ms in).
-  { delayMs: 38_355, phase: 'worker-restock',  action: 'complete-restock' },
-  // +400ms beat after nudge completes (nudge done at 39,200ms), then worker exits.
-  { delayMs: 39_600, phase: 'worker-exit' },
+  { delayMs: 36_055, phase: 'worker-restock',  action: 'complete-restock' },
+  // +400ms beat after nudge completes (nudge done at 36,900ms), then worker exits.
+  { delayMs: 37_300, phase: 'worker-exit' },
   // worker-exit: 2.5s walk off right edge.
-  { delayMs: 42_100, phase: 'idle' },
+  { delayMs: 39_800, phase: 'idle' },
 ];
 
 export interface ShowcaseCheckpoint {
