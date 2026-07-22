@@ -63,44 +63,55 @@ select {
 
 @keyframes showcase-worker-to-box {
   /*
-   * Enters from right at SHOPPER height (52%), walks left along the corridor,
-   * turns down into backroom column 1, then does a left-right sideways nudge
-   * to grab the reserve box before heading back to the sales floor.
+   * 4-leg path from employee corridor to box 12 in backroom column 1.
+   * Entry at 60% map height = corridor level (between racks at 50% and backroom at 61%).
    *
-   * Keyframe split (4.0s total):
-   *   0   - 50%  (0s   - 2.0s)  horizontal corridor walk at 52% height
-   *   50% - 68%  (2.0s - 2.72s) vertical walk down into backroom to box 12
-   *   68% - 79%  (2.72s- 3.16s) nudge LEFT (reach in sideways)
-   *   79% - 90%  (3.16s- 3.60s) nudge RIGHT (pull back through)
-   *   90% - 100% (3.60s- 4.0s)  settle at box centre
+   * Keyframe split (8.5s total):
+   *   0   - 52%  (0s    - 4.42s) Leg 1: walk LEFT along corridor at 60% height
+   *   52% - 61%  (4.42s - 5.19s) Leg 2: turn DOWN past separator to column-top level (72%)
+   *   61% - 75%  (5.19s - 6.38s) Leg 3: walk LEFT to column 1 centre (32%)
+   *   75% - 85%  (6.38s - 7.23s) Leg 4: walk DOWN to box 12 (84%)
+   *   85% - 90%  (7.23s - 7.65s) nudge LEFT (reach sideways into shelf)
+   *   90% - 95%  (7.65s - 8.08s) nudge RIGHT (pull back through)
+   *   95% - 100% (8.08s - 8.5s)  settle at box centre
    */
   0% {
     left: 110%;
-    top: 52%;
+    top: 60%;
     animation-timing-function: ease-in-out;
   }
-  50% {
-    left: 30%;
-    top: 52%;
+  52% {
+    left: 50%;
+    top: 60%;
     animation-timing-function: ease-in-out;
   }
-  68% {
-    left: 30%;
-    top: 84%;
+  61% {
+    left: 50%;
+    top: 72%;
     animation-timing-function: ease-in-out;
   }
-  79% {
-    left: 27%;
+  75% {
+    left: 32%;
+    top: 72%;
+    animation-timing-function: ease-in-out;
+  }
+  85% {
+    left: 32%;
     top: 84%;
     animation-timing-function: ease-in-out;
   }
   90% {
-    left: 33%;
+    left: 29%;
+    top: 84%;
+    animation-timing-function: ease-in-out;
+  }
+  95% {
+    left: 35%;
     top: 84%;
     animation-timing-function: ease-in-out;
   }
   100% {
-    left: 30%;
+    left: 32%;
     top: 84%;
   }
 }
@@ -115,9 +126,9 @@ select {
 }
 
 @keyframes showcase-worker-guided {
-  /* FROM: where worker-to-box settles (box 12 at column 1 in backroom) */
+  /* FROM: where worker-to-box settles (box 12, column 1 centre = 32% x, 84% y) */
   from {
-    left: 30%;
+    left: 32%;
     top: 84%;
   }
   to {
@@ -139,14 +150,17 @@ select {
 }
 
 @keyframes showcase-worker-exit {
-  /* Mirror of entry: walk right off the map from Rack A back to employee area */
+  /*
+   * Walk right off the map from Rack A back to the employee corridor.
+   * Drifts upward toward 60% (corridor height) as worker exits -- mirrors entry.
+   */
   from {
     left: 27%;
     top: 48%;
   }
   to {
     left: 110%;
-    top: 52%;
+    top: 60%;
   }
 }
 
@@ -336,7 +350,7 @@ select {
 
   .animate-showcase-worker-to-box {
     /* timing is per-segment inside the keyframe; outer curve is linear */
-    animation: showcase-worker-to-box 4.0s linear forwards;
+    animation: showcase-worker-to-box 8.5s linear forwards;
   }
 
   .animate-showcase-backroom-ttl {
@@ -344,7 +358,7 @@ select {
   }
 
   .animate-showcase-worker-guided {
-    animation: showcase-worker-guided 2.2s ease-in-out forwards;
+    animation: showcase-worker-guided 3.0s ease-in-out forwards;
   }
 
   .animate-showcase-worker-restock-nudge {
@@ -352,7 +366,7 @@ select {
   }
 
   .animate-showcase-worker-exit {
-    animation: showcase-worker-exit 2.2s ease-in-out forwards;
+    animation: showcase-worker-exit 2.5s ease-in-out forwards;
   }
 
   .animate-showcase-dash {

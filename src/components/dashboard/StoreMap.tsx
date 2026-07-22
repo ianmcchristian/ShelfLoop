@@ -470,7 +470,7 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
 
       <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
         <div className="panel p-4">
-          <div className="relative min-h-[720px] overflow-hidden border border-slate-300 bg-[#f7f8fa]">
+          <div className="relative min-h-[900px] overflow-hidden border border-slate-300 bg-[#f7f8fa]">
             <div className="absolute inset-5 border border-slate-300 bg-white" />
             <div className="absolute left-8 top-8 z-10">
               <p className="text-[0.7rem] font-black uppercase tracking-[0.2em] text-slate-500">

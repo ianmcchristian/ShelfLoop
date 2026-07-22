@@ -51,17 +51,17 @@ export const showcaseTimeline: ShowcaseTimelineStep[] = [
   // Phone owns the ending beat: TTL press + slide-down, fully gone ~25,250ms.
   // Worker enters at 26,000ms (small beat after phone clears).
   { delayMs: 26_000, phase: 'worker-to-box',   action: 'dispatch-worker' },
-  // worker-to-box: 4.0s (2.0s corridor walk + 0.7s down into backroom + 1.3s L/R nudge)
-  // Animation ends ~30,000ms; +400ms beat before guided walk.
-  { delayMs: 30_400, phase: 'worker-guided',   action: 'guide-worker' },
-  // worker-guided: 2.2s walk from box-12 (30%,84%) to Rack A (27%,48%).
-  { delayMs: 32_600, phase: 'worker-restock',  action: 'arrive-at-rack' },
+  // worker-to-box: 8.5s (4-leg path: corridor → down → left → down to box 12 + L/R nudge)
+  // Animation ends 34,500ms; +400ms beat before guided walk.
+  { delayMs: 34_900, phase: 'worker-guided',   action: 'guide-worker' },
+  // worker-guided: 3.0s walk from box-12 (32%,84%) to Rack A (27%,48%).
+  { delayMs: 37_900, phase: 'worker-restock',  action: 'arrive-at-rack' },
   // Restock nudge: 1.3s. Item reappears at nudge peak (35% × 1.3s = 455ms in).
-  { delayMs: 33_055, phase: 'worker-restock',  action: 'complete-restock' },
-  // +400ms beat after nudge completes, then worker exits.
-  { delayMs: 34_300, phase: 'worker-exit' },
-  // worker-exit: 2.2s walk off right edge.
-  { delayMs: 36_500, phase: 'idle' },
+  { delayMs: 38_355, phase: 'worker-restock',  action: 'complete-restock' },
+  // +400ms beat after nudge completes (nudge done at 39,200ms), then worker exits.
+  { delayMs: 39_600, phase: 'worker-exit' },
+  // worker-exit: 2.5s walk off right edge.
+  { delayMs: 42_100, phase: 'idle' },
 ];
 
 export interface ShowcaseCheckpoint {
