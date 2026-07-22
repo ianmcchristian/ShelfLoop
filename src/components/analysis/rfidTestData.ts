@@ -4,17 +4,13 @@
 // placement label/suffix against observed EPC suffixes.
 //
 // Remaining discrepancies flagged in comments:
-//   • Box 5 Left BR + Right TL share label '6986' — data entry error, EPC
-//     assigned to Left BR only, Right TL left null.
-//   • Box 3 Front BR + Box 8 Top TL share label '5C12988' — same physical tag
-//     cannot occupy two boxes; Box 3 is verified, Box 8 Top TL left null.
-//   • A few observed EPCs still do not belong to any placement slot and should
-//     surface as unexpected-read errors in the Exceptions panel.
-//   • Box 5 Back TL 'AB336' overlaps Box 2 Bottom TL's EPC suffix — left null.
-//   • Box 7 Front TL was mislabeled as '1326' in the source sheet; physical
-//     photo proof shows it is EPC suffix '1BCAEBA'. Box 7 Top TR is therefore
-//     cleared to unresolved pending re-verification so the DB does not claim
-//     one physical tag exists in two slots.
+//   • Box 7 Front TL + Box 7 Top TR both claim '1BCAEBA' / same full EPC —
+//     awaiting Akbar photo of Top TR face to resolve.
+//   • Box 3 Front BR + Box 8 Top TL both claim '5C12988' / same full EPC —
+//     Ian photo-confirmed Box 8 Top TL; Box 3 Front BR needs physical re-check.
+//   • Box 5 Bottom TR '2B456' — no full EPC scan match yet.
+//   • Box 6 Back — 0 confirmed tags (B2446 was mis-entered here, belongs to Box 5).
+//   • A few observed EPCs still do not belong to any placement slot.
 //
 // Synthetic scenarios below are still used only for test/demo mode.
 
@@ -22,6 +18,18 @@ import type { ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 
 // ─── Placement database ───────────────────────────────────────────────────────
 // Format: [boxNumber, face, position, label, fullEpc | null]
+//
+// ─── KNOWN CONFLICTS / OPEN QUESTIONS (as of Session 25) ─────────────────────
+//   • Box 7 Front TL + Box 7 Top TR both claim '1BCAEBA' / same full EPC —
+//     physically impossible; awaiting Akbar photo confirmation of Top TR.
+//   • Box 3 Front BR + Box 8 Top TL both claim '5C12988' / same full EPC —
+//     Ian photo-confirmed Box 8 Top TL; Box 3 Front BR needs re-check.
+//   • Box 5 Bottom TR '2B456' has no full EPC match yet.
+//   • Box 6 Back now has 0 tagged slots — B2446 was mis-entered there;
+//     physical tag belongs to Box 5 Back TL (Ian photo-confirmed).
+//   • Box 5 Back TR/BL/BR removed — Ian confirmed only 1 physical tag on that
+//     face (TL = B2446). Former EPCs AB376/AB386/AB3C6 are now homeless if
+//     they appear in scans (surface as unexpected reads).
 // prettier-ignore
 const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   // Box 1 — fully resolved after ground-truth scan enrichment
@@ -53,17 +61,20 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [4,'Top','TL','1BC62CA','E28011B0A5050070B1BC62CA'],[4,'Top','TR','1BC62DA','E28011B0A5050070B1BC62DA'],[4,'Top','BL','1BDE82A','E28011B0A5050070B1BDE82A'],[4,'Top','BR','1BDC28A','E28011B0A5050070B1BDC28A'],
   [4,'Bottom','TL','1BE94AA','E28011B0A5050070B1BE94AA'],[4,'Bottom','TR','1BE948A','E28011B0A5050070B1BE948A'],[4,'Bottom','BL','1BE0EBA','E28011B0A5050070B1BE0EBA'],[4,'Bottom','BR','1BE940A','E28011B0A5050070B1BE940A'],
   // Box 5 — Front + Right corrected from photo verification.
-  // Remaining discrepancy: Back TL 'AB336' overlaps Box 2 Bottom TL EPC suffix — left null.
+  // Back face: Ian photo-confirmed ONLY 1 physical tag on this face: TL = B2446.
+  // Former TR/BL/BR slots (AB376/AB386/AB3C6) removed — not physically present.
   [5,'Front','TL','2845275','E28011B0A502006C02845275'],[5,'Front','TR','2844CD5','E28011B0A502006C02844CD5'],[5,'Front','BL','2844C85','E28011B0A502006C02844C85'],[5,'Front','BR','283A6D5','E28011B0A502006C0283A6D5'],
-  [5,'Back','TL','AB336',null],[5,'Back','TR','AB376','E2801191A5040076300AB376'],[5,'Back','BL','AB386','E2801191A5040076300AB386'],[5,'Back','BR','AB3C6','E2801191A5040076300AB3C6'],
+  [5,'Back','TL','B2446','E2801191A5040076300B2446'],
   [5,'Left','TL','283A684','E28011B0A502006C0283A684'],[5,'Left','TR','284C0E5','E28011B0A502006C0284C0E5'],[5,'Left','BL','284C695','E28011B0A502006C0284C695'],[5,'Left','BR','283A014','E28011B0A502006C0283A014'],
   [5,'Right','TL','28452D5','E28011B0A502006C028452D5'],[5,'Right','TR','2835884','E28011B0A502006C02835884'],[5,'Right','BL','2847874','E28011B0A502006C02847874'],[5,'Right','BR','283A0B5','E28011B0A502006C0283A0B5'],
   [5,'Top','TL','AF806','E2801191A5040076300AF806'],[5,'Top','TR','AB3F6','E2801191A5040076300AB3F6'],[5,'Top','BL','F886','E2801191A5040076300AF886'],[5,'Top','BR','F846','E2801191A5040076300AF846'],
   [5,'Bottom','TL','F876','E2801191A5040076300AF876'],[5,'Bottom','TR','B2456',null],[5,'Bottom','BL','B2416','E2801191A5040076300B2416'],[5,'Bottom','BR','2486','E2801191A5040076300B2486'],
-  // Box 6 — Front + Right corrected from photo verification; Back still only has 1 slot in source data.
+  // Box 6 — Front + Right corrected from photo verification.
+  // Back face: B2446 was mis-entered here; Ian confirmed it belongs to Box 5 Back TL.
+  // Box 6 Back has 0 confirmed physical tags — removed from DB.
   // Box 6 Top TR label was a raw full EPC — normalized to suffix + fullEpc
   [6,'Front','TL','6946','E2801191A5040076300B6946'],[6,'Front','TR','6916','E2801191A5040076300B6916'],[6,'Front','BL','AE56','E2801191A5040076300BAE56'],[6,'Front','BR','B69C6','E2801191A5040076300B69C6'],
-  [6,'Back','TL','B2446','E2801191A5040076300B2446'],
+  // Box 6 Back — no confirmed tags
   [6,'Left','TL','AE16','E2801191A5040076300BAE16'],[6,'Left','TR','6996','E2801191A5040076300B6996'],[6,'Left','BL','6906','E2801191A5040076300B6906'],[6,'Left','BR','6985','E2801191A5040076300B6985'],
   [6,'Right','TL','6986','E2801191A5040076300B6986'],[6,'Right','TR','AE46','E2801191A5040076300BAE46'],[6,'Right','BL','6956','E2801191A5040076300B6956'],[6,'Right','BR','AE06','E2801191A5040076300BAE06'],
   [6,'Top','TL','284C084','E28011B0A502006C0284C084'],[6,'Top','TR','2844C94','E28011B0A502006C02844C94'],[6,'Top','BL','28478E4','E28011B0A502006C028478E4'],[6,'Top','BR','284C0C4','E28011B0A502006C0284C0C4'],
@@ -75,13 +86,14 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [7,'Right','TL','F836','E2801191A5040076300AF836'],[7,'Right','TR','F8B6','E2801191A5040076300AF8B6'],[7,'Right','BL','B2406','E2801191A5040076300B2406'],[7,'Right','BR','F8C6','E2801191A5040076300AF8C6'],
   [7,'Top','TL','1BC625A','E28011B0A5050070B1BC625A'],[7,'Top','TR','1BCAEBA','E28011B0A5050070B1BCAEBA'],[7,'Top','BL','1BC62BA','E28011B0A5050070B1BC62BA'],[7,'Top','BR','1BC88AA','E28011B0A5050070B1BC88AA'],
   [7,'Bottom','TL','1BC88BA','E28011B0A5050070B1BC88BA'],[7,'Bottom','TR','1BC88DA','E28011B0A5050070B1BC88DA'],[7,'Bottom','BL','1BCAEAA','E28011B0A5050070B1BCAEAA'],[7,'Bottom','BR','1BCAECA','E28011B0A5050070B1BCAECA'],
-  // Box 8 — nearly resolved; DISCREPANCY: Top TL '5C12988' duplicates Box 3 Front BR
+  // Box 8 — Top TL '5C12988' Ian photo-confirmed. Full EPC now assigned.
+  // CONFLICT: same suffix/EPC also assigned to Box 3 Front BR — one of them is wrong.
   // Front BR source label 'AB364' is physically the EPC ending 'AB346'.
   [8,'Front','TL','5C16F18','E28011B0A5020066E5C16F18'],[8,'Front','TR','5C16F58','E28011B0A5020066E5C16F58'],[8,'Front','BL','5C12908','E28011B0A5020066E5C12908'],[8,'Front','BR','AB346','E2801191A5040076300AB346'],
   [8,'Back','TL','1BE0EAA','E28011B0A5050070B1BE0EAA'],[8,'Back','TR','1BDE89A','E28011B0A5050070B1BDE89A'],[8,'Back','BL','1BDE8BA','E28011B0A5050070B1BDE8BA'],[8,'Back','BR','1BC5A0A','E28011B0A5050070B1BC5A0A'],
   [8,'Left','TL','1BBD4EA','E28011B0A5050070B1BBD4EA'],[8,'Left','TR','1BC620A','E28011B0A5050070B1BC620A'],[8,'Left','BL','1BC5ADA','E28011B0A5050070B1BC5ADA'],[8,'Left','BR','1BC5A5A','E28011B0A5050070B1BC5A5A'],
   [8,'Right','TL','5C263E8','E28011B0A5020066E5C263E8'],[8,'Right','TR','5C263F8','E28011B0A5020066E5C263F8'],[8,'Right','BL','5C103F8','E28011B0A5020066E5C103F8'],[8,'Right','BR','5C129C8','E28011B0A5020066E5C129C8'],
-  [8,'Top','TL','5C12988',null],[8,'Top','TR','00A4E76','E2801191A5040076300A4E76'],[8,'Top','BL','5C129D8','E28011B0A5020066E5C129D8'],[8,'Top','BR','5C12938','E28011B0A5020066E5C12938'],
+  [8,'Top','TL','5C12988','E28011B0A5020066E5C12988'],[8,'Top','TR','00A4E76','E2801191A5040076300A4E76'],[8,'Top','BL','5C129D8','E28011B0A5020066E5C129D8'],[8,'Top','BR','5C12938','E28011B0A5020066E5C12938'],
   [8,'Bottom','TL','1BC5ACA','E28011B0A5050070B1BC5ACA'],[8,'Bottom','TR','1BC62EA','E28011B0A5050070B1BC62EA'],[8,'Bottom','BL','1BDE8CA','E28011B0A5050070B1BDE8CA'],[8,'Bottom','BR','1BC5AEA','E28011B0A5050070B1BC5AEA'],
 ];
 
