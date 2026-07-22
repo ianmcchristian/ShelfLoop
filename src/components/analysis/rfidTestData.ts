@@ -7,9 +7,13 @@
 //   • Box 7 Front TL + Box 7 Top TR both claim '1BCAEBA' / same full EPC —
 //     awaiting Akbar photo of Top TR face to resolve.
 //   • Box 3 Front BR + Box 8 Top TL both claim '5C12988' / same full EPC —
-//     Ian photo-confirmed Box 8 Top TL; Box 3 Front BR needs physical re-check.
-//   • Box 5 Bottom TR '2B456' — no full EPC scan match yet.
+//     documented as a known duplicate in the source sheet (both rows carry the
+//     note "3/FRONT/BR and 8/TOP/TL duplicates"). Physical resolution pending.
+//   • Box 5 Bottom TR 'B2456' — no full EPC scan match yet.
 //   • Box 6 Back — 0 confirmed tags (B2446 was mis-entered here, belongs to Box 5).
+//   • Box 6 Bottom — values match ODS but ODS Box5/Box6 Bottom were duplicated
+//     during the scientific-notation fix. Box 5 Bottom is confirmed correct;
+//     Box 6 Bottom needs physical verification.
 //   • A few observed EPCs still do not belong to any placement slot.
 //
 // Synthetic scenarios below are still used only for test/demo mode.
@@ -23,7 +27,7 @@ import type { ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 //   • Box 7 Front TL + Box 7 Top TR both claim '1BCAEBA' / same full EPC —
 //     physically impossible; awaiting Akbar photo confirmation of Top TR.
 //   • Box 3 Front BR + Box 8 Top TL both claim '5C12988' / same full EPC —
-//     Ian photo-confirmed Box 8 Top TL; Box 3 Front BR needs re-check.
+//     documented as a known duplicate in source sheet; physical resolution pending.
 //   • Box 5 Bottom TR '2B456' has no full EPC match yet.
 //   • Box 6 Back now has 0 tagged slots — B2446 was mis-entered there;
 //     physical tag belongs to Box 5 Back TL (Ian photo-confirmed).
@@ -78,16 +82,22 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [6,'Left','TL','AE16','E2801191A5040076300BAE16'],[6,'Left','TR','6996','E2801191A5040076300B6996'],[6,'Left','BL','6906','E2801191A5040076300B6906'],[6,'Left','BR','6985','E2801191A5040076300B6985'],
   [6,'Right','TL','6986','E2801191A5040076300B6986'],[6,'Right','TR','AE46','E2801191A5040076300BAE46'],[6,'Right','BL','6956','E2801191A5040076300B6956'],[6,'Right','BR','AE06','E2801191A5040076300BAE06'],
   [6,'Top','TL','284C084','E28011B0A502006C0284C084'],[6,'Top','TR','2844C94','E28011B0A502006C02844C94'],[6,'Top','BL','28478E4','E28011B0A502006C028478E4'],[6,'Top','BR','284C0C4','E28011B0A502006C0284C0C4'],
+  // Box 6 Bottom — ⚠ NEEDS PHYSICAL VERIFICATION. ODS Box5+Box6 Bottom were
+  // identical after scientific-notation fix (suspected copy-paste). Box 5 Bottom
+  // confirmed correct separately; Box 6 Bottom values below unverified.
   [6,'Bottom','TL','284C664','E28011B0A502006C0284C664'],[6,'Bottom','TR','28478D4','E28011B0A502006C028478D4'],[6,'Bottom','BL','283A655','E28011B0A502006C0283A655'],[6,'Bottom','BR','28478E5','E28011B0A502006C028478E5'],
-  // Box 7 — Front TL verified by photo as 1BCAEBA; Top TR cleared pending re-check
+  // Box 7 — Front TL verified by photo as 1BCAEBA; Top TR still a known duplicate.
+  // Bottom labels were physically applied upside-down on the box; DB uses TL=1BC88BA
+  // as the correct orientation anchor (Ian confirmed).
   [7,'Front','TL','1BCAEBA','E28011B0A5050070B1BCAEBA'],[7,'Front','TR','1BDBA0A','E28011B0A5050070B1BDBA0A'],[7,'Front','BL','1BDBAAA','E28011B0A5050070B1BDBAAA'],[7,'Front','BR','1BD349A','E28011B0A5050070B1BD349A'],
   [7,'Back','TL','2844C75','E28011B0A502006C02844C75'],[7,'Back','TR','2847885','E28011B0A502006C02847885'],[7,'Back','BL','2845285','E28011B0A502006C02845285'],[7,'Back','BR','2844CE5','E28011B0A502006C02844CE5'],
   [7,'Left','TL','1BDBA8A','E28011B0A5050070B1BDBA8A'],[7,'Left','TR','1BDC27A','E28011B0A5050070B1BDC27A'],[7,'Left','BL','1BDBA7A','E28011B0A5050070B1BDBA7A'],[7,'Left','BR','1BDC29A','E28011B0A5050070B1BDC29A'],
   [7,'Right','TL','F836','E2801191A5040076300AF836'],[7,'Right','TR','F8B6','E2801191A5040076300AF8B6'],[7,'Right','BL','B2406','E2801191A5040076300B2406'],[7,'Right','BR','F8C6','E2801191A5040076300AF8C6'],
   [7,'Top','TL','1BC625A','E28011B0A5050070B1BC625A'],[7,'Top','TR','1BCAEBA','E28011B0A5050070B1BCAEBA'],[7,'Top','BL','1BC62BA','E28011B0A5050070B1BC62BA'],[7,'Top','BR','1BC88AA','E28011B0A5050070B1BC88AA'],
   [7,'Bottom','TL','1BC88BA','E28011B0A5050070B1BC88BA'],[7,'Bottom','TR','1BC88DA','E28011B0A5050070B1BC88DA'],[7,'Bottom','BL','1BCAEAA','E28011B0A5050070B1BCAEAA'],[7,'Bottom','BR','1BCAECA','E28011B0A5050070B1BCAECA'],
-  // Box 8 — Top TL '5C12988' Ian photo-confirmed. Full EPC now assigned.
-  // CONFLICT: same suffix/EPC also assigned to Box 3 Front BR — one of them is wrong.
+  // Box 8 — Top TL '5C12988' Ian photo-confirmed. Full EPC assigned.
+  // Duplicate with Box 3 Front BR is documented in the source sheet as a known
+  // conflict — both carry the note '3/FRONT/BR and 8/TOP/TL duplicates'.
   // Front BR source label 'AB364' is physically the EPC ending 'AB346'.
   [8,'Front','TL','5C16F18','E28011B0A5020066E5C16F18'],[8,'Front','TR','5C16F58','E28011B0A5020066E5C16F58'],[8,'Front','BL','5C12908','E28011B0A5020066E5C12908'],[8,'Front','BR','AB346','E2801191A5040076300AB346'],
   [8,'Back','TL','1BE0EAA','E28011B0A5050070B1BE0EAA'],[8,'Back','TR','1BDE89A','E28011B0A5050070B1BDE89A'],[8,'Back','BL','1BDE8BA','E28011B0A5050070B1BDE8BA'],[8,'Back','BR','1BC5A0A','E28011B0A5050070B1BC5A0A'],
