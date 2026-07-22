@@ -55,14 +55,6 @@ function buildExceptions(
     items.push({ severity: issue.severity, message: issue.message });
   }
 
-  // ── Unresolved placements (warn) ────────────────────────────────────────────
-  for (const p of placements.filter((p) => p.fullEpc === null)) {
-    items.push({
-      severity: 'warn',
-      message: `Unresolved placement — Box ${p.boxNumber} ${p.face} ${p.position} has no resolved full EPC (${p.label}).`,
-    });
-  }
-
   // ── Duplicate canonical IDs (error) ────────────────────────────────────────
   const slotMap = new Map<string, string[]>();
   for (const p of placements) {
@@ -91,41 +83,13 @@ function buildExceptions(
       }
     }
 
-    const avg =
-      scanResult.boxResults.reduce((s, b) => s + b.coveragePct, 0) /
-      (scanResult.boxResults.length || 1);
-
-    for (const box of scanResult.boxResults) {
-      // ── Low coverage ───────────────────────────────────────────────────────
-      if (box.coveragePct < 50) {
-        items.push({
-          severity: 'error',
-          message: `Low coverage — Box ${box.boxNumber} is at ${box.coveragePct}% (<50%).`,
-        });
-      } else if (box.coveragePct < 85) {
+    // ── Missing expected tags (warn) ────────────────────────────────────────
+    for (const placement of placements) {
+      if (!scanResult.reads.some((read) => readMatchesPlacement(read, placement))) {
         items.push({
           severity: 'warn',
-          message: `Low coverage — Box ${box.boxNumber} is at ${box.coveragePct}% (<85%).`,
+          message: `Tag not read — Box ${placement.boxNumber} ${placement.face} ${placement.position} (${placement.fullEpc ?? placement.label}) was not seen in this run.`,
         });
-      }
-
-      // ── Coverage outlier (warn) ────────────────────────────────────────────
-      if (avg - box.coveragePct >= 25) {
-        items.push({
-          severity: 'warn',
-          message: `Coverage outlier — Box ${box.boxNumber} is ${Math.round(avg - box.coveragePct)} pts below rig average.`,
-        });
-      }
-
-      // ── Face gaps (warn) ───────────────────────────────────────────────────
-      for (const face of box.faces) {
-        const eligible = face.readCount + face.missCount;
-        if (eligible > 0 && face.readCount === 0) {
-          items.push({
-            severity: 'warn',
-            message: `Face gap — Box ${box.boxNumber} ${face.face} has 0 reads across ${eligible} expected tags.`,
-          });
-        }
       }
     }
   }
