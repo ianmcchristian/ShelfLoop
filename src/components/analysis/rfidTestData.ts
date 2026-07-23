@@ -7,18 +7,26 @@
 // All placement data here reflects our best current understanding and should
 // be treated as suspect until physically verified by photo or selective scan.
 //
-// Remaining discrepancies flagged in comments:
-//   • Box 7 Front TL + Box 7 Top TR both claim '1BCAEBA' / same full EPC —
-//     mislabel theory: one tag's chip reads 1BC88CA (seen as homeless). Selective scan needed.
-//   • Box 3 Front BR + Box 8 Top TL both claim '5C12988' / same full EPC —
-//     mislabel theory: one tag's chip reads 5C12998 (seen as homeless). Selective scan needed.
-//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
-//   • Box 6 Back — ⚠ PHOTO NEEDED. Likely 4 physical tags exist (source data was a
-//     flat copy-paste of Box 5; tags unknown). If confirmed, physical total rises to 189.
-//   • Box 6 Top — ✅ VERIFIED by Ian photo: F806/AB3F6/F886/F846 (updated Session 26).
-//   • Box 5 Top — ⚠ UNVERIFIED. Suspected 284C084/2844C94/28478E4/284C0C4 (4th Box5/6 swap).
-//     Photo from Akbar required to confirm.
-//   • A few observed EPCs still do not belong to any placement slot.
+// Remaining discrepancies flagged in comments (Session 26):
+//   • 3 CONFIRMED sharpie-duplicate pairs — same physical label handwritten on two
+//     different tags (human labeling error, confirmed by Ian re-checking photos):
+//       1) '5C12988'  — Box 3 Front BR / Box 8 Top TL
+//       2) '1BCAEBA'  — Box 7 Front TL / Box 7 Top TR
+//       3) '6986'     — Box 6 Left BR / Box 6 Right TL
+//     For each pair, BOTH true chip EPCs are confirmed present in scan data, but
+//     WHICH slot has which chip is an unverified best guess (Ian assigned at random).
+//     Isolation scan (one box alone) needed to confirm or flip each pair.
+//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet. Only DB slot never read
+//     in any of the 6 scan runs.
+//   • Box 6 Back — ⚠ PHOTO NEEDED. Likely up to 4 physical tags (source data was a
+//     flat copy-paste of Box 5 Back). If confirmed, physical total rises above 185.
+//   • Box 6 Top — ✅ VERIFIED by Ian photo: F806/AB3F6/F886/F846.
+//   • Box 5 Top — ⚠ UNVERIFIED but scan-supported. The 4 EPCs suspected to belong here
+//     (284C084/2844C94/28478E4/284C0C4) ARE being physically read in scans, just not
+//     yet photo-confirmed as Box 5 Top specifically.
+//   • Box 7 Bottom — ⚠ ORIENTATION CONFLICT. Ian's latest ODS shows TL/TR/BL/BR flipped
+//     vs. the orientation Ian confirmed correct in Session 24 (TL=1BC88BA). NOT changed
+//     in DB pending Ian's clarification — do not silently flip.
 //
 // Synthetic scenarios below are still used only for test/demo mode.
 
@@ -28,17 +36,14 @@ import type { ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 // Format: [boxNumber, face, position, label, fullEpc | null]
 //
 // ─── KNOWN CONFLICTS / OPEN QUESTIONS (as of Session 26) ─────────────────────
-//   • Box 7 Front TL + Box 7 Top TR both claim '1BCAEBA' / same full EPC —
-//     MISLABEL THEORY: one tag's chip is actually 1BC88CA (observed homeless).
-//     Resolve via box-level isolation scan.
-//   • Box 3 Front BR + Box 8 Top TL both claim '5C12988' / same full EPC —
-//     MISLABEL THEORY: one tag's chip is actually 5C12998 (observed homeless).
-//     Resolve via box-level isolation scan.
-//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
-//   • Box 6 Back — ⚠ PHOTO NEEDED. Presumed 4 tags (source data was copy-paste).
-//     Do NOT populate until Ian receives photo. Total slots = 189 if confirmed.
-//   • Box 5 Top — ⚠ UNVERIFIED (suspected 284 family from 4th Box5/6 swap).
-//     Awaiting Akbar photo confirmation.
+//   • 3 sharpie-duplicate pairs RESOLVED with best-guess slot assignments (Ian's
+//     random pick, pending isolation-scan confirmation) — see file header for detail.
+//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet (only unread DB slot).
+//   • Box 6 Back — ⚠ PHOTO NEEDED. Presumed up to 4 tags (source data was copy-paste).
+//     Do NOT populate until Ian receives photo.
+//   • Box 5 Top — ⚠ UNVERIFIED but scan-supported (see file header).
+//   • Box 7 Bottom — ⚠ ORIENTATION CONFLICT vs Session 24 confirmation. NOT changed —
+//     needs Ian's explicit clarification before touching.
 //   • Box 5 Back TR/BL/BR removed — Ian confirmed only 1 physical tag on that
 //     face (TL = B2446). Former EPCs AB376/AB386/AB3C6 remain homeless in scans.
 // prettier-ignore
@@ -58,7 +63,10 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [2,'Top','TL','5C1F5C8','E28011B0A5020066E5C1F5C8'],[2,'Top','TR','5C16FA8','E28011B0A5020066E5C16FA8'],[2,'Top','BL','5C25B08','E28011B0A5020066E5C25B08'],[2,'Top','BR','00B24D6','E2801191A5040076300B24D6'],
   [2,'Bottom','TL','00AB336','E2801191A5040076300AB336'],[2,'Bottom','TR','00A09F6','E2801191A5040076300A09F6'],[2,'Bottom','BL','5C28938','E28011B0A5020066E5C28938'],[2,'Bottom','BR','5C16FF8','E28011B0A5020066E5C16FF8'],
   // Box 3 — master-list verified (unchanged)
-  [3,'Front','TL','5C25B98','E28011B0A5020066E5C25B98'],[3,'Front','TR','5C16F68','E28011B0A5020066E5C16F68'],[3,'Front','BL','5C12948','E28011B0A5020066E5C12948'],[3,'Front','BR','5C12988','E28011B0A5020066E5C12988'],
+  // Box 3 Front BR — ⚠ BEST GUESS pending isolation test. Box3 FrontBR and Box8 TopTL
+  // were sharpied identically '5C12988' (human labeling error, confirmed by Ian).
+  // Ian randomly assigned the homeless EPC 5C12998 here; could flip with Box 8 Top TL.
+  [3,'Front','TL','5C25B98','E28011B0A5020066E5C25B98'],[3,'Front','TR','5C16F68','E28011B0A5020066E5C16F68'],[3,'Front','BL','5C12948','E28011B0A5020066E5C12948'],[3,'Front','BR','5C12998','E28011B0A5020066E5C12998'],
   [3,'Back','TL','5C28928','E28011B0A5020066E5C28928'],[3,'Back','TR','00A09B6','E2801191A5040076300A09B6'],[3,'Back','BL','00A0986','E2801191A5040076300A0986'],[3,'Back','BR','00A09C6','E2801191A5040076300A09C6'],
   [3,'Left','TL','5C26318','E28011B0A5020066E5C26318'],[3,'Left','TR','5C10368','E28011B0A5020066E5C10368'],[3,'Left','BL','5C26358','E28011B0A5020066E5C26358'],[3,'Left','BR','5C26328','E28011B0A5020066E5C26328'],
   [3,'Right','TL','5C10338','E28011B0A5020066E5C10338'],[3,'Right','TR','5C263A8','E28011B0A5020066E5C263A8'],[3,'Right','BL','5C263B8','E28011B0A5020066E5C263B8'],[3,'Right','BR','5C26368','E28011B0A5020066E5C26368'],
@@ -92,8 +100,14 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   // Box 6 Back — ⚠ PHOTO NEEDED. Source data was a flat copy-paste of Box 5 (another
   // data entry error). Physical tags unknown — do NOT populate until photo received.
   // If 4 tags confirmed, total physical slots = 189 (explains Akbar's 186 unique reads).
-  [6,'Left','TL','AE16','E2801191A5040076300BAE16'],[6,'Left','TR','6996','E2801191A5040076300B6996'],[6,'Left','BL','6906','E2801191A5040076300B6906'],[6,'Left','BR','6985','E2801191A5040076300B6985'],
-  [6,'Right','TL','6986','E2801191A5040076300B6986'],[6,'Right','TR','AE46','E2801191A5040076300BAE46'],[6,'Right','BL','6956','E2801191A5040076300B6956'],[6,'Right','BR','AE06','E2801191A5040076300BAE06'],
+  // Box 6 Left BR — was wrongly '6985' in DB (likely a Session 24 misread). Ian
+  // re-checked the physical photo and confirmed the sharpie label is actually '6986',
+  // same as Box 6 Right TL (human labeling error, confirmed by Ian).
+  [6,'Left','TL','AE16','E2801191A5040076300BAE16'],[6,'Left','TR','6996','E2801191A5040076300B6996'],[6,'Left','BL','6906','E2801191A5040076300B6906'],[6,'Left','BR','6986','E2801191A5040076300B6986'],
+  // Box 6 Right TL — ⚠ BEST GUESS pending isolation test. Ian randomly assigned the
+  // homeless EPC B69D6 here; could flip with Box 6 Left BR. Note: prefix family here
+  // is broad (shared by many unrelated Box2/3/5/6/7/8 tags) so confidence is lower.
+  [6,'Right','TL','B69D6','E2801191A5040076300B69D6'],[6,'Right','TR','AE46','E2801191A5040076300BAE46'],[6,'Right','BL','6956','E2801191A5040076300B6956'],[6,'Right','BR','AE06','E2801191A5040076300BAE06'],
   // Box 6 Top — ✅ VERIFIED by Ian photo (Session 26). F806/AB3F6/F886/F846 confirmed.
   // Former DB values (284C084/2844C94/28478E4/284C0C4) moved to Box 5 Top as suspected.
   [6,'Top','TL','F806','E2801191A5040076300AF806'],[6,'Top','TR','AB3F6','E2801191A5040076300AB3F6'],[6,'Top','BL','F886','E2801191A5040076300AF886'],[6,'Top','BR','F846','E2801191A5040076300AF846'],
@@ -107,7 +121,10 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [7,'Back','TL','2844C75','E28011B0A502006C02844C75'],[7,'Back','TR','2847885','E28011B0A502006C02847885'],[7,'Back','BL','2845285','E28011B0A502006C02845285'],[7,'Back','BR','2844CE5','E28011B0A502006C02844CE5'],
   [7,'Left','TL','1BDBA8A','E28011B0A5050070B1BDBA8A'],[7,'Left','TR','1BDC27A','E28011B0A5050070B1BDC27A'],[7,'Left','BL','1BDBA7A','E28011B0A5050070B1BDBA7A'],[7,'Left','BR','1BDC29A','E28011B0A5050070B1BDC29A'],
   [7,'Right','TL','F836','E2801191A5040076300AF836'],[7,'Right','TR','F8B6','E2801191A5040076300AF8B6'],[7,'Right','BL','B2406','E2801191A5040076300B2406'],[7,'Right','BR','F8C6','E2801191A5040076300AF8C6'],
-  [7,'Top','TL','1BC625A','E28011B0A5050070B1BC625A'],[7,'Top','TR','1BCAEBA','E28011B0A5050070B1BCAEBA'],[7,'Top','BL','1BC62BA','E28011B0A5050070B1BC62BA'],[7,'Top','BR','1BC88AA','E28011B0A5050070B1BC88AA'],
+  // Box 7 Top TR — ⚠ BEST GUESS pending isolation test. Box7 FrontTL and Box7 TopTR
+  // were sharpied identically '1BCAEBA' (human labeling error, confirmed by Ian).
+  // Ian randomly assigned the homeless EPC 1BC88CA here; could flip with Front TL.
+  [7,'Top','TL','1BC625A','E28011B0A5050070B1BC625A'],[7,'Top','TR','1BC88CA','E28011B0A5050070B1BC88CA'],[7,'Top','BL','1BC62BA','E28011B0A5050070B1BC62BA'],[7,'Top','BR','1BC88AA','E28011B0A5050070B1BC88AA'],
   [7,'Bottom','TL','1BC88BA','E28011B0A5050070B1BC88BA'],[7,'Bottom','TR','1BC88DA','E28011B0A5050070B1BC88DA'],[7,'Bottom','BL','1BCAEAA','E28011B0A5050070B1BCAEAA'],[7,'Bottom','BR','1BCAECA','E28011B0A5050070B1BCAECA'],
   // Box 8 — Top TL '5C12988' Ian photo-confirmed. Full EPC assigned.
   // Duplicate with Box 3 Front BR is documented in the source sheet as a known
