@@ -16,10 +16,16 @@
 //     For each pair, BOTH true chip EPCs are confirmed present in scan data, but
 //     WHICH slot has which chip is an unverified best guess (Ian assigned at random).
 //     Isolation scan (one box alone) needed to confirm or flip each pair.
-//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
+//   • Box 6 Bottom TR 'B2456' — LIKELY DEAD TAG. Confirmed 0/8 scan runs, zero signal
+//     under every label interpretation checked (B2456, B1486, B2486 — the latter is
+//     already Box 6 Bottom BR's tag, a red herring). Ian visually confirmed physical
+//     tag is peeling off the box. Peeling can crack the IC-to-antenna strap bond,
+//     which causes total signal loss (vs. antenna detuning, which usually still
+//     reads intermittently). Zero reads across 8 runs points to a broken bond, not
+//     a documentation error. Recommend physical tag replacement.
 //   • Box 6 Back — ✅ RESOLVED (Session 26). Real values received: AB366/AB376/AB386/AB3C6.
 //     TR/BL/BR confirmed by scan match (these were formerly misfiled as Box 5 Back
-//     'ghosts'). TL (AB366) has a label but no scan match yet — 2nd unread DB slot.
+//     'ghosts'). TL corrected from AB366 (0/8 reads, doc error) to AB306 (8/8 reads).
 //   • Box 6 Top — ✅ VERIFIED by Ian photo: F806/AB3F6/F886/F846.
 //   • Box 5 Top — ✅ VERIFIED (Session 26). 284C084/2844C94/28478E4/284C0C4 confirmed.
 //   • Box 7 Bottom — ✅ RESOLVED (Session 26). Ian fixed the ODS orientation to match
@@ -35,8 +41,8 @@ import type { ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 // ─── KNOWN CONFLICTS / OPEN QUESTIONS (as of Session 26) ─────────────────────
 //   • 3 sharpie-duplicate pairs RESOLVED with best-guess slot assignments (Ian's
 //     random pick, pending isolation-scan confirmation) — see file header for detail.
-//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
-//   • Box 6 Back — ✅ RESOLVED. AB366/AB376/AB386/AB3C6 (TL unread, see file header).
+//   • Box 6 Bottom TR 'B2456' — likely dead tag (peeling, cracked bond). See file header.
+//   • Box 6 Back — ✅ RESOLVED. AB306/AB376/AB386/AB3C6 (see file header).
 //   • Box 5 Top — ✅ VERIFIED (see file header).
 //   • Box 7 Bottom — ✅ RESOLVED (see file header).
 //   • Box 5 Back TR/BL/BR removed — Ian confirmed only 1 physical tag on that
