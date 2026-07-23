@@ -198,28 +198,33 @@ select {
 
 @keyframes showcase-label-fade-during-entry {
   /*
-   * PREVIOUS ROUNDS ALL HAD THE SAME BUG: the fade was timed to finish AT or
-   * BLEED INTO the leg-2 crossing (75%-100% of showcase-worker-to-box's
-   * 4.5s, when the worker drops from 53% to 71% y, right past the label's
-   * ~59% y, on an ease-in-out curve) -- meaning the label was still
-   * mid-fade while the worker was physically in the only leg that ever
-   * brings it near the label at all. Whether that overlap actually reads as
-   * "still visible" depends on exactly where in that non-linear ease-in-out
-   * curve the worker is at a given moment, which isn't reliably predictable
-   * without watching it live -- exactly the kind of blind math that kept
-   * failing.
+   * PREVIOUS ROUNDS treated "finish fading before leg 2's crossing starts"
+   * as sufficient. It isn't -- the real pixel geometry doesn't leave enough
+   * room for that plan to matter. Worked out the actual numbers against the
+   * fixed `min-h-[720px]` map container: the corridor walk (leg 1, held at
+   * 53% y = 381.6px) puts the worker sprite's own visual footprint (44px
+   * icon + 4px gap + ~15px "Worker" pill, centered on its anchor = ~63px
+   * tall, so ~32px above/below 53%) within about 10px of the label's top
+   * edge (58.8% y = 423px) -- and the icon's glow
+   * (`shadow-[0_0_18px_...]`, an 18px blur radius) is BIGGER than that 10px
+   * gap. So the glow visually bridges into the label the entire time the
+   * worker is anywhere in leg 1, regardless of x position -- no keyframe
+   * percentage inside that leg was ever going to fix this, the buffer was
+   * just too thin.
    *
-   * Fixed by not touching the crossing leg's timing AT ALL: the fade now
-   * starts and FINISHES entirely within leg 1 (0%-75%, the walking-in leg),
-   * with a comfortable 10pp (~0.45s) buffer before leg 2 even begins. By
-   * the time the worker starts moving toward the label's height at all, the
-   * label is already fully at opacity 0 -- no easing-curve guesswork needed.
+   * Real fix: don't lean on that thin buffer at all. Start fading almost
+   * immediately (worker is still off-canvas past x=100% for the first
+   * ~12% of this phase anyway, so there's nothing to visually "pop") and
+   * finish by 45% -- a full 30pp (~1.35s) clear of leg 2 (75%), instead of
+   * the previous 10pp. That also means the label is fully hidden for most
+   * of leg 1's walk, not just its tail end, which is what actually matters
+   * given the glow can reach it the whole leg.
    */
   0%,
-  35% {
+  10% {
     opacity: 1;
   }
-  65%,
+  45%,
   100% {
     opacity: 0;
   }
@@ -227,20 +232,30 @@ select {
 
 @keyframes showcase-label-fade-during-exit {
   /*
-   * Mirror fix. showcase-worker-from-box's leg 3 (65%-100% of its 4.0s)
-   * rises the worker back UP through the same gap, past the label's height
-   * again, also on an ease-in-out curve -- so this keyframe no longer runs
-   * during worker-from-box at all (see getShowcaseBackroomLabelClassName:
-   * that whole phase is just flat opacity-0 now). Instead this runs during
-   * worker-paused (1.0s), which only STARTS once the entire retrace --
-   * including leg 3 -- has fully finished and the worker is confirmed
-   * standing still outside, clear of the label. Fades in over the first
-   * 0.6s, then holds fully visible for the remaining 0.4s.
+   * Previous rounds triggered this during worker-paused, reasoning "the
+   * retrace (including the vertical rise through the gap) is fully done, so
+   * the worker must be clear." That's true VERTICALLY but not
+   * HORIZONTALLY: worker-paused holds the worker static at (50%, 53%) --
+   * the exact same x as the label (label div is `left-1/2`, dead center).
+   * So the fade-in was starting while the worker stood directly UNDER the
+   * label the entire 1.0s hold, just ~10px below it (see the entry keyframe
+   * comment for why that gap is too thin to trust). "Passed back over where
+   * the text is" means horizontal clearance, which worker-paused never
+   * provides -- the worker doesn't move away from x=50% until worker-guided.
+   *
+   * Real fix: this now runs during worker-guided (3.0s) instead, matched to
+   * that phase's duration. worker-guided walks the worker from x=50% (under
+   * the label) to x=39% (standing at the item's column); the label's own
+   * horizontal footprint is roughly x=43%-57%, so the worker clears it
+   * around ~64% of the way through that walk. Fade-in holds at 0 through
+   * 80% (a real ~16pp/0.48s buffer past that clearing point, not a photo
+   * finish) then fades in over the remaining 20%, finishing exactly as
+   * worker-guided ends / worker-restock begins.
    */
-  0% {
+  0%,
+  80% {
     opacity: 0;
   }
-  60%,
   100% {
     opacity: 1;
   }
@@ -517,8 +532,10 @@ select {
   }
 
   .animate-showcase-label-fade-exit {
-    /* Runs during worker-paused now (not worker-from-box) -- same 1.0s duration */
-    animation: showcase-label-fade-during-exit 1s linear forwards;
+    /* Runs during worker-guided now (not worker-paused) -- matched to its 3.0s
+     * duration, since the fade-in needs to track the worker's horizontal
+     * clearance of the label's x-column, not just the vertical rise. */
+    animation: showcase-label-fade-during-exit 3s linear forwards;
   }
 
   .animate-showcase-backroom-ttl {

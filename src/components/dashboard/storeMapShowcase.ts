@@ -39,25 +39,39 @@ export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
 /**
  * CSS class for the "Backroom storage / Replenishment reserve" label.
  *
- * Deliberately does NOT try to time the fade against the leg that actually
- * crosses the label (worker-to-box's leg 2, worker-from-box's leg 3) -- both
- * of those legs use ease-in-out easing, so predicting exactly where the
- * worker visually is at a given keyframe % without a live browser is not
- * reliable, and every previous attempt at threading that needle failed.
+ * Every prior round tuned keyframe %s against the leg that crosses the
+ * label's height (worker-to-box's leg 2, worker-from-box's leg 3) and kept
+ * failing. The leg boundary was never the real constraint -- see the
+ * geometry breakdown in index.css's showcase-label-fade-during-entry /
+ * -exit keyframes. Two real numbers matter instead:
  *
- * Instead:
- * - worker-to-box (4.5s): fades out ENTIRELY within leg 1 (the walking-in
- *   leg, 0%-75%), finishing with a comfortable buffer before leg 2 (the
- *   crossing) even starts. By the time the worker is anywhere near the
- *   label's height, it's already fully hidden.
- * - worker-box-pause / worker-grab-box / worker-pick-box / worker-from-box:
- *   flat hidden, no animation -- covers the entire time the worker is deep
- *   in the backroom AND the entire retrace, including the rise back through
- *   the gap (leg 3). No fading in until that's all the way done.
- * - worker-paused (1.0s): worker is now DEFINITELY standing outside, fully
- *   clear of the label (this phase only starts once worker-from-box's whole
- *   retrace has finished) -- safe to fade back in here, fully self-contained
- *   within this one phase.
+ * 1. The corridor walk height (53%) sits only ~10px of real clearance from
+ *    the label's top edge once you account for the worker sprite's own
+ *    footprint -- and the icon's 18px glow blur is bigger than that gap. So
+ *    the glow can visually reach the label for all of leg 1, not just the
+ *    crossing leg. Fix: fade out almost immediately in worker-to-box
+ *    instead of holding full opacity for the first third of the phase.
+ * 2. worker-paused holds the worker at x=50% -- the SAME x as the label
+ *    (dead center). "Passed back over where the text is" requires
+ *    horizontal clearance, which worker-paused never provides (it's a
+ *    static hold). The worker doesn't move away from that x-column until
+ *    worker-guided. Fix: fade-in now happens during worker-guided, timed to
+ *    the point the worker actually clears the label's x-span, not during
+ *    worker-paused.
+ *
+ * Phase map:
+ * - worker-to-box (4.5s): fades out almost immediately, done by 45% -- a
+ *   real 30pp buffer before leg 2 (75%) even starts, covering the tight
+ *   corridor-to-label gap for nearly the whole walk-in, not just the tail.
+ * - worker-box-pause / worker-grab-box / worker-pick-box / worker-from-box
+ *   / worker-paused: flat hidden, no animation. Covers the whole time the
+ *   worker is in the backroom, the entire retrace (including leg 3's rise
+ *   back through the gap), AND the static pause afterward -- because that
+ *   pause still sits directly under the label's x-column.
+ * - worker-guided (3.0s): this is the phase that actually walks the worker
+ *   OUT from under the label (x=50% -> x=39%). Fade-in holds at 0 until the
+ *   worker has cleared the label's x-span with a real buffer, then fades
+ *   in, finishing right as the phase ends.
  * - everything else: fully visible.
  */
 export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string {
@@ -69,12 +83,13 @@ export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string 
     phase === 'worker-box-pause' ||
     phase === 'worker-grab-box' ||
     phase === 'worker-pick-box' ||
-    phase === 'worker-from-box'
+    phase === 'worker-from-box' ||
+    phase === 'worker-paused'
   ) {
     return 'opacity-0';
   }
 
-  if (phase === 'worker-paused') {
+  if (phase === 'worker-guided') {
     return 'animate-showcase-label-fade-exit';
   }
 
