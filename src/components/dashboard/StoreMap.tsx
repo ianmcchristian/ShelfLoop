@@ -8,6 +8,7 @@ import { StoreMapShowcaseLayer } from './StoreMapShowcaseLayer';
 import { StoreMapSidebar } from './StoreMapSidebar';
 import { chooseDenseRackStackPickIndex, chooseRandomActiveIndex } from './storeMapPicking';
 import {
+  getShowcaseBackroomLabelClassName,
   isShowcaseRunning,
   showcaseBackroomGlowBoxIndex,
   showcaseCheckpoints,
@@ -501,6 +502,7 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
                   ? showcaseBackroomGlowBoxIndex
                   : undefined
               }
+              labelFadeClassName={getShowcaseBackroomLabelClassName(showcasePhase)}
             />
 
             {racks.map((rack) => (

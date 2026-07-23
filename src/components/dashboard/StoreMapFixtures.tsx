@@ -217,9 +217,11 @@ function BackroomStorageColumn({
 
 export function BackstockRoom({
   glowBoxIndex,
+  labelFadeClassName,
   occupiedBoxes,
 }: {
   glowBoxIndex?: number;
+  labelFadeClassName?: string;
   occupiedBoxes: boolean[];
 }) {
   return (
@@ -229,7 +231,11 @@ export function BackstockRoom({
         <span className="absolute right-0 top-0 h-full w-[39%] rounded-full bg-slate-800" />
       </div>
 
-      <div className="group absolute left-1/2 top-[7%] z-40 -translate-x-1/2 bg-slate-50/90 px-3 text-center">
+      <div
+        className={`group absolute left-1/2 top-[7%] z-40 -translate-x-1/2 bg-slate-50/90 px-3 text-center${
+          labelFadeClassName ? ` ${labelFadeClassName}` : ''
+        }`}
+      >
         <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-500 underline decoration-transparent underline-offset-4 transition hover:text-retail-blue hover:decoration-retail-blue">
           Backroom storage
         </p>

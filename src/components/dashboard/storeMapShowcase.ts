@@ -30,6 +30,25 @@ export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
   return phase === 'worker-to-box';
 }
 
+/**
+ * CSS class for the "Backroom storage / Replenishment reserve" label,
+ * ducking it out of view while the worker is physically crossing over it
+ * (entering or retracing) and restoring it once they've cleared the gap.
+ * Timed to match the worker-to-box / worker-from-box animation durations
+ * exactly (see index.css) so both animations start together and stay synced.
+ */
+export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string {
+  if (phase === 'worker-to-box') {
+    return 'animate-showcase-label-fade-entry';
+  }
+
+  if (phase === 'worker-from-box') {
+    return 'animate-showcase-label-fade-exit';
+  }
+
+  return '';
+}
+
 export type ShowcaseAction =
   | 'pick-item'
   | 'scan-rack'

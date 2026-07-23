@@ -80,7 +80,7 @@ function WorkerActor({ phase }: { phase: ShowcasePhase }) {
     if (phase === 'worker-paused') {
       // Static hold just outside the backroom entrance -- same spot
       // worker-from-box ends at. Tap-to-light starts pulsing here.
-      return 'left-[50%] top-[59%]';
+      return 'left-[50%] top-[53%]';
     }
 
     if (phase === 'worker-guided') {
@@ -272,12 +272,12 @@ function GuidancePath({ phase }: { phase: ShowcasePhase }) {
       viewBox="0 0 100 100"
     >
       {/*
-       * Path from the backroom entrance (50%, 59%) to Rack A (27%, 48%).
+       * Path from the backroom entrance (50%, 53%) to Rack A (27%, 48%).
        * Gentle curve -- worker walks out of the backroom to the sales floor.
        */}
       <path
         className="animate-showcase-dash"
-        d="M 50 59 C 40 56, 30 50, 27 48"
+        d="M 50 53 C 40 51, 30 49, 27 48"
         fill="none"
         stroke="rgba(0,113,220,0.88)"
         strokeDasharray="4 4"

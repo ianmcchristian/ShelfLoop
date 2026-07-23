@@ -81,9 +81,12 @@ select {
    * Layout refs (backroom h-[40%] top 56%): label ~59% y, dividing line 62% y,
    * open worker area 62%-77%, shelves 76.8%-95.2%. Entrance gap in the line
    * spans x 40%-60%; aisle 1-2 sits at x~41%; box 14 reach point x~48%, y~86%.
+   * Entrance corridor sits at 53% y -- in the open gap between the rack
+   * footprints (bottom edge ~50%) and the backroom container (top 56%), well
+   * clear of both.
    *
    * Keyframe split (8.5s total):
-   *   0   - 45%  Leg 1: walk LEFT above the line (59% y) toward the entrance gap
+   *   0   - 45%  Leg 1: walk LEFT along the corridor (53% y) toward the entrance gap
    *   45% - 55%  Leg 2: drop straight DOWN through the gap into the backroom (68% y)
    *   55% - 68%  Leg 3: shift LEFT into aisle 1-2 (x=41%), easing down (74% y)
    *   68% - 85%  Leg 4: walk DOWN the aisle to shelf level (86% y)
@@ -92,12 +95,12 @@ select {
    */
   0% {
     left: 110%;
-    top: 59%;
+    top: 53%;
     animation-timing-function: ease-in-out;
   }
   45% {
     left: 50%;
-    top: 59%;
+    top: 53%;
     animation-timing-function: ease-in-out;
   }
   55% {
@@ -130,9 +133,9 @@ select {
   /*
    * Mirror of showcase-worker-to-box's last 4 legs, retraced backward --
    * pull out of the box, back up the aisle, shift right to the gap column,
-   * then rise back up through the entrance gap to just outside the line.
-   * Ends at the same (50%, 59%) entrance point leg 1 of worker-to-box used,
-   * where worker-paused takes over and holds.
+   * then rise back up through the entrance gap to the corridor. Ends at the
+   * same (50%, 53%) entrance point leg 1 of worker-to-box used, where
+   * worker-paused takes over and holds.
    */
   0% {
     left: 48%;
@@ -156,7 +159,50 @@ select {
   }
   100% {
     left: 50%;
-    top: 59%;
+    top: 53%;
+  }
+}
+
+@keyframes showcase-label-fade-during-entry {
+  /*
+   * Synced to showcase-worker-to-box's 8.5s timeline (same class swap, same
+   * paint frame -- both animations start together). Worker reaches the
+   * label's x-center around keyframe 45% and crosses its y-band while
+   * dropping through the gap (45%-55%). Duck the label out slightly before
+   * that overlap and bring it back once the worker has cleared below it.
+   */
+  0%,
+  38% {
+    opacity: 1;
+  }
+  46%,
+  56% {
+    opacity: 0;
+  }
+  64%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes showcase-label-fade-during-exit {
+  /*
+   * Synced to showcase-worker-from-box's 4.5s timeline. Worker is back at
+   * the label's x-center from keyframe 75% onward, rising back up through
+   * its y-band toward the corridor (75%-100%). Duck out just before that
+   * crossing and restore before worker-paused takes over.
+   */
+  0%,
+  78% {
+    opacity: 1;
+  }
+  86%,
+  92% {
+    opacity: 0;
+  }
+  98%,
+  100% {
+    opacity: 1;
   }
 }
 
@@ -171,10 +217,10 @@ select {
 }
 
 @keyframes showcase-worker-guided {
-  /* FROM: the entrance point where worker-paused holds (50% x, 59% y) */
+  /* FROM: the entrance point where worker-paused holds (50% x, 53% y) */
   from {
     left: 50%;
-    top: 59%;
+    top: 53%;
   }
   to {
     left: 27%;
@@ -205,7 +251,7 @@ select {
 @keyframes showcase-worker-exit {
   /*
    * Walk right off the map from Rack A back to the employee corridor, at the
-   * same 59% corridor height used on the way in -- a clean mirror of entry.
+   * same 53% corridor height used on the way in -- a clean mirror of entry.
    */
   from {
     left: 27%;
@@ -213,7 +259,7 @@ select {
   }
   to {
     left: 110%;
-    top: 59%;
+    top: 53%;
   }
 }
 
@@ -417,6 +463,16 @@ select {
   .animate-showcase-worker-from-box {
     /* timing is per-segment inside the keyframe; outer curve is linear */
     animation: showcase-worker-from-box 4.5s linear forwards;
+  }
+
+  .animate-showcase-label-fade-entry {
+    /* Same 8.5s duration as .animate-showcase-worker-to-box -- stays in sync */
+    animation: showcase-label-fade-during-entry 8.5s linear forwards;
+  }
+
+  .animate-showcase-label-fade-exit {
+    /* Same 4.5s duration as .animate-showcase-worker-from-box -- stays in sync */
+    animation: showcase-label-fade-during-exit 4.5s linear forwards;
   }
 
   .animate-showcase-backroom-ttl {
