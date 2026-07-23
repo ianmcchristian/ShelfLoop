@@ -312,7 +312,7 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
         faceResult.slots.map((slot) => {
           const pos = FACE_CORNERS[slot.face]?.[slot.position];
           if (!pos) return null;
-          const text = (slot.fullEpc ?? slot.label).slice(-7).toUpperCase();
+          const text = (slot.fullEpc ?? slot.label).slice(-5).toUpperCase();
           const slotKey = `${boxNumber}-${slot.face}-${slot.position}`;
           const isHighlighted = highlightedTagKey === slotKey;
 
@@ -359,10 +359,11 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
                   {text}
                 </div>
 
-                {/* RSSI tooltip — only renders when signal data is available */}
-                {rssiDbm !== null && (
+                {/* Hover tooltip — full EPC always, RSSI % appended when signal data is available */}
+                {(slot.fullEpc ?? slot.label) && (
                   <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-slate-900/90 px-1.5 py-0.5 text-[8px] font-bold text-white opacity-0 transition-opacity duration-100 group-hover:opacity-100">
-                    {rssiToPct(rssiDbm)}% signal
+                    {(slot.fullEpc ?? slot.label).toUpperCase()}
+                    {rssiDbm !== null && ` · ${rssiToPct(rssiDbm)}% signal`}
                   </div>
                 )}
               </div>
