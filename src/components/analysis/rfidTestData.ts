@@ -25,7 +25,7 @@
 //     (284C084/2844C94/28478E4/284C0C4) ARE being physically read in scans, just not
 //     yet photo-confirmed as Box 5 Top specifically.
 //   • Box 7 Bottom — ⚠ ORIENTATION CONFLICT. Ian's latest ODS shows TL/TR/BL/BR flipped
-//     vs. the orientation Ian confirmed correct in Session 24 (TL=1BC88BA). NOT changed
+//     vs. the orientation Ian confirmed correct in Session 25 (TL=1BC88BA). NOT changed
 //     in DB pending Ian's clarification — do not silently flip.
 //
 // Synthetic scenarios below are still used only for test/demo mode.
@@ -41,7 +41,7 @@ import type { ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 //   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
 //   • Box 6 Back — ✅ RESOLVED. AB366/AB376/AB386/AB3C6 (TL unread, see file header).
 //   • Box 5 Top — ⚠ UNVERIFIED but scan-supported (see file header).
-//   • Box 7 Bottom — ⚠ ORIENTATION CONFLICT vs Session 24 confirmation. NOT changed —
+//   • Box 7 Bottom — ⚠ ORIENTATION CONFLICT vs Session 25 confirmation. NOT changed —
 //     needs Ian's explicit clarification before touching.
 //   • Box 5 Back TR/BL/BR removed — Ian confirmed only 1 physical tag on that
 //     face (TL = B2446). Former EPCs AB376/AB386/AB3C6 turned out to belong to
