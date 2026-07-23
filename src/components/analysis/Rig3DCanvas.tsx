@@ -359,11 +359,10 @@ function BoxMesh({ boxNumber, position, result, highlightedTagKey, isSelected, a
                   {text}
                 </div>
 
-                {/* Hover tooltip — full EPC always, RSSI % appended when signal data is available */}
-                {(slot.fullEpc ?? slot.label) && (
+                {/* RSSI tooltip — only renders when signal data is available */}
+                {rssiDbm !== null && (
                   <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-slate-900/90 px-1.5 py-0.5 text-[8px] font-bold text-white opacity-0 transition-opacity duration-100 group-hover:opacity-100">
-                    {(slot.fullEpc ?? slot.label).toUpperCase()}
-                    {rssiDbm !== null && ` · ${rssiToPct(rssiDbm)}% signal`}
+                    {rssiToPct(rssiDbm)}% signal
                   </div>
                 )}
               </div>
