@@ -21,12 +21,9 @@
 //     TR/BL/BR confirmed by scan match (these were formerly misfiled as Box 5 Back
 //     'ghosts'). TL (AB366) has a label but no scan match yet — 2nd unread DB slot.
 //   • Box 6 Top — ✅ VERIFIED by Ian photo: F806/AB3F6/F886/F846.
-//   • Box 5 Top — ⚠ UNVERIFIED but scan-supported. The 4 EPCs suspected to belong here
-//     (284C084/2844C94/28478E4/284C0C4) ARE being physically read in scans, just not
-//     yet photo-confirmed as Box 5 Top specifically.
-//   • Box 7 Bottom — ⚠ ORIENTATION CONFLICT. Ian's latest ODS shows TL/TR/BL/BR flipped
-//     vs. the orientation Ian confirmed correct in Session 25 (TL=1BC88BA). NOT changed
-//     in DB pending Ian's clarification — do not silently flip.
+//   • Box 5 Top — ✅ VERIFIED (Session 26). 284C084/2844C94/28478E4/284C0C4 confirmed.
+//   • Box 7 Bottom — ✅ RESOLVED (Session 26). Ian fixed the ODS orientation to match
+//     Session 25's confirmed values (TL=1BC88BA). DB and ODS now agree.
 //
 // Synthetic scenarios below are still used only for test/demo mode.
 
@@ -40,9 +37,8 @@ import type { ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 //     random pick, pending isolation-scan confirmation) — see file header for detail.
 //   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
 //   • Box 6 Back — ✅ RESOLVED. AB366/AB376/AB386/AB3C6 (TL unread, see file header).
-//   • Box 5 Top — ⚠ UNVERIFIED but scan-supported (see file header).
-//   • Box 7 Bottom — ⚠ ORIENTATION CONFLICT vs Session 25 confirmation. NOT changed —
-//     needs Ian's explicit clarification before touching.
+//   • Box 5 Top — ✅ VERIFIED (see file header).
+//   • Box 7 Bottom — ✅ RESOLVED (see file header).
 //   • Box 5 Back TR/BL/BR removed — Ian confirmed only 1 physical tag on that
 //     face (TL = B2446). Former EPCs AB376/AB386/AB3C6 turned out to belong to
 //     Box 6 Back, not homeless — resolved Session 26.
@@ -86,8 +82,8 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [5,'Back','TL','B2446','E2801191A5040076300B2446'],
   [5,'Left','TL','283A684','E28011B0A502006C0283A684'],[5,'Left','TR','284C0E5','E28011B0A502006C0284C0E5'],[5,'Left','BL','284C695','E28011B0A502006C0284C695'],[5,'Left','BR','283A014','E28011B0A502006C0283A014'],
   [5,'Right','TL','28452D5','E28011B0A502006C028452D5'],[5,'Right','TR','2835884','E28011B0A502006C02835884'],[5,'Right','BL','2847874','E28011B0A502006C02847874'],[5,'Right','BR','283A0B5','E28011B0A502006C0283A0B5'],
-  // Box 5 Top — ⚠ UNVERIFIED. Suspected 284 family (4th Box5/Box6 face swap pattern).
-  // Awaiting Akbar photo. Values below moved here from former Box 6 Top DB entry.
+  // Box 5 Top — ✅ VERIFIED. Confirmed 284 family (4th Box5/Box6 face swap). Values
+  // originally moved here from former Box 6 Top DB entry, now confirmed by Ian's ODS.
   [5,'Top','TL','284C084','E28011B0A502006C0284C084'],[5,'Top','TR','2844C94','E28011B0A502006C02844C94'],[5,'Top','BL','28478E4','E28011B0A502006C028478E4'],[5,'Top','BR','284C0C4','E28011B0A502006C0284C0C4'],
   // Box 5 Bottom — swapped from Box 6 in DB (Ian photo-confirmed ODS values are correct).
   // Former DB entry F876/B2456/B2416/2486 physically belongs to Box 6 Bottom.
