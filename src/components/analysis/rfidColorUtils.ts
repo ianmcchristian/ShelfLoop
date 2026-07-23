@@ -5,27 +5,38 @@
 import type { RunTagRead } from './rfidTypes';
 
 // ─── RSSI gradient ────────────────────────────────────────────────────────────
-// Scale: -30 dBm = 100% (best) · -80 dBm = 0% (barely readable)
+// Swap point: -60 dBm. This mirrors the common RF signal-quality convention
+// (same idea as Wi-Fi bars: ~-60 dBm and better = "good", weaker = "fair/poor")
+// and lines up with our own scan data — per-tag averaged RSSI here runs about
+// -67 to -44 dBm, so -60 dBm sits right at the point where a read stops being
+// merely acceptable and starts being solid.
 //
-// Cliff at 50% (≈ -55 dBm) mirrors the dramatic red/green split used on the
-// 3D boxes (which cliffs at 85% coverage). Same visual language: red = bad,
-// green = good, no orange or yellow in between.
-//
-// Practical thresholds for UHF RFID at 3 ft with large antenna:
-//   ≥ -55 dBm → green family (good / strong)
-//   < -55 dBm → red family  (marginal / weak)
+// IMPORTANT: red and green are two ENTIRELY SEPARATE stop tables, picked by a
+// hard branch on the threshold — never interpolated across each other. Lerping
+// directly from a reddish hex to a greenish hex in RGB space crosses through a
+// muddy gray/brown midpoint (R and G channels cross over), which is exactly the
+// bug this replaced. No blending ever happens between the red and green zones.
 
-type ColorStop = [number, string];
+type ColorStop = [number, string]; // [dBm, hex]
 
-const RSSI_STOPS: ColorStop[] = [
-  [0,   '#7f1d1d'], // maroon     — extremely weak / -80 dBm
-  [1,   '#ef4444'], // vivid red  — instant snap (matches box scale)
-  [30,  '#ef4444'], // flat vivid red
-  [45,  '#f87171'], // medium red  / -57.5 dBm
-  [49,  '#fca5a5'], // light red   / -55.5 dBm (approaching cliff)
-  [50,  '#bbf7d0'], // light green — cliff at ≈ -55 dBm
-  [70,  '#22c55e'], // vivid green / -45 dBm
-  [100, '#16a34a'], // rich green  / -30 dBm (strong)
+const RSSI_THRESHOLD_DBM = -60; // >= this -> green (good). < this -> red (weak/fair).
+const RSSI_FLOOR_DBM     = -70; // worst realistic read (our data's min was -69)
+const RSSI_CEIL_DBM      = -30; // best realistic read
+
+// Weak/fair zone: dark red (worst) -> light red (right at the edge of the cliff)
+const RED_STOPS: ColorStop[] = [
+  [-70, '#7f1d1d'], // maroon -- barely readable
+  [-65, '#dc2626'], // vivid red
+  [-62, '#f87171'], // medium red
+  [-60, '#fca5a5'], // light red -- weakest shade still on the red side
+];
+
+// Good zone: light green (just crossed the cliff) -> dark green (excellent)
+const GREEN_STOPS: ColorStop[] = [
+  [-60, '#bbf7d0'], // light green -- just crossed into "good"
+  [-52, '#4ade80'], // medium green
+  [-42, '#22c55e'], // vivid green
+  [-30, '#15803d'], // dark green -- excellent
 ];
 
 /** CSS color used for unread/missed tags in RSSI heatmap mode.
@@ -50,25 +61,32 @@ function lerpHex(a: string, b: string, t: number): string {
 
 // ─── Public color functions ───────────────────────────────────────────────────
 
-/** Convert an RSSI dBm value to a CSS hex colour using the red/green cliff scale. */
-export function rssiToHex(rssiDbm: number): string {
-  const clamped = Math.max(-80, Math.min(-30, rssiDbm));
-  const pct = ((clamped + 80) / 50) * 100;
-
-  for (let i = 0; i < RSSI_STOPS.length - 1; i++) {
-    const [lo, cLo] = RSSI_STOPS[i]!;
-    const [hi, cHi] = RSSI_STOPS[i + 1]!;
-    if (pct >= lo && pct <= hi) {
-      return lerpHex(cLo, cHi, (pct - lo) / (hi - lo));
+function interpolateStops(stops: ColorStop[], dBm: number): string {
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [lo, cLo] = stops[i]!;
+    const [hi, cHi] = stops[i + 1]!;
+    if (dBm >= lo && dBm <= hi) {
+      return lerpHex(cLo, cHi, (dBm - lo) / (hi - lo));
     }
   }
-  return '#16a34a';
+  return stops[stops.length - 1]![1];
 }
 
-/** Convert RSSI dBm to a normalised 0–100 percentage for display. */
+/** Convert an RSSI dBm value to a CSS hex colour using a hard red/green cliff.
+ *  Red and green are never interpolated across each other -- see RSSI_THRESHOLD_DBM. */
+export function rssiToHex(rssiDbm: number): string {
+  if (rssiDbm >= RSSI_THRESHOLD_DBM) {
+    const clamped = Math.min(RSSI_CEIL_DBM, rssiDbm);
+    return interpolateStops(GREEN_STOPS, clamped);
+  }
+  const clamped = Math.max(RSSI_FLOOR_DBM, rssiDbm);
+  return interpolateStops(RED_STOPS, clamped);
+}
+
+/** Convert RSSI dBm to a normalised 0-100 percentage for display. */
 export function rssiToPct(rssiDbm: number): number {
   return Math.round(
-    Math.max(0, Math.min(100, ((Math.max(-80, Math.min(-30, rssiDbm)) + 80) / 50) * 100)),
+    Math.max(0, Math.min(100, ((Math.max(RSSI_FLOOR_DBM, Math.min(RSSI_CEIL_DBM, rssiDbm)) - RSSI_FLOOR_DBM) / (RSSI_CEIL_DBM - RSSI_FLOOR_DBM)) * 100)),
   );
 }
 
