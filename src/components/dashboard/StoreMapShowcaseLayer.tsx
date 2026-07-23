@@ -73,6 +73,17 @@ function WorkerActor({ phase }: { phase: ShowcasePhase }) {
       return 'animate-showcase-worker-to-box';
     }
 
+    if (phase === 'worker-box-pause') {
+      // Static hold just inside the backroom entrance, right after crossing
+      // the gap -- same spot worker-to-box ends at. Backroom box starts
+      // glowing during this beat (see shouldShowcaseGlowBackroomBox).
+      return 'left-[50%] top-[68%]';
+    }
+
+    if (phase === 'worker-grab-box') {
+      return 'animate-showcase-worker-grab-box';
+    }
+
     if (phase === 'worker-from-box') {
       return 'animate-showcase-worker-from-box';
     }

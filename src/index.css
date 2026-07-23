@@ -71,88 +71,113 @@ select {
 
 @keyframes showcase-worker-to-box {
   /*
-   * 5-leg path matching the operator-drawn route: enter ABOVE the black
-   * dividing line, drop straight down through the entrance gap (the gap the
-   * "Backroom storage / Replenishment reserve" label sits in), shift left
-   * into the aisle between column 1 and column 2, walk that aisle down to
-   * shelf level, then reach RIGHT into box 14 (column 2 -- the true visual
-   * middle of the 5 storage columns -- middle row, left box).
+   * Entry leg ONLY (2 legs, purely axis-aligned -- horizontal then
+   * vertical, never both at once): walk the corridor above the black
+   * dividing line, then drop straight down through the entrance gap (the
+   * gap the "Backroom storage / Replenishment reserve" label sits in) to
+   * just inside the backroom. Worker then holds here for the
+   * worker-box-pause phase -- that's when the target box starts glowing --
+   * before worker-grab-box carries them the rest of the way to the box.
    *
    * Layout refs (backroom h-[40%] top 56%): label ~59% y, dividing line 62% y,
-   * open worker area 62%-77%, shelves 76.8%-95.2%. Entrance gap in the line
-   * spans x 40%-60%; aisle 1-2 sits at x~41%; box 14 reach point x~48%, y~86%.
-   * Entrance corridor sits at 53% y -- in the open gap between the rack
-   * footprints (bottom edge ~50%) and the backroom container (top 56%), well
-   * clear of both.
+   * open worker area 62%-77%. Entrance corridor sits at 53% y -- in the open
+   * gap between the rack footprints (bottom edge ~50%) and the backroom
+   * container (top 56%), well clear of both. Entrance gap in the line spans
+   * x 40%-60%.
    *
-   * Keyframe split (8.5s total):
-   *   0   - 45%  Leg 1: walk LEFT along the corridor (53% y) toward the entrance gap
-   *   45% - 55%  Leg 2: drop straight DOWN through the gap into the backroom (68% y)
-   *   55% - 68%  Leg 3: shift LEFT into aisle 1-2 (x=41%), easing down (74% y)
-   *   68% - 85%  Leg 4: walk DOWN the aisle to shelf level (86% y)
-   *   85% - 95%  reach RIGHT into box 14 (x=48%)
-   *   95% - 100% brief hold while the box is grabbed
+   * Keyframe split (4.5s total):
+   *   0  - 75%  Leg 1: walk LEFT along the corridor (53% y) toward the entrance gap
+   *   75% - 100% Leg 2: drop straight DOWN through the gap into the backroom (68% y)
    */
   0% {
     left: 110%;
     top: 53%;
     animation-timing-function: ease-in-out;
   }
-  45% {
+  75% {
     left: 50%;
     top: 53%;
     animation-timing-function: ease-in-out;
   }
-  55% {
+  100% {
+    left: 50%;
+    top: 68%;
+  }
+}
+
+@keyframes showcase-worker-grab-box {
+  /*
+   * Continues from where worker-box-pause holds (50%, 68%). 3 legs, purely
+   * axis-aligned: shift into the aisle between column 1 and column 2, walk
+   * that aisle down to shelf level, then reach RIGHT into box 14 (column 2
+   * -- the true visual middle of the 5 storage columns -- middle row, left
+   * box). Box reach point sits a touch lower than the column's raw grid
+   * center (86%) so the worker icon's visual center -- which sits above its
+   * name-label pill -- lines up with the box, not above it.
+   *
+   * Keyframe split (4.0s total):
+   *   0   - 40%  Leg 1: shift LEFT into aisle 1-2 (x=41%), still at 68% y
+   *   40% - 75%  Leg 2: walk DOWN the aisle to shelf level (89% y)
+   *   75% - 92%  Leg 3: reach RIGHT into box 14 (x=48%)
+   *   92% - 100% brief hold while the box is grabbed
+   */
+  0% {
     left: 50%;
     top: 68%;
     animation-timing-function: ease-in-out;
   }
-  68% {
+  40% {
     left: 41%;
-    top: 74%;
+    top: 68%;
     animation-timing-function: ease-in-out;
   }
-  85% {
+  75% {
     left: 41%;
-    top: 86%;
+    top: 89%;
     animation-timing-function: ease-in-out;
   }
-  95% {
+  92% {
     left: 48%;
-    top: 86%;
+    top: 89%;
     animation-timing-function: ease-in-out;
   }
   100% {
     left: 48%;
-    top: 86%;
+    top: 89%;
   }
 }
 
 @keyframes showcase-worker-from-box {
   /*
-   * Mirror of showcase-worker-to-box's last 4 legs, retraced backward --
-   * pull out of the box, back up the aisle, shift right to the gap column,
-   * then rise back up through the entrance gap to the corridor. Ends at the
-   * same (50%, 53%) entrance point leg 1 of worker-to-box used, where
-   * worker-paused takes over and holds.
+   * Mirror of showcase-worker-grab-box + showcase-worker-to-box, retraced
+   * backward -- 4 legs, purely axis-aligned throughout: pull out of the box,
+   * rise up the aisle, shift right to the gap column, then rise back up
+   * through the entrance gap to the corridor. Ends at the same (50%, 53%)
+   * entrance point worker-to-box's leg 1 used, where worker-paused takes
+   * over and holds.
+   *
+   * Keyframe split (4.5s total):
+   *   0   - 18%  Leg 1: pull LEFT out of box 14 (x=41%), still at 89% y
+   *   18% - 50%  Leg 2: rise UP the aisle to pause height (68% y)
+   *   50% - 68%  Leg 3: shift RIGHT out of aisle 1-2 to the gap column (x=50%)
+   *   68% - 100% Leg 4: rise UP through the gap to the corridor (53% y)
    */
   0% {
     left: 48%;
-    top: 86%;
+    top: 89%;
     animation-timing-function: ease-in-out;
   }
-  20% {
+  18% {
     left: 41%;
-    top: 86%;
+    top: 89%;
     animation-timing-function: ease-in-out;
   }
-  55% {
+  50% {
     left: 41%;
-    top: 74%;
+    top: 68%;
     animation-timing-function: ease-in-out;
   }
-  75% {
+  68% {
     left: 50%;
     top: 68%;
     animation-timing-function: ease-in-out;
@@ -165,21 +190,20 @@ select {
 
 @keyframes showcase-label-fade-during-entry {
   /*
-   * Synced to showcase-worker-to-box's 8.5s timeline (same class swap, same
+   * Synced to showcase-worker-to-box's 4.5s timeline (same class swap, same
    * paint frame -- both animations start together). Worker reaches the
-   * label's x-center around keyframe 45% and crosses its y-band while
-   * dropping through the gap (45%-55%). Duck the label out slightly before
+   * label's x-center around keyframe 75% and crosses its y-band while
+   * dropping through the gap (75%-100%). Duck the label out slightly before
    * that overlap and bring it back once the worker has cleared below it.
    */
   0%,
-  38% {
+  65% {
     opacity: 1;
   }
-  46%,
-  56% {
+  78%,
+  92% {
     opacity: 0;
   }
-  64%,
   100% {
     opacity: 1;
   }
@@ -187,20 +211,20 @@ select {
 
 @keyframes showcase-label-fade-during-exit {
   /*
-   * Synced to showcase-worker-from-box's 4.5s timeline. Worker is back at
-   * the label's x-center from keyframe 75% onward, rising back up through
-   * its y-band toward the corridor (75%-100%). Duck out just before that
-   * crossing and restore before worker-paused takes over.
+   * Synced to showcase-worker-from-box's 4.5s timeline. Worker reaches the
+   * label's x-center at keyframe 68%, then rises back up through its y-band
+   * toward the corridor (68%-100%). Duck out just before that crossing and
+   * restore before worker-paused takes over.
    */
   0%,
-  78% {
+  70% {
     opacity: 1;
   }
-  86%,
-  92% {
+  78%,
+  88% {
     opacity: 0;
   }
-  98%,
+  96%,
   100% {
     opacity: 1;
   }
@@ -457,7 +481,12 @@ select {
 
   .animate-showcase-worker-to-box {
     /* timing is per-segment inside the keyframe; outer curve is linear */
-    animation: showcase-worker-to-box 8.5s linear forwards;
+    animation: showcase-worker-to-box 4.5s linear forwards;
+  }
+
+  .animate-showcase-worker-grab-box {
+    /* timing is per-segment inside the keyframe; outer curve is linear */
+    animation: showcase-worker-grab-box 4s linear forwards;
   }
 
   .animate-showcase-worker-from-box {
@@ -466,8 +495,8 @@ select {
   }
 
   .animate-showcase-label-fade-entry {
-    /* Same 8.5s duration as .animate-showcase-worker-to-box -- stays in sync */
-    animation: showcase-label-fade-during-entry 8.5s linear forwards;
+    /* Same 4.5s duration as .animate-showcase-worker-to-box -- stays in sync */
+    animation: showcase-label-fade-during-entry 4.5s linear forwards;
   }
 
   .animate-showcase-label-fade-exit {

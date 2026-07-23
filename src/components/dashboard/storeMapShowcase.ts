@@ -9,6 +9,8 @@ export type ShowcasePhase =
   | 'rfid-detect'
   | 'task-alert'
   | 'worker-to-box'
+  | 'worker-box-pause'
+  | 'worker-grab-box'
   | 'worker-from-box'
   | 'worker-paused'
   | 'worker-guided'
@@ -27,15 +29,18 @@ export const showcaseRackAItemPosition = 15;
 export const showcaseBackroomGlowBoxIndex = 14;
 
 export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
-  return phase === 'worker-to-box';
+  // Glow starts only once the worker has paused just inside the backroom --
+  // not during the initial approach/entry walk, per Ian's requested beat.
+  return phase === 'worker-box-pause' || phase === 'worker-grab-box';
 }
 
 /**
  * CSS class for the "Backroom storage / Replenishment reserve" label,
  * ducking it out of view while the worker is physically crossing over it
  * (entering or retracing) and restoring it once they've cleared the gap.
- * Timed to match the worker-to-box / worker-from-box animation durations
- * exactly (see index.css) so both animations start together and stay synced.
+ * Timed to match the worker-to-box (4.5s entry-only leg) / worker-from-box
+ * (4.5s retrace) animation durations exactly (see index.css) so both
+ * animations start together in the same paint frame and stay synced.
  */
 export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string {
   if (phase === 'worker-to-box') {
@@ -75,25 +80,31 @@ export const showcaseTimeline: ShowcaseTimelineStep[] = [
   // Phone slides off-screen by ~23,250ms (TTL press then slide-down).
   // Worker enters at 23,700ms -- tight handoff right after the phone clears.
   { delayMs: 23_700, phase: 'worker-to-box', action: 'dispatch-worker' },
-  // worker-to-box: 8.5s, 5-leg path -- enter above the line, down through the
-  // entrance gap, shift into the aisle, walk the aisle down, reach into box 14.
-  // Grab happens at the reach-in beat (92% × 8.5s = 7,820ms in).
-  { delayMs: 31_520, phase: 'worker-to-box', action: 'grab-box' },
-  // worker-to-box ends 32,200ms; +400ms beat, then retrace the same 4 legs back out.
-  { delayMs: 32_600, phase: 'worker-from-box' },
-  // worker-from-box: 4.5s retrace, ends 37,100ms; +300ms beat, then a 1s hold
+  // worker-to-box: 4.5s, 2-leg entry -- walk the corridor to the entrance gap,
+  // then straight down through the gap into the backroom. No glow yet. Ends 28,200ms.
+  { delayMs: 28_200, phase: 'worker-box-pause' },
+  // worker-box-pause: 1.0s static hold just inside the backroom -- this is
+  // the beat where the target box STARTS glowing. Ends 29,200ms.
+  { delayMs: 29_200, phase: 'worker-grab-box' },
+  // worker-grab-box: 4.0s, 3-leg axis-aligned path -- shift into the aisle,
+  // walk the aisle down, reach into box 14. Grab happens at the reach-in
+  // beat (92% × 4.0s = 3,680ms in).
+  { delayMs: 32_880, phase: 'worker-grab-box', action: 'grab-box' },
+  // worker-grab-box ends 33,200ms; +400ms beat, then retrace the same legs back out.
+  { delayMs: 33_600, phase: 'worker-from-box' },
+  // worker-from-box: 4.5s retrace, ends 38,100ms; +300ms beat, then a 1s hold
   // just outside the backroom -- this is where tap-to-light starts pulsing.
-  { delayMs: 37_400, phase: 'worker-paused' },
-  // worker-paused: 1.0s hold, ends 38,400ms, then walk straight to Rack A.
-  { delayMs: 38_400, phase: 'worker-guided', action: 'guide-worker' },
-  // worker-guided: 3.0s walk from the entrance (50%,59%) to Rack A (27%,48%).
-  { delayMs: 41_400, phase: 'worker-restock', action: 'arrive-at-rack' },
+  { delayMs: 38_400, phase: 'worker-paused' },
+  // worker-paused: 1.0s hold, ends 39,400ms, then walk straight to Rack A.
+  { delayMs: 39_400, phase: 'worker-guided', action: 'guide-worker' },
+  // worker-guided: 3.0s walk from the entrance (50%,53%) to Rack A (27%,48%).
+  { delayMs: 42_400, phase: 'worker-restock', action: 'arrive-at-rack' },
   // Restock nudge: 1.3s. Item reappears at nudge peak (35% × 1.3s = 455ms in).
-  { delayMs: 41_855, phase: 'worker-restock', action: 'complete-restock' },
-  // +400ms beat after nudge completes (nudge done at 42,700ms), then worker exits.
-  { delayMs: 43_100, phase: 'worker-exit' },
+  { delayMs: 42_855, phase: 'worker-restock', action: 'complete-restock' },
+  // +400ms beat after nudge completes (nudge done at 43,700ms), then worker exits.
+  { delayMs: 44_100, phase: 'worker-exit' },
   // worker-exit: 2.5s walk off right edge, same corridor height as the entry.
-  { delayMs: 45_600, phase: 'idle' },
+  { delayMs: 46_600, phase: 'idle' },
 ];
 
 export interface ShowcaseCheckpoint {
@@ -114,6 +125,8 @@ export const showcaseCheckpoints: ShowcaseCheckpoint[] = [
   { label: 'RFID scan', phase: 'rfid-scan', itemMissing: true },
   { label: 'Phone popup', phase: 'task-alert', itemMissing: true },
   { label: 'Worker enters', phase: 'worker-to-box', itemMissing: true },
+  { label: 'Worker pauses (box glows)', phase: 'worker-box-pause', itemMissing: true },
+  { label: 'Worker grabs box', phase: 'worker-grab-box', itemMissing: true },
   { label: 'Worker retraces', phase: 'worker-from-box', itemMissing: true },
   { label: 'Worker paused', phase: 'worker-paused', itemMissing: true },
   { label: 'Worker at rack', phase: 'worker-restock', itemMissing: false },
@@ -137,6 +150,8 @@ export function shouldShowcaseHighlightMissingItem(phase: ShowcasePhase): boolea
     'rfid-detect',
     'task-alert',
     'worker-to-box',
+    'worker-box-pause',
+    'worker-grab-box',
     'worker-from-box',
     'worker-paused',
     'worker-guided',
