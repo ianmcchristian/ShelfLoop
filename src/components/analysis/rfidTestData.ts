@@ -3,17 +3,21 @@
 // truth EPCs from multiple run files. Full EPCs are resolved by matching the
 // placement label/suffix against observed EPC suffixes.
 //
+// ⚠ THE DB IS A WORKING HYPOTHESIS — SCANS ARE THE GROUND TRUTH.
+// All placement data here reflects our best current understanding and should
+// be treated as suspect until physically verified by photo or selective scan.
+//
 // Remaining discrepancies flagged in comments:
 //   • Box 7 Front TL + Box 7 Top TR both claim '1BCAEBA' / same full EPC —
-//     awaiting Akbar photo of Top TR face to resolve.
+//     mislabel theory: one tag's chip reads 1BC88CA (seen as homeless). Selective scan needed.
 //   • Box 3 Front BR + Box 8 Top TL both claim '5C12988' / same full EPC —
-//     documented as a known duplicate in the source sheet (both rows carry the
-//     note "3/FRONT/BR and 8/TOP/TL duplicates"). Physical resolution pending.
-//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet (moved from Box 5 after swap).
-//   • Box 6 Back — 0 confirmed tags (B2446 was mis-entered here, belongs to Box 5).
-//   • Box 6 Top — ⚠ ODS photo shows F806/AB3F6/F886/F846 but TR/BL/BR duplicate
-//     Box 5 Top. Likely another Box5/Box6 face swap — keeping old DB values.
+//     mislabel theory: one tag's chip reads 5C12998 (seen as homeless). Selective scan needed.
 //   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
+//   • Box 6 Back — ⚠ PHOTO NEEDED. Likely 4 physical tags exist (source data was a
+//     flat copy-paste of Box 5; tags unknown). If confirmed, physical total rises to 189.
+//   • Box 6 Top — ✅ VERIFIED by Ian photo: F806/AB3F6/F886/F846 (updated Session 26).
+//   • Box 5 Top — ⚠ UNVERIFIED. Suspected 284C084/2844C94/28478E4/284C0C4 (4th Box5/6 swap).
+//     Photo from Akbar required to confirm.
 //   • A few observed EPCs still do not belong to any placement slot.
 //
 // Synthetic scenarios below are still used only for test/demo mode.
@@ -23,17 +27,20 @@ import type { ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 // ─── Placement database ───────────────────────────────────────────────────────
 // Format: [boxNumber, face, position, label, fullEpc | null]
 //
-// ─── KNOWN CONFLICTS / OPEN QUESTIONS (as of Session 25) ─────────────────────
+// ─── KNOWN CONFLICTS / OPEN QUESTIONS (as of Session 26) ─────────────────────
 //   • Box 7 Front TL + Box 7 Top TR both claim '1BCAEBA' / same full EPC —
-//     physically impossible; awaiting Akbar photo confirmation of Top TR.
+//     MISLABEL THEORY: one tag's chip is actually 1BC88CA (observed homeless).
+//     Resolve via box-level isolation scan.
 //   • Box 3 Front BR + Box 8 Top TL both claim '5C12988' / same full EPC —
-//     documented as a known duplicate in source sheet; physical resolution pending.
-//   • Box 5 Bottom TR '2B456' has no full EPC match yet.
-//   • Box 6 Back now has 0 tagged slots — B2446 was mis-entered there;
-//     physical tag belongs to Box 5 Back TL (Ian photo-confirmed).
+//     MISLABEL THEORY: one tag's chip is actually 5C12998 (observed homeless).
+//     Resolve via box-level isolation scan.
+//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
+//   • Box 6 Back — ⚠ PHOTO NEEDED. Presumed 4 tags (source data was copy-paste).
+//     Do NOT populate until Ian receives photo. Total slots = 189 if confirmed.
+//   • Box 5 Top — ⚠ UNVERIFIED (suspected 284 family from 4th Box5/6 swap).
+//     Awaiting Akbar photo confirmation.
 //   • Box 5 Back TR/BL/BR removed — Ian confirmed only 1 physical tag on that
-//     face (TL = B2446). Former EPCs AB376/AB386/AB3C6 are now homeless if
-//     they appear in scans (surface as unexpected reads).
+//     face (TL = B2446). Former EPCs AB376/AB386/AB3C6 remain homeless in scans.
 // prettier-ignore
 const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   // Box 1 — fully resolved after ground-truth scan enrichment
@@ -71,7 +78,9 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [5,'Back','TL','B2446','E2801191A5040076300B2446'],
   [5,'Left','TL','283A684','E28011B0A502006C0283A684'],[5,'Left','TR','284C0E5','E28011B0A502006C0284C0E5'],[5,'Left','BL','284C695','E28011B0A502006C0284C695'],[5,'Left','BR','283A014','E28011B0A502006C0283A014'],
   [5,'Right','TL','28452D5','E28011B0A502006C028452D5'],[5,'Right','TR','2835884','E28011B0A502006C02835884'],[5,'Right','BL','2847874','E28011B0A502006C02847874'],[5,'Right','BR','283A0B5','E28011B0A502006C0283A0B5'],
-  [5,'Top','TL','AF806','E2801191A5040076300AF806'],[5,'Top','TR','AB3F6','E2801191A5040076300AB3F6'],[5,'Top','BL','F886','E2801191A5040076300AF886'],[5,'Top','BR','F846','E2801191A5040076300AF846'],
+  // Box 5 Top — ⚠ UNVERIFIED. Suspected 284 family (4th Box5/Box6 face swap pattern).
+  // Awaiting Akbar photo. Values below moved here from former Box 6 Top DB entry.
+  [5,'Top','TL','284C084','E28011B0A502006C0284C084'],[5,'Top','TR','2844C94','E28011B0A502006C02844C94'],[5,'Top','BL','28478E4','E28011B0A502006C028478E4'],[5,'Top','BR','284C0C4','E28011B0A502006C0284C0C4'],
   // Box 5 Bottom — swapped from Box 6 in DB (Ian photo-confirmed ODS values are correct).
   // Former DB entry F876/B2456/B2416/2486 physically belongs to Box 6 Bottom.
   [5,'Bottom','TL','284C664','E28011B0A502006C0284C664'],[5,'Bottom','TR','28478D4','E28011B0A502006C028478D4'],[5,'Bottom','BL','283A655','E28011B0A502006C0283A655'],[5,'Bottom','BR','28478E5','E28011B0A502006C028478E5'],
@@ -80,13 +89,14 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   // Box 6 Back has 0 confirmed physical tags — removed from DB.
   // Box 6 Top TR label was a raw full EPC — normalized to suffix + fullEpc
   [6,'Front','TL','6946','E2801191A5040076300B6946'],[6,'Front','TR','6916','E2801191A5040076300B6916'],[6,'Front','BL','AE56','E2801191A5040076300BAE56'],[6,'Front','BR','B69C6','E2801191A5040076300B69C6'],
-  // Box 6 Back — no confirmed tags
+  // Box 6 Back — ⚠ PHOTO NEEDED. Source data was a flat copy-paste of Box 5 (another
+  // data entry error). Physical tags unknown — do NOT populate until photo received.
+  // If 4 tags confirmed, total physical slots = 189 (explains Akbar's 186 unique reads).
   [6,'Left','TL','AE16','E2801191A5040076300BAE16'],[6,'Left','TR','6996','E2801191A5040076300B6996'],[6,'Left','BL','6906','E2801191A5040076300B6906'],[6,'Left','BR','6985','E2801191A5040076300B6985'],
   [6,'Right','TL','6986','E2801191A5040076300B6986'],[6,'Right','TR','AE46','E2801191A5040076300BAE46'],[6,'Right','BL','6956','E2801191A5040076300B6956'],[6,'Right','BR','AE06','E2801191A5040076300BAE06'],
-  // Box 6 Top — ⚠ ODS updated from Ian photo but TR/BL/BR (AB3F6/F886/F846) duplicate
-  // Box 5 Top — physically impossible. Possible Box5/Box6 Top swap (same pattern as
-  // Bottom/Front/Right). Keeping old DB values pending verification.
-  [6,'Top','TL','284C084','E28011B0A502006C0284C084'],[6,'Top','TR','2844C94','E28011B0A502006C02844C94'],[6,'Top','BL','28478E4','E28011B0A502006C028478E4'],[6,'Top','BR','284C0C4','E28011B0A502006C0284C0C4'],
+  // Box 6 Top — ✅ VERIFIED by Ian photo (Session 26). F806/AB3F6/F886/F846 confirmed.
+  // Former DB values (284C084/2844C94/28478E4/284C0C4) moved to Box 5 Top as suspected.
+  [6,'Top','TL','F806','E2801191A5040076300AF806'],[6,'Top','TR','AB3F6','E2801191A5040076300AB3F6'],[6,'Top','BL','F886','E2801191A5040076300AF886'],[6,'Top','BR','F846','E2801191A5040076300AF846'],
   // Box 6 Bottom — swapped from Box 5 in DB (Ian photo-confirmed F876/B2456/B2416/2486).
   // Former DB entry 284C664/28478D4/283A655/28478E5 physically belongs to Box 5 Bottom.
   [6,'Bottom','TL','F876','E2801191A5040076300AF876'],[6,'Bottom','TR','B2456',null],[6,'Bottom','BL','B2416','E2801191A5040076300B2416'],[6,'Bottom','BR','2486','E2801191A5040076300B2486'],
