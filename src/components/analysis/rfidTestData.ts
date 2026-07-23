@@ -16,10 +16,10 @@
 //     For each pair, BOTH true chip EPCs are confirmed present in scan data, but
 //     WHICH slot has which chip is an unverified best guess (Ian assigned at random).
 //     Isolation scan (one box alone) needed to confirm or flip each pair.
-//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet. Only DB slot never read
-//     in any of the 6 scan runs.
-//   • Box 6 Back — ⚠ PHOTO NEEDED. Likely up to 4 physical tags (source data was a
-//     flat copy-paste of Box 5 Back). If confirmed, physical total rises above 185.
+//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
+//   • Box 6 Back — ✅ RESOLVED (Session 26). Real values received: AB366/AB376/AB386/AB3C6.
+//     TR/BL/BR confirmed by scan match (these were formerly misfiled as Box 5 Back
+//     'ghosts'). TL (AB366) has a label but no scan match yet — 2nd unread DB slot.
 //   • Box 6 Top — ✅ VERIFIED by Ian photo: F806/AB3F6/F886/F846.
 //   • Box 5 Top — ⚠ UNVERIFIED but scan-supported. The 4 EPCs suspected to belong here
 //     (284C084/2844C94/28478E4/284C0C4) ARE being physically read in scans, just not
@@ -38,14 +38,14 @@ import type { ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 // ─── KNOWN CONFLICTS / OPEN QUESTIONS (as of Session 26) ─────────────────────
 //   • 3 sharpie-duplicate pairs RESOLVED with best-guess slot assignments (Ian's
 //     random pick, pending isolation-scan confirmation) — see file header for detail.
-//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet (only unread DB slot).
-//   • Box 6 Back — ⚠ PHOTO NEEDED. Presumed up to 4 tags (source data was copy-paste).
-//     Do NOT populate until Ian receives photo.
+//   • Box 6 Bottom TR 'B2456' — no full EPC scan match yet.
+//   • Box 6 Back — ✅ RESOLVED. AB366/AB376/AB386/AB3C6 (TL unread, see file header).
 //   • Box 5 Top — ⚠ UNVERIFIED but scan-supported (see file header).
 //   • Box 7 Bottom — ⚠ ORIENTATION CONFLICT vs Session 24 confirmation. NOT changed —
 //     needs Ian's explicit clarification before touching.
 //   • Box 5 Back TR/BL/BR removed — Ian confirmed only 1 physical tag on that
-//     face (TL = B2446). Former EPCs AB376/AB386/AB3C6 remain homeless in scans.
+//     face (TL = B2446). Former EPCs AB376/AB386/AB3C6 turned out to belong to
+//     Box 6 Back, not homeless — resolved Session 26.
 // prettier-ignore
 const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   // Box 1 — fully resolved after ground-truth scan enrichment
@@ -97,9 +97,11 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   // Box 6 Back has 0 confirmed physical tags — removed from DB.
   // Box 6 Top TR label was a raw full EPC — normalized to suffix + fullEpc
   [6,'Front','TL','6946','E2801191A5040076300B6946'],[6,'Front','TR','6916','E2801191A5040076300B6916'],[6,'Front','BL','AE56','E2801191A5040076300BAE56'],[6,'Front','BR','B69C6','E2801191A5040076300B69C6'],
-  // Box 6 Back — ⚠ PHOTO NEEDED. Source data was a flat copy-paste of Box 5 (another
-  // data entry error). Physical tags unknown — do NOT populate until photo received.
-  // If 4 tags confirmed, total physical slots = 189 (explains Akbar's 186 unique reads).
+  // Box 6 Back — ✅ RESOLVED (Session 26). Real placement data received, updating the
+  // former copy-paste placeholder. TR/BL/BR were previously assumed to be 'homeless'
+  // ghosts from the old Box 5 Back trim — turns out they were Box 6 Back all along,
+  // confirmed by scan match. TL (AB366) has a label but no scan match yet (like B2456).
+  [6,'Back','TL','AB366',null],[6,'Back','TR','AB376','E2801191A5040076300AB376'],[6,'Back','BL','AB386','E2801191A5040076300AB386'],[6,'Back','BR','AB3C6','E2801191A5040076300AB3C6'],
   // Box 6 Left BR — was wrongly '6985' in DB (likely a Session 24 misread). Ian
   // re-checked the physical photo and confirmed the sharpie label is actually '6986',
   // same as Box 6 Right TL (human labeling error, confirmed by Ian).
