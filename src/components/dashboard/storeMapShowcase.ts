@@ -39,14 +39,21 @@ export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
 /**
  * CSS class for the "Backroom storage / Replenishment reserve" label.
  *
- * - worker-to-box (entry): stays fully visible through the whole first leg
- *   (walking the corridor toward the gap) and only starts fading right as
- *   the worker begins crossing over (the drop-through-the-gap leg).
- * - worker-box-pause / worker-grab-box / worker-pick-box: worker is fully
- *   inside the backroom -- label stays flat-out hidden, no animation needed.
- * - worker-from-box (retrace): stays hidden through the walk back up the
- *   aisle and only starts reappearing once the worker begins rising back
- *   up through the gap (mirrors the entry fade-out timing).
+ * The fade-out/fade-in each span TWO phases now, both real CSS animations
+ * (not a transition picking up after an animation ends -- that handoff is
+ * unreliable across browsers, so every bit of this is driven by keyframes):
+ *
+ * - worker-to-box (4.5s): visible through the first leg, starts fading as
+ *   the worker begins crossing, ends the phase only partway faded (0.2).
+ * - worker-box-pause (1.0s): finishes that fade (0.2 -> 0) over its first
+ *   0.5s, then holds hidden -- this is the "ends 0.5s later" half.
+ * - worker-grab-box / worker-pick-box: worker is deep in the backroom,
+ *   nothing to animate -- flat hidden.
+ * - worker-from-box (4.0s): stays hidden through the retrace, starts
+ *   reappearing as the worker begins rising back through the gap, ends the
+ *   phase only partway visible (0.75).
+ * - worker-paused (1.0s): finishes reappearing (0.75 -> 1) over its first
+ *   0.5s, then holds fully visible.
  * - everything else: fully visible.
  */
 export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string {
@@ -54,12 +61,20 @@ export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string 
     return 'animate-showcase-label-fade-entry';
   }
 
-  if (phase === 'worker-box-pause' || phase === 'worker-grab-box' || phase === 'worker-pick-box') {
+  if (phase === 'worker-box-pause') {
+    return 'animate-showcase-label-fade-entry-tail';
+  }
+
+  if (phase === 'worker-grab-box' || phase === 'worker-pick-box') {
     return 'opacity-0';
   }
 
   if (phase === 'worker-from-box') {
     return 'animate-showcase-label-fade-exit';
+  }
+
+  if (phase === 'worker-paused') {
+    return 'animate-showcase-label-fade-exit-tail';
   }
 
   return 'opacity-100';

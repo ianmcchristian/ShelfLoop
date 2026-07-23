@@ -237,6 +237,41 @@ select {
   }
 }
 
+@keyframes showcase-label-fade-entry-tail {
+  /*
+   * The "extra 0.5s" from showcase-label-fade-during-entry's tail, made a
+   * real CSS animation instead of relying on a transition to pick up where
+   * a just-ended animation left off (that handoff is genuinely unreliable
+   * across browsers -- the "before" snapshot a transition needs isn't
+   * guaranteed to be the animation's frozen value in the same style recalc
+   * that removes it). Applied during worker-box-pause, which is exactly
+   * 1.0s long: finishes the fade (0.2 -> 0) over the first 0.5s (50%), then
+   * holds at 0 for the rest.
+   */
+  0% {
+    opacity: 0.2;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes showcase-label-fade-exit-tail {
+  /*
+   * Mirror of showcase-label-fade-entry-tail. Applied during worker-paused,
+   * also exactly 1.0s long: finishes the reappear (0.75 -> 1) over the
+   * first 0.5s (50%), then holds fully visible for the rest.
+   */
+  0% {
+    opacity: 0.75;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+
 @keyframes showcase-backroom-ttl {
   0%,
   100% {
@@ -251,8 +286,9 @@ select {
   /*
    * Purely horizontal -- NOT diagonal. FROM: the point worker-paused holds
    * (50% x, 53% y -- the SAME height the worker originally entered the map
-   * at). TO: lined up on the item's column (x=41%, position 15 on Rack A --
-   * module 3 of 4, bottom-right position within that module), but still at
+   * at). TO: lined up on the item's column (x=39%, slightly further left
+   * than Rack A position 15's dot itself sits, per feedback that the
+   * worker was landing a bit too far right for this spot), but still at
    * the worker's own standing height (53% y), NOT the item's height. The
    * reach up toward the item happens entirely in the nudge animation that
    * follows -- this leg only ever moves left, never up.
@@ -262,7 +298,7 @@ select {
     top: 53%;
   }
   to {
-    left: 41%;
+    left: 39%;
     top: 53%;
   }
 }
@@ -272,17 +308,17 @@ select {
    * The ONLY vertical motion in this whole outbound sequence. Worker stands
    * at their normal height (53%, same as showcase-worker-guided left them)
    * and reaches UP toward the item then back DOWN -- same mechanic and
-   * timing as showcase-shopper-pick (0/35/70/100 split, 1.3s). Reach
-   * distance is that same base 4-point offset stretched 10% further
-   * (4 * 1.1 = 4.4pp) per feedback that the previous depth was close but
-   * not quite far enough: 53% - 4.4% = 48.6%. complete-restock fires at the
+   * timing as showcase-shopper-pick (0/35/70/100 split, 1.3s). The previous
+   * +10% bump (4pp -> 4.4pp) was too subtle to read as a real reach, so
+   * this is a much bigger jump to 8pp (53% - 8% = 45%), a clearly visible
+   * reach instead of an incremental nudge. complete-restock fires at the
    * nudge peak (35% in = ~455ms).
    */
   0% {
     top: 53%;
   }
   35% {
-    top: 48.6%;
+    top: 45%;
   }
   70% {
     top: 53%;
@@ -295,13 +331,13 @@ select {
 @keyframes showcase-worker-exit {
   /*
    * Purely horizontal -- NOT diagonal. Walk right off the map from the
-   * item's column, staying at the worker's normal standing height (53% y,
-   * same as they've been at since worker-paused) the entire way. Once the
-   * nudge is done, they just walk straight off-screen -- no vertical
-   * movement at all.
+   * item's column (39%, same as showcase-worker-guided's landing spot),
+   * staying at the worker's normal standing height (53% y, same as they've
+   * been at since worker-paused) the entire way. Once the nudge is done,
+   * they just walk straight off-screen -- no vertical movement at all.
    */
   from {
-    left: 41%;
+    left: 39%;
     top: 53%;
   }
   to {
@@ -509,6 +545,16 @@ select {
   .animate-showcase-label-fade-exit {
     /* Same 4.0s duration as .animate-showcase-worker-from-box -- stays in sync */
     animation: showcase-label-fade-during-exit 4s linear forwards;
+  }
+
+  .animate-showcase-label-fade-entry-tail {
+    /* Same 1.0s duration as worker-box-pause itself */
+    animation: showcase-label-fade-entry-tail 1s linear forwards;
+  }
+
+  .animate-showcase-label-fade-exit-tail {
+    /* Same 1.0s duration as worker-paused itself */
+    animation: showcase-label-fade-exit-tail 1s linear forwards;
   }
 
   .animate-showcase-backroom-ttl {
