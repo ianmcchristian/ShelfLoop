@@ -11,6 +11,7 @@ export type ShowcasePhase =
   | 'worker-to-box'
   | 'worker-box-pause'
   | 'worker-grab-box'
+  | 'worker-pick-box'
   | 'worker-from-box'
   | 'worker-paused'
   | 'worker-guided'
@@ -30,8 +31,9 @@ export const showcaseBackroomGlowBoxIndex = 14;
 
 export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
   // Glow starts only once the worker has paused just inside the backroom --
-  // not during the initial approach/entry walk, per Ian's requested beat.
-  return phase === 'worker-box-pause' || phase === 'worker-grab-box';
+  // not during the initial approach/entry walk, per Ian's requested beat --
+  // and stays lit through the walk-up and the pick gesture until grabbed.
+  return ['worker-box-pause', 'worker-grab-box', 'worker-pick-box'].includes(phase);
 }
 
 /**
@@ -86,25 +88,29 @@ export const showcaseTimeline: ShowcaseTimelineStep[] = [
   // worker-box-pause: 1.0s static hold just inside the backroom -- this is
   // the beat where the target box STARTS glowing. Ends 29,200ms.
   { delayMs: 29_200, phase: 'worker-grab-box' },
-  // worker-grab-box: 4.0s, 3-leg axis-aligned path -- shift into the aisle,
-  // walk the aisle down, reach into box 14. Grab happens at the reach-in
-  // beat (92% × 4.0s = 3,680ms in).
-  { delayMs: 32_880, phase: 'worker-grab-box', action: 'grab-box' },
-  // worker-grab-box ends 33,200ms; +400ms beat, then retrace the same legs back out.
-  { delayMs: 33_600, phase: 'worker-from-box' },
-  // worker-from-box: 4.5s retrace, ends 38,100ms; +300ms beat, then a 1s hold
+  // worker-grab-box: 3.0s, 2-leg axis-aligned walk -- shift into the aisle,
+  // then walk the aisle down to stand level with box 14. Ends 32,200ms.
+  { delayMs: 32_200, phase: 'worker-pick-box' },
+  // worker-pick-box: 1.3s pick gesture (same timing as showcase-shopper-pick,
+  // just horizontal) -- quick reach toward the box and back. Grab happens
+  // near the reach's peak, same relative offset as the shopper's pick-item
+  // action (600ms into its own 1.3s pick).
+  { delayMs: 32_800, phase: 'worker-pick-box', action: 'grab-box' },
+  // worker-pick-box ends 33,500ms; +400ms beat, then retrace the same legs back out.
+  { delayMs: 33_900, phase: 'worker-from-box' },
+  // worker-from-box: 4.0s retrace, ends 37,900ms; +300ms beat, then a 1s hold
   // just outside the backroom -- this is where tap-to-light starts pulsing.
-  { delayMs: 38_400, phase: 'worker-paused' },
-  // worker-paused: 1.0s hold, ends 39,400ms, then walk straight to Rack A.
-  { delayMs: 39_400, phase: 'worker-guided', action: 'guide-worker' },
+  { delayMs: 38_200, phase: 'worker-paused' },
+  // worker-paused: 1.0s hold, ends 39,200ms, then walk straight to Rack A.
+  { delayMs: 39_200, phase: 'worker-guided', action: 'guide-worker' },
   // worker-guided: 3.0s walk from the entrance (50%,53%) to Rack A (27%,48%).
-  { delayMs: 42_400, phase: 'worker-restock', action: 'arrive-at-rack' },
+  { delayMs: 42_200, phase: 'worker-restock', action: 'arrive-at-rack' },
   // Restock nudge: 1.3s. Item reappears at nudge peak (35% × 1.3s = 455ms in).
-  { delayMs: 42_855, phase: 'worker-restock', action: 'complete-restock' },
-  // +400ms beat after nudge completes (nudge done at 43,700ms), then worker exits.
-  { delayMs: 44_100, phase: 'worker-exit' },
+  { delayMs: 42_655, phase: 'worker-restock', action: 'complete-restock' },
+  // +400ms beat after nudge completes (nudge done at 43,500ms), then worker exits.
+  { delayMs: 43_900, phase: 'worker-exit' },
   // worker-exit: 2.5s walk off right edge, same corridor height as the entry.
-  { delayMs: 46_600, phase: 'idle' },
+  { delayMs: 46_400, phase: 'idle' },
 ];
 
 export interface ShowcaseCheckpoint {
@@ -126,7 +132,8 @@ export const showcaseCheckpoints: ShowcaseCheckpoint[] = [
   { label: 'Phone popup', phase: 'task-alert', itemMissing: true },
   { label: 'Worker enters', phase: 'worker-to-box', itemMissing: true },
   { label: 'Worker pauses (box glows)', phase: 'worker-box-pause', itemMissing: true },
-  { label: 'Worker grabs box', phase: 'worker-grab-box', itemMissing: true },
+  { label: 'Worker walks to box', phase: 'worker-grab-box', itemMissing: true },
+  { label: 'Worker picks box', phase: 'worker-pick-box', itemMissing: true },
   { label: 'Worker retraces', phase: 'worker-from-box', itemMissing: true },
   { label: 'Worker paused', phase: 'worker-paused', itemMissing: true },
   { label: 'Worker at rack', phase: 'worker-restock', itemMissing: false },
@@ -152,6 +159,7 @@ export function shouldShowcaseHighlightMissingItem(phase: ShowcasePhase): boolea
     'worker-to-box',
     'worker-box-pause',
     'worker-grab-box',
+    'worker-pick-box',
     'worker-from-box',
     'worker-paused',
     'worker-guided',

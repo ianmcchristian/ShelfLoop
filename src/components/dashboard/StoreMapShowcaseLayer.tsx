@@ -77,11 +77,18 @@ function WorkerActor({ phase }: { phase: ShowcasePhase }) {
       // Static hold just inside the backroom entrance, right after crossing
       // the gap -- same spot worker-to-box ends at. Backroom box starts
       // glowing during this beat (see shouldShowcaseGlowBackroomBox).
-      return 'left-[50%] top-[68%]';
+      return 'left-[50%] top-[71%]';
     }
 
     if (phase === 'worker-grab-box') {
       return 'animate-showcase-worker-grab-box';
+    }
+
+    if (phase === 'worker-pick-box') {
+      // top-[87.5%] anchors the vertical position; animation handles left
+      // (quick horizontal reach toward the box and back -- see
+      // showcase-worker-pick-box, deliberately modeled on the shopper's pick).
+      return 'top-[87.5%] animate-showcase-worker-pick-box';
     }
 
     if (phase === 'worker-from-box') {

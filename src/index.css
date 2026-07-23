@@ -87,7 +87,7 @@ select {
    *
    * Keyframe split (4.5s total):
    *   0  - 75%  Leg 1: walk LEFT along the corridor (53% y) toward the entrance gap
-   *   75% - 100% Leg 2: drop straight DOWN through the gap into the backroom (68% y)
+   *   75% - 100% Leg 2: drop straight DOWN through the gap into the backroom (71% y)
    */
   0% {
     left: 110%;
@@ -101,85 +101,90 @@ select {
   }
   100% {
     left: 50%;
-    top: 68%;
+    top: 71%;
   }
 }
 
 @keyframes showcase-worker-grab-box {
   /*
-   * Continues from where worker-box-pause holds (50%, 68%). 3 legs, purely
-   * axis-aligned: shift into the aisle between column 1 and column 2, walk
-   * that aisle down to shelf level, then reach RIGHT into box 14 (column 2
-   * -- the true visual middle of the 5 storage columns -- middle row, left
-   * box). Box reach point sits a touch lower than the column's raw grid
-   * center (86%) so the worker icon's visual center -- which sits above its
-   * name-label pill -- lines up with the box, not above it.
+   * Continues from where worker-box-pause holds (50%, 71%). Walking only --
+   * 2 legs, purely axis-aligned: shift into the aisle between column 1 and
+   * column 2, then walk that aisle down to stand level with box 14 (column
+   * 2 -- the true visual middle of the 5 storage columns -- middle row).
+   * Worker stops in the aisle lane (x=41%) here; the actual reach into the
+   * box happens next, in the separate worker-pick-box gesture.
    *
-   * Keyframe split (4.0s total):
-   *   0   - 40%  Leg 1: shift LEFT into aisle 1-2 (x=41%), still at 68% y
-   *   40% - 75%  Leg 2: walk DOWN the aisle to shelf level (89% y)
-   *   75% - 92%  Leg 3: reach RIGHT into box 14 (x=48%)
-   *   92% - 100% brief hold while the box is grabbed
+   * Keyframe split (3.0s total):
+   *   0   - 40%  Leg 1: shift LEFT into aisle 1-2 (x=41%), still at 71% y
+   *   40% - 100% Leg 2: walk DOWN the aisle to stand level with the box (87.5% y)
    */
   0% {
     left: 50%;
-    top: 68%;
+    top: 71%;
     animation-timing-function: ease-in-out;
   }
   40% {
     left: 41%;
-    top: 68%;
-    animation-timing-function: ease-in-out;
-  }
-  75% {
-    left: 41%;
-    top: 89%;
-    animation-timing-function: ease-in-out;
-  }
-  92% {
-    left: 48%;
-    top: 89%;
+    top: 71%;
     animation-timing-function: ease-in-out;
   }
   100% {
-    left: 48%;
-    top: 89%;
+    left: 41%;
+    top: 87.5%;
+  }
+}
+
+@keyframes showcase-worker-pick-box {
+  /*
+   * The actual pick gesture -- deliberately modeled on showcase-shopper-pick
+   * (same 1.3s duration, same 0/35/70/100 keyframe split, same 4-point
+   * offset), just on the horizontal axis instead of vertical: a quick reach
+   * RIGHT toward the box and back, instead of walking the worker's whole
+   * body over to it and parking there. top stays fixed (handled by a static
+   * class alongside this animation); only left moves.
+   */
+  0% {
+    left: 41%;
+  }
+  35% {
+    left: 45%;
+  }
+  70% {
+    left: 41%;
+  }
+  100% {
+    left: 41%;
   }
 }
 
 @keyframes showcase-worker-from-box {
   /*
    * Mirror of showcase-worker-grab-box + showcase-worker-to-box, retraced
-   * backward -- 4 legs, purely axis-aligned throughout: pull out of the box,
-   * rise up the aisle, shift right to the gap column, then rise back up
-   * through the entrance gap to the corridor. Ends at the same (50%, 53%)
-   * entrance point worker-to-box's leg 1 used, where worker-paused takes
-   * over and holds.
+   * backward -- 3 legs, purely axis-aligned throughout (the box-reach
+   * itself is already retracted by the end of worker-pick-box, so there's
+   * no separate "pull out of box" leg here): rise up the aisle, shift right
+   * to the gap column, then rise back up through the entrance gap to the
+   * corridor. Ends at the same (50%, 53%) entrance point worker-to-box's
+   * leg 1 used, where worker-paused takes over and holds.
    *
-   * Keyframe split (4.5s total):
-   *   0   - 18%  Leg 1: pull LEFT out of box 14 (x=41%), still at 89% y
-   *   18% - 50%  Leg 2: rise UP the aisle to pause height (68% y)
-   *   50% - 68%  Leg 3: shift RIGHT out of aisle 1-2 to the gap column (x=50%)
-   *   68% - 100% Leg 4: rise UP through the gap to the corridor (53% y)
+   * Keyframe split (4.0s total):
+   *   0   - 45%  Leg 1: rise UP the aisle from the box to pause height (71% y)
+   *   45% - 65%  Leg 2: shift RIGHT out of aisle 1-2 to the gap column (x=50%)
+   *   65% - 100% Leg 3: rise UP through the gap to the corridor (53% y)
    */
   0% {
-    left: 48%;
-    top: 89%;
-    animation-timing-function: ease-in-out;
-  }
-  18% {
     left: 41%;
-    top: 89%;
+    top: 87.5%;
     animation-timing-function: ease-in-out;
   }
-  50% {
+  45% {
     left: 41%;
-    top: 68%;
+    top: 71%;
     animation-timing-function: ease-in-out;
   }
-  68% {
+  65% {
     left: 50%;
-    top: 68%;
+    top: 71%;
     animation-timing-function: ease-in-out;
   }
   100% {
@@ -200,10 +205,11 @@ select {
   65% {
     opacity: 1;
   }
-  78%,
-  92% {
+  76%,
+  88% {
     opacity: 0;
   }
+  96%,
   100% {
     opacity: 1;
   }
@@ -211,20 +217,20 @@ select {
 
 @keyframes showcase-label-fade-during-exit {
   /*
-   * Synced to showcase-worker-from-box's 4.5s timeline. Worker reaches the
-   * label's x-center at keyframe 68%, then rises back up through its y-band
-   * toward the corridor (68%-100%). Duck out just before that crossing and
+   * Synced to showcase-worker-from-box's 4.0s timeline. Worker reaches the
+   * label's x-center at keyframe 65%, then rises back up through its y-band
+   * toward the corridor (65%-100%). Duck out just before that crossing and
    * restore before worker-paused takes over.
    */
   0%,
-  70% {
+  75% {
     opacity: 1;
   }
-  78%,
-  88% {
+  82%,
+  90% {
     opacity: 0;
   }
-  96%,
+  97%,
   100% {
     opacity: 1;
   }
@@ -486,12 +492,17 @@ select {
 
   .animate-showcase-worker-grab-box {
     /* timing is per-segment inside the keyframe; outer curve is linear */
-    animation: showcase-worker-grab-box 4s linear forwards;
+    animation: showcase-worker-grab-box 3s linear forwards;
+  }
+
+  .animate-showcase-worker-pick-box {
+    /* Same 1.3s duration as .animate-showcase-shopper-pick -- deliberately matched */
+    animation: showcase-worker-pick-box 1.3s ease-in-out forwards;
   }
 
   .animate-showcase-worker-from-box {
     /* timing is per-segment inside the keyframe; outer curve is linear */
-    animation: showcase-worker-from-box 4.5s linear forwards;
+    animation: showcase-worker-from-box 4s linear forwards;
   }
 
   .animate-showcase-label-fade-entry {
@@ -500,8 +511,8 @@ select {
   }
 
   .animate-showcase-label-fade-exit {
-    /* Same 4.5s duration as .animate-showcase-worker-from-box -- stays in sync */
-    animation: showcase-label-fade-during-exit 4.5s linear forwards;
+    /* Same 4.0s duration as .animate-showcase-worker-from-box -- stays in sync */
+    animation: showcase-label-fade-during-exit 4s linear forwards;
   }
 
   .animate-showcase-backroom-ttl {
