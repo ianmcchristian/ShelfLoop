@@ -44,10 +44,18 @@ select {
 }
 
 @keyframes showcase-shopper-pick {
-  0%   { top: 52%; }
-  35%  { top: 48%; }
-  70%  { top: 52%; }
-  100% { top: 52%; }
+  0% {
+    top: 52%;
+  }
+  35% {
+    top: 48%;
+  }
+  70% {
+    top: 52%;
+  }
+  100% {
+    top: 52%;
+  }
 }
 
 @keyframes showcase-shopper-exit {
@@ -63,60 +71,98 @@ select {
 
 @keyframes showcase-worker-to-box {
   /*
-   * 4-leg path routed DOWN THE AISLE (gap between column 0 and column 1,
-   * centre x=24%) so the worker never overlaps a storage column. Box 8 is
-   * the left box of column 1 middle row (~30% x); worker reaches RIGHT into it.
+   * 5-leg path matching the operator-drawn route: enter ABOVE the black
+   * dividing line, drop straight down through the entrance gap (the gap the
+   * "Backroom storage / Replenishment reserve" label sits in), shift left
+   * into the aisle between column 1 and column 2, walk that aisle down to
+   * shelf level, then reach RIGHT into box 14 (column 2 -- the true visual
+   * middle of the 5 storage columns -- middle row, left box).
    *
-   * Layout refs (backroom h-[40%] top 56%, shelves top-[52%]): open worker
-   * area 62%-77%, shelves 76.8%-95.2%, box 8 y ~86%.
-   * Aisle 0-1 spans map 18.9%-28.4% (9.5% wide); worker icon is only 3.7% wide.
+   * Layout refs (backroom h-[40%] top 56%): label ~59% y, dividing line 62% y,
+   * open worker area 62%-77%, shelves 76.8%-95.2%. Entrance gap in the line
+   * spans x 40%-60%; aisle 1-2 sits at x~41%; box 14 reach point x~48%, y~86%.
    *
    * Keyframe split (8.5s total):
-   *   0   - 49%  Leg 1: walk LEFT through the open backroom area at 68% height
-   *   49% - 54%  Leg 2: dip DOWN toward shelf-top level (74%)
-   *   54% - 75%  Leg 3: walk LEFT to aisle 0-1 (x=24%)
-   *   75% - 85%  Leg 4: walk DOWN the aisle into the shelves to box level (86%)
-   *   85% - 92%  reach RIGHT into box 8 (x=28%)
-   *   92% - 100% pull back into the aisle with the reserve box
+   *   0   - 45%  Leg 1: walk LEFT above the line (59% y) toward the entrance gap
+   *   45% - 55%  Leg 2: drop straight DOWN through the gap into the backroom (68% y)
+   *   55% - 68%  Leg 3: shift LEFT into aisle 1-2 (x=41%), easing down (74% y)
+   *   68% - 85%  Leg 4: walk DOWN the aisle to shelf level (86% y)
+   *   85% - 95%  reach RIGHT into box 14 (x=48%)
+   *   95% - 100% brief hold while the box is grabbed
    */
   0% {
     left: 110%;
-    top: 68%;
+    top: 59%;
     animation-timing-function: ease-in-out;
   }
-  49% {
+  45% {
+    left: 50%;
+    top: 59%;
+    animation-timing-function: ease-in-out;
+  }
+  55% {
     left: 50%;
     top: 68%;
     animation-timing-function: ease-in-out;
   }
-  54% {
-    left: 50%;
-    top: 74%;
-    animation-timing-function: ease-in-out;
-  }
-  75% {
-    left: 24%;
+  68% {
+    left: 41%;
     top: 74%;
     animation-timing-function: ease-in-out;
   }
   85% {
-    left: 24%;
+    left: 41%;
     top: 86%;
     animation-timing-function: ease-in-out;
   }
-  92% {
-    left: 28%;
+  95% {
+    left: 48%;
     top: 86%;
     animation-timing-function: ease-in-out;
   }
   100% {
-    left: 24%;
+    left: 48%;
     top: 86%;
   }
 }
 
+@keyframes showcase-worker-from-box {
+  /*
+   * Mirror of showcase-worker-to-box's last 4 legs, retraced backward --
+   * pull out of the box, back up the aisle, shift right to the gap column,
+   * then rise back up through the entrance gap to just outside the line.
+   * Ends at the same (50%, 59%) entrance point leg 1 of worker-to-box used,
+   * where worker-paused takes over and holds.
+   */
+  0% {
+    left: 48%;
+    top: 86%;
+    animation-timing-function: ease-in-out;
+  }
+  20% {
+    left: 41%;
+    top: 86%;
+    animation-timing-function: ease-in-out;
+  }
+  55% {
+    left: 41%;
+    top: 74%;
+    animation-timing-function: ease-in-out;
+  }
+  75% {
+    left: 50%;
+    top: 68%;
+    animation-timing-function: ease-in-out;
+  }
+  100% {
+    left: 50%;
+    top: 59%;
+  }
+}
+
 @keyframes showcase-backroom-ttl {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 6px 3px rgba(52, 211, 153, 0.5);
   }
   50% {
@@ -125,10 +171,10 @@ select {
 }
 
 @keyframes showcase-worker-guided {
-  /* FROM: where worker-to-box settles (aisle 0-1 at box-8 level = 24% x, 86% y) */
+  /* FROM: the entrance point where worker-paused holds (50% x, 59% y) */
   from {
-    left: 24%;
-    top: 86%;
+    left: 50%;
+    top: 59%;
   }
   to {
     left: 27%;
@@ -142,16 +188,24 @@ select {
    * same mechanic as the shopper pick animation.
    * complete-restock fires at the nudge peak (35% in = ~455ms).
    */
-  0%   { top: 48%; }
-  35%  { top: 44%; }
-  70%  { top: 48%; }
-  100% { top: 48%; }
+  0% {
+    top: 48%;
+  }
+  35% {
+    top: 44%;
+  }
+  70% {
+    top: 48%;
+  }
+  100% {
+    top: 48%;
+  }
 }
 
 @keyframes showcase-worker-exit {
   /*
-   * Walk right off the map from Rack A back to the employee corridor.
-   * Drifts upward toward 60% (corridor height) as worker exits -- mirrors entry.
+   * Walk right off the map from Rack A back to the employee corridor, at the
+   * same 59% corridor height used on the way in -- a clean mirror of entry.
    */
   from {
     left: 27%;
@@ -159,7 +213,7 @@ select {
   }
   to {
     left: 110%;
-    top: 68%;
+    top: 59%;
   }
 }
 
@@ -187,12 +241,16 @@ select {
   40% {
     transform: scale(0.96);
     background-color: rgb(219, 234, 254);
-    box-shadow: 0 0 0 2px rgba(0, 113, 220, 0.35), 0 1px 8px rgba(0, 0, 0, 0.08);
+    box-shadow:
+      0 0 0 2px rgba(0, 113, 220, 0.35),
+      0 1px 8px rgba(0, 0, 0, 0.08);
   }
   to {
     transform: scale(0.96);
     background-color: rgb(219, 234, 254);
-    box-shadow: 0 0 0 2px rgba(0, 113, 220, 0.25), 0 1px 8px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 0 0 2px rgba(0, 113, 220, 0.25),
+      0 1px 8px rgba(0, 0, 0, 0.06);
   }
 }
 
@@ -207,13 +265,17 @@ select {
     transform: scale(0.96);
     filter: brightness(0.82);
     background-color: rgb(0, 92, 184);
-    box-shadow: 0 0 0 3px rgba(191, 219, 254, 0.45), 0 1px 8px rgba(15, 23, 42, 0.14);
+    box-shadow:
+      0 0 0 3px rgba(191, 219, 254, 0.45),
+      0 1px 8px rgba(15, 23, 42, 0.14);
   }
   to {
     transform: scale(0.96);
     filter: brightness(0.82);
     background-color: rgb(0, 92, 184);
-    box-shadow: 0 0 0 2px rgba(191, 219, 254, 0.35), 0 1px 8px rgba(15, 23, 42, 0.12);
+    box-shadow:
+      0 0 0 2px rgba(191, 219, 254, 0.35),
+      0 1px 8px rgba(15, 23, 42, 0.12);
   }
 }
 
@@ -352,12 +414,17 @@ select {
     animation: showcase-worker-to-box 8.5s linear forwards;
   }
 
+  .animate-showcase-worker-from-box {
+    /* timing is per-segment inside the keyframe; outer curve is linear */
+    animation: showcase-worker-from-box 4.5s linear forwards;
+  }
+
   .animate-showcase-backroom-ttl {
     animation: showcase-backroom-ttl 1.1s ease-in-out infinite;
   }
 
   .animate-showcase-worker-guided {
-    animation: showcase-worker-guided 3.0s ease-in-out forwards;
+    animation: showcase-worker-guided 3s ease-in-out forwards;
   }
 
   .animate-showcase-worker-restock-nudge {

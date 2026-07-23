@@ -1,22 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 
-import {
-  BackstockRoom,
-  backroomBoxCount,
-} from './StoreMapFixtures';
+import { BackstockRoom, backroomBoxCount } from './StoreMapFixtures';
 import type { MerchandisePositionHighlight } from './StoreMapMerchandise';
 import { RfidLegend } from './StoreMapLegend';
 import { RackFootprint } from './StoreMapRackFootprint';
 import { StoreMapShowcaseLayer } from './StoreMapShowcaseLayer';
 import { StoreMapSidebar } from './StoreMapSidebar';
-import {
-  chooseDenseRackStackPickIndex,
-  chooseRandomActiveIndex,
-} from './storeMapPicking';
+import { chooseDenseRackStackPickIndex, chooseRandomActiveIndex } from './storeMapPicking';
 import {
   isShowcaseRunning,
   showcaseBackroomGlowBoxIndex,
   showcaseCheckpoints,
+  showcasePhasesAfterBoxGrab,
   showcaseRackAItemPosition,
   showcaseRackId,
   showcaseTimeline,
@@ -191,15 +186,13 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
     );
   };
 
-  const consumeBackroomBox = () => {
+  const consumeSpecificBackroomBox = (boxIndex: number) => {
     setBackroomBoxes((currentBoxes) => {
-      const consumedBoxIndex = chooseRandomActiveIndex(currentBoxes);
-
-      if (consumedBoxIndex === null) {
+      if (!currentBoxes[boxIndex]) {
         return currentBoxes;
       }
 
-      return currentBoxes.map((isActive, index) => (index === consumedBoxIndex ? false : isActive));
+      return currentBoxes.map((isActive, index) => (index === boxIndex ? false : isActive));
     });
   };
 
@@ -229,6 +222,12 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
       return;
     }
 
+    if (action === 'grab-box') {
+      consumeSpecificBackroomBox(showcaseBackroomGlowBoxIndex);
+      setLastAction('Showcase A: worker grabbed the glowing reserve box from backroom storage.');
+      return;
+    }
+
     if (action === 'guide-worker') {
       setLastAction('Showcase A: worker is following ShelfLoop guidance back to Rack A.');
       return;
@@ -244,8 +243,7 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
       nextRackPositions[showcaseRackAItemPosition] = true;
       return { ...currentInventory, [showcaseRackId]: nextRackPositions };
     });
-    consumeBackroomBox();
-    setLastAction(`Showcase A complete. ${showcaseItem.sku} restocked; one reserve box consumed.`);
+    setLastAction(`Showcase A complete. ${showcaseItem.sku} restocked on Rack A.`);
   };
 
   const cancelShowcase = () => {
@@ -284,8 +282,20 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
     setInspectedRackId(null);
     setIsPrecisionPicking(false);
 
-    // Restore backroom if depleted so later phases have boxes to consume
-    setBackroomBoxes((current) => (current.some(Boolean) ? current : createFullBackroomBoxes()));
+    // Restore backroom if fully depleted, then make sure the showcase target
+    // box matches this checkpoint: present+glowing before the grab, gone after.
+    setBackroomBoxes((current) => {
+      const restored = current.some(Boolean) ? current : createFullBackroomBoxes();
+      const shouldBeConsumed = showcasePhasesAfterBoxGrab.includes(checkpoint.phase);
+
+      if (restored[showcaseBackroomGlowBoxIndex] === !shouldBeConsumed) {
+        return restored;
+      }
+
+      return restored.map((isActive, index) =>
+        index === showcaseBackroomGlowBoxIndex ? !shouldBeConsumed : isActive,
+      );
+    });
 
     // Set item presence to match what this phase expects
     setInventory((current) => {
