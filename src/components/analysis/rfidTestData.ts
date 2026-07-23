@@ -96,8 +96,10 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   // Box 6 Back — ✅ RESOLVED (Session 26). Real placement data received, updating the
   // former copy-paste placeholder. TR/BL/BR were previously assumed to be 'homeless'
   // ghosts from the old Box 5 Back trim — turns out they were Box 6 Back all along,
-  // confirmed by scan match. TL (AB366) has a label but no scan match yet (like B2456).
-  [6,'Back','TL','AB366',null],[6,'Back','TR','AB376','E2801191A5040076300AB376'],[6,'Back','BL','AB386','E2801191A5040076300AB386'],[6,'Back','BR','AB3C6','E2801191A5040076300AB3C6'],
+  // confirmed by scan match. TL was originally logged as 'AB366', but that suffix was
+  // NEVER read across 8 scan runs, while 'AB306' (same family, unassigned homeless read)
+  // hit 8/8 runs — Ian determined 'AB366' was a documentation error. Corrected to AB306.
+  [6,'Back','TL','AB306','E2801191A5040076300AB306'],[6,'Back','TR','AB376','E2801191A5040076300AB376'],[6,'Back','BL','AB386','E2801191A5040076300AB386'],[6,'Back','BR','AB3C6','E2801191A5040076300AB3C6'],
   // Box 6 Left BR — was wrongly '6985' in DB (likely a Session 24 misread). Ian
   // re-checked the physical photo and confirmed the sharpie label is actually '6986',
   // same as Box 6 Right TL (human labeling error, confirmed by Ian).
