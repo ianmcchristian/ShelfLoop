@@ -198,33 +198,42 @@ select {
 
 @keyframes showcase-label-fade-during-entry {
   /*
-   * Synced to showcase-worker-to-box's 4.5s timeline. Fades slightly EARLIER
-   * than the leg boundary itself (65% instead of 75%) so it's clearly out of
-   * the way before the worker visually reaches the crossing point, not right
-   * as they get there. Finishes hidden by 100%.
+   * Synced to showcase-worker-to-box's 4.5s timeline, but pushed 0.5s
+   * earlier on both ends versus the last pass:
+   *   - starts fading 0.5s sooner: 65% -> ~54% (0.5s / 4.5s ~= 11pp earlier).
+   *   - finishes 0.5s later: rather than hit opacity 0 by 100% (4.5s, right
+   *     at the phase boundary), the keyframe itself only gets partway there
+   *     (opacity 0.2 at 100%) and lets the wrapper's own
+   *     `transition-opacity duration-500` (see StoreMapFixtures.tsx) finish
+   *     the last stretch over the following 0.5s once the phase changes to
+   *     worker-box-pause's static opacity-0 class. That transition's exact
+   *     500ms duration is what gives us the extra half-second, for free.
    */
   0%,
-  65% {
+  54% {
     opacity: 1;
   }
   100% {
-    opacity: 0;
+    opacity: 0.2;
   }
 }
 
 @keyframes showcase-label-fade-during-exit {
   /*
    * Synced to showcase-worker-from-box's 4.0s timeline. Mirror of
-   * showcase-label-fade-during-entry, but reappearing slightly LATER than
-   * the leg boundary (75% instead of 65%) so it doesn't pop back in until
-   * the worker has clearly cleared the gap. Fully visible by 100%.
+   * showcase-label-fade-during-entry, pushed 0.5s earlier/later the same way:
+   *   - starts reappearing 0.5s sooner: 75% -> 62.5% (0.5s / 4.0s = 12.5pp).
+   *   - finishes 0.5s later: only reaches opacity 0.75 by 100% (4.0s, the
+   *     phase boundary); the wrapper's `transition-opacity duration-500`
+   *     carries the rest of the way to fully visible once the phase changes
+   *     to worker-paused's static opacity-100 class.
    */
   0%,
-  75% {
+  62.5% {
     opacity: 0;
   }
   100% {
-    opacity: 1;
+    opacity: 0.75;
   }
 }
 
@@ -262,16 +271,18 @@ select {
   /*
    * The ONLY vertical motion in this whole outbound sequence. Worker stands
    * at their normal height (53%, same as showcase-worker-guided left them)
-   * and reaches UP toward the item then back DOWN -- deliberately the SAME
-   * mechanic and timing as showcase-shopper-pick (0/35/70/100 split, 1.3s),
-   * and the SAME 4-point reach offset used there too. complete-restock fires
-   * at the nudge peak (35% in = ~455ms).
+   * and reaches UP toward the item then back DOWN -- same mechanic and
+   * timing as showcase-shopper-pick (0/35/70/100 split, 1.3s). Reach
+   * distance is that same base 4-point offset stretched 10% further
+   * (4 * 1.1 = 4.4pp) per feedback that the previous depth was close but
+   * not quite far enough: 53% - 4.4% = 48.6%. complete-restock fires at the
+   * nudge peak (35% in = ~455ms).
    */
   0% {
     top: 53%;
   }
   35% {
-    top: 49%;
+    top: 48.6%;
   }
   70% {
     top: 53%;

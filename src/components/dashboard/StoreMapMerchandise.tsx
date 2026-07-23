@@ -63,17 +63,21 @@ export function MerchandiseDot({
 }: MerchandiseDotProps) {
   const isAvailableHighlight = highlight === 'available';
   const isMissingHighlight = highlight === 'missing';
-  // tap-to-light: the item is still physically absent (active stays false),
-  // but a worker is en route to restock it -- pulses the same green as
-  // 'available' instead of staying red, right on the dot itself.
-  const isTapToLightHighlight = highlight === 'tap-to-light';
+  // tap-to-light: the item is still physically absent (active is false),
+  // but a worker is en route to restock it -- pulses green (hollow, same
+  // way 'missing' is hollow-red) right on the dot itself instead of red.
+  // Gated on `!active` so the instant `active` flips true (the nudge
+  // completing), this collapses to false on the very next render -- no
+  // separate phase-timing logic needed to "turn it off", it just falls out
+  // of the state that already flips instantly.
+  const isTapToLightHighlight = highlight === 'tap-to-light' && !active;
   const isGreenPulse = isAvailableHighlight || isTapToLightHighlight;
   const isHighlighted = isGreenPulse || isMissingHighlight;
   const activeClassName = isAvailableHighlight
     ? 'border-emerald-900 bg-emerald-500 shadow-[0_0_20px_rgba(34,197,94,0.85)]'
     : 'border-slate-800 bg-retail-blue shadow-sm';
   const inactiveClassName = isTapToLightHighlight
-    ? 'border-emerald-900 bg-emerald-500 shadow-[0_0_20px_rgba(34,197,94,0.85)]'
+    ? 'border-emerald-600 bg-white shadow-[0_0_18px_rgba(34,197,94,0.72)]'
     : isMissingHighlight
       ? 'border-red-700 bg-white shadow-[0_0_18px_rgba(239,68,68,0.72)]'
       : 'border-slate-800 bg-white/90';
