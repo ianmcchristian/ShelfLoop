@@ -155,7 +155,6 @@ interface RackFootprintProps {
   isPrecisionPicking: boolean;
   isShowcaseInteractionLocked: boolean;
   isShowcaseScanning: boolean;
-  isTapToLightActive: boolean;
   positionHighlightsOverride?: (MerchandisePositionHighlight | null)[];
   selectedSku: string;
   onInspect: (rackId: RackId | null) => void;
@@ -170,7 +169,6 @@ export function RackFootprint({
   isPrecisionPicking,
   isShowcaseInteractionLocked,
   isShowcaseScanning,
-  isTapToLightActive,
   positionHighlightsOverride,
   selectedSku,
   onInspect,
@@ -225,7 +223,7 @@ export function RackFootprint({
           onMouseEnter={() => onInspect(rack.id)}
           onMouseLeave={() => onInspect(null)}
         >
-          <RfidScannerIcon className={isTapToLightActive ? 'animate-showcase-tap-to-light' : ''} />
+          <RfidScannerIcon />
           <p className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-600 underline decoration-transparent underline-offset-4 transition hover:text-retail-blue hover:decoration-retail-blue">
             {rack.label}
           </p>

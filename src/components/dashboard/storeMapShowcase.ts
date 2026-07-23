@@ -36,24 +36,25 @@ export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
   return ['worker-box-pause', 'worker-grab-box', 'worker-pick-box'].includes(phase);
 }
 
+/** Every phase where the worker is physically anywhere in the backroom. */
+const PHASES_WORKER_IN_BACKROOM: ShowcasePhase[] = [
+  'worker-to-box',
+  'worker-box-pause',
+  'worker-grab-box',
+  'worker-pick-box',
+  'worker-from-box',
+];
+
 /**
- * CSS class for the "Backroom storage / Replenishment reserve" label,
- * ducking it out of view while the worker is physically crossing over it
- * (entering or retracing) and restoring it once they've cleared the gap.
- * Timed to match the worker-to-box (4.5s entry-only leg) / worker-from-box
- * (4.5s retrace) animation durations exactly (see index.css) so both
- * animations start together in the same paint frame and stay synced.
+ * CSS class for the "Backroom storage / Replenishment reserve" label --
+ * hidden for the worker's entire time in the backroom (entry through
+ * retrace) and visible otherwise. A plain opacity toggle plus a persistent
+ * `transition-opacity` class on the label itself (see StoreMapFixtures.tsx)
+ * gives a smooth fade without needing to hand-time it to the worker's
+ * movement keyframes.
  */
 export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string {
-  if (phase === 'worker-to-box') {
-    return 'animate-showcase-label-fade-entry';
-  }
-
-  if (phase === 'worker-from-box') {
-    return 'animate-showcase-label-fade-exit';
-  }
-
-  return '';
+  return PHASES_WORKER_IN_BACKROOM.includes(phase) ? 'opacity-0' : 'opacity-100';
 }
 
 export type ShowcaseAction =

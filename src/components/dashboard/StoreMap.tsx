@@ -75,7 +75,11 @@ function createShowcasePositionHighlights(
     { length: rack.capacity },
     (): MerchandisePositionHighlight | null => null,
   );
-  highlights[showcaseRackAItemPosition] = 'missing';
+  // Red while the item is just "known missing"; swaps to a green pulse on
+  // the exact same dot once a worker is actually en route to restock it.
+  highlights[showcaseRackAItemPosition] = shouldShowcaseTapToLight(phase, rack.id)
+    ? 'tap-to-light'
+    : 'missing';
 
   return highlights;
 }
@@ -514,7 +518,6 @@ export function StoreMap({ locatorQuery = '', selectedLocatorSku = '' }: StoreMa
                 isPrecisionPicking={isPrecisionPicking}
                 isShowcaseInteractionLocked={isShowcaseActive}
                 isShowcaseScanning={shouldShowcaseScanRack(showcasePhase, rack.id)}
-                isTapToLightActive={shouldShowcaseTapToLight(showcasePhase, rack.id)}
                 positionHighlightsOverride={createShowcasePositionHighlights(rack, showcasePhase)}
                 selectedSku={submittedSku}
                 onInspect={setInspectedRackId}

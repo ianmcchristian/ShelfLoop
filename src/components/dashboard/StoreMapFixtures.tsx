@@ -232,7 +232,7 @@ export function BackstockRoom({
       </div>
 
       <div
-        className={`group absolute left-1/2 top-[7%] z-40 -translate-x-1/2 bg-slate-50/90 px-3 text-center${
+        className={`group absolute left-1/2 top-[7%] z-40 -translate-x-1/2 bg-slate-50/90 px-3 text-center transition-opacity duration-500${
           labelFadeClassName ? ` ${labelFadeClassName}` : ''
         }`}
       >
