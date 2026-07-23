@@ -7,7 +7,8 @@
 // All placement data here reflects our best current understanding and should
 // be treated as suspect until physically verified by photo or selective scan.
 //
-// Remaining discrepancies flagged in comments (Session 26):
+// Remaining discrepancies flagged in comments (as of this session — DB is now
+// 192/192 fully resolved, 0 nulls, all backed by real full EPCs):
 //   • 3 CONFIRMED sharpie-duplicate pairs — same physical label handwritten on two
 //     different tags (human labeling error, confirmed by Ian re-checking photos):
 //       1) '5C12988'  — Box 3 Front BR / Box 8 Top TL
@@ -15,14 +16,15 @@
 //       3) '6986'     — Box 6 Left BR / Box 6 Right TL
 //     For each pair, BOTH true chip EPCs are confirmed present in scan data, but
 //     WHICH slot has which chip is an unverified best guess (Ian assigned at random).
-//     Isolation scan (one box alone) needed to confirm or flip each pair.
-//   • Box 6 Bottom TR 'B2456' — LIKELY DEAD TAG. Confirmed 0/8 scan runs, zero signal
-//     under every label interpretation checked (B2456, B1486, B2486 — the latter is
-//     already Box 6 Bottom BR's tag, a red herring). Ian visually confirmed physical
-//     tag is peeling off the box. Peeling can crack the IC-to-antenna strap bond,
-//     which causes total signal loss (vs. antenna detuning, which usually still
-//     reads intermittently). Zero reads across 8 runs points to a broken bond, not
-//     a documentation error. Recommend physical tag replacement.
+//     Isolation scan (one box alone) needed to confirm or flip each pair. This is
+//     the only remaining open item — everything else below is fully resolved.
+//   • Box 6 Bottom TR — ✅ RESOLVED (this session). The old label 'B2456' was a
+//     confirmed dead/peeling tag (0/8 scan reads, cracked antenna bond). Akbar
+//     physically swapped it for a new tag and sent its ID: '16B51'.
+//   • Box 5 Back TR/BL/BR — ✅ RESOLVED (this session). These slots had 0 physical
+//     tags as of Session 26 (only TL='B2446' existed). Akbar sent 3 brand-new tag
+//     IDs for them: '12A5D'/'12A5C'/'16B50'. This also closes out the last of the
+//     3 'unresolved' (DB-missing) slots that used to show up in the top bar.
 //   • Box 6 Back — ✅ RESOLVED (Session 26). Real values received: AB366/AB376/AB386/AB3C6.
 //     TR/BL/BR confirmed by scan match (these were formerly misfiled as Box 5 Back
 //     'ghosts'). TL corrected from AB366 (0/8 reads, doc error) to AB306 (8/8 reads).
@@ -38,16 +40,17 @@ import type { ResolvedTagPlacement, RunMeta, RunTagRead } from './rfidTypes';
 // ─── Placement database ───────────────────────────────────────────────────────
 // Format: [boxNumber, face, position, label, fullEpc | null]
 //
-// ─── KNOWN CONFLICTS / OPEN QUESTIONS (as of Session 26) ─────────────────────
+// ─── KNOWN CONFLICTS / OPEN QUESTIONS (as of this session) ───────────────────
 //   • 3 sharpie-duplicate pairs RESOLVED with best-guess slot assignments (Ian's
 //     random pick, pending isolation-scan confirmation) — see file header for detail.
-//   • Box 6 Bottom TR 'B2456' — likely dead tag (peeling, cracked bond). See file header.
+//     This is the ONLY remaining open item in the whole DB.
+//   • Box 6 Bottom TR — ✅ RESOLVED. Dead tag 'B2456' physically replaced with '16B51'
+//     (see file header).
+//   • Box 5 Back TR/BL/BR — ✅ RESOLVED. 3 new tags from Akbar: 12A5D/12A5C/16B50
+//     (see file header).
 //   • Box 6 Back — ✅ RESOLVED. AB306/AB376/AB386/AB3C6 (see file header).
 //   • Box 5 Top — ✅ VERIFIED (see file header).
 //   • Box 7 Bottom — ✅ RESOLVED (see file header).
-//   • Box 5 Back TR/BL/BR removed — Ian confirmed only 1 physical tag on that
-//     face (TL = B2446). Former EPCs AB376/AB386/AB3C6 turned out to belong to
-//     Box 6 Back, not homeless — resolved Session 26.
 // prettier-ignore
 const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   // Box 1 — fully resolved after ground-truth scan enrichment
@@ -82,10 +85,13 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [4,'Top','TL','1BC62CA','E28011B0A5050070B1BC62CA'],[4,'Top','TR','1BC62DA','E28011B0A5050070B1BC62DA'],[4,'Top','BL','1BDE82A','E28011B0A5050070B1BDE82A'],[4,'Top','BR','1BDC28A','E28011B0A5050070B1BDC28A'],
   [4,'Bottom','TL','1BE94AA','E28011B0A5050070B1BE94AA'],[4,'Bottom','TR','1BE948A','E28011B0A5050070B1BE948A'],[4,'Bottom','BL','1BE0EBA','E28011B0A5050070B1BE0EBA'],[4,'Bottom','BR','1BE940A','E28011B0A5050070B1BE940A'],
   // Box 5 — Front + Right corrected from photo verification.
-  // Back face: Ian photo-confirmed ONLY 1 physical tag on this face: TL = B2446.
-  // Former TR/BL/BR slots (AB376/AB386/AB3C6) removed — not physically present.
+  // Back face: ✅ FULLY RESOLVED (this session). Ian photo-confirmed the one
+  // pre-existing physical tag (TL = B2446), then Akbar sent 3 brand-new tag IDs
+  // for the previously-empty TR/BL/BR slots on this face (12A5D/12A5C/16B50).
+  // These are genuinely new/unassigned slots, NOT a re-guess of the old
+  // AB376/AB386/AB3C6 ghosts (those were confirmed Session 26 to belong to Box 6 Back).
   [5,'Front','TL','2845275','E28011B0A502006C02845275'],[5,'Front','TR','2844CD5','E28011B0A502006C02844CD5'],[5,'Front','BL','2844C85','E28011B0A502006C02844C85'],[5,'Front','BR','283A6D5','E28011B0A502006C0283A6D5'],
-  [5,'Back','TL','B2446','E2801191A5040076300B2446'],
+  [5,'Back','TL','B2446','E2801191A5040076300B2446'],[5,'Back','TR','12A5D','E2801191A504007121012A5D'],[5,'Back','BL','12A5C','E2801191A504007121012A5C'],[5,'Back','BR','16B50','E2801191A504007121016B50'],
   [5,'Left','TL','283A684','E28011B0A502006C0283A684'],[5,'Left','TR','284C0E5','E28011B0A502006C0284C0E5'],[5,'Left','BL','284C695','E28011B0A502006C0284C695'],[5,'Left','BR','283A014','E28011B0A502006C0283A014'],
   [5,'Right','TL','28452D5','E28011B0A502006C028452D5'],[5,'Right','TR','2835884','E28011B0A502006C02835884'],[5,'Right','BL','2847874','E28011B0A502006C02847874'],[5,'Right','BR','283A0B5','E28011B0A502006C0283A0B5'],
   // Box 5 Top — ✅ VERIFIED. Confirmed 284 family (4th Box5/Box6 face swap). Values
@@ -119,7 +125,9 @@ const RAW_PLACEMENTS: [number, string, string, string, string | null][] = [
   [6,'Top','TL','F806','E2801191A5040076300AF806'],[6,'Top','TR','AB3F6','E2801191A5040076300AB3F6'],[6,'Top','BL','F886','E2801191A5040076300AF886'],[6,'Top','BR','F846','E2801191A5040076300AF846'],
   // Box 6 Bottom — swapped from Box 5 in DB (Ian photo-confirmed F876/B2456/B2416/2486).
   // Former DB entry 284C664/28478D4/283A655/28478E5 physically belongs to Box 5 Bottom.
-  [6,'Bottom','TL','F876','E2801191A5040076300AF876'],[6,'Bottom','TR','B2456',null],[6,'Bottom','BL','B2416','E2801191A5040076300B2416'],[6,'Bottom','BR','2486','E2801191A5040076300B2486'],
+  // TR: ✅ RESOLVED (this session). 'B2456' was the dead/peeling tag flagged in
+  // Session 26 — Akbar physically replaced it and sent the new tag's ID: 16B51.
+  [6,'Bottom','TL','F876','E2801191A5040076300AF876'],[6,'Bottom','TR','16B51','E2801191A504007121016B51'],[6,'Bottom','BL','B2416','E2801191A5040076300B2416'],[6,'Bottom','BR','2486','E2801191A5040076300B2486'],
   // Box 7 — Front TL verified by photo as 1BCAEBA; Top TR still a known duplicate.
   // Bottom labels were physically applied upside-down on the box; DB uses TL=1BC88BA
   // as the correct orientation anchor (Ian confirmed).
