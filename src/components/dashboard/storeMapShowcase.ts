@@ -69,9 +69,10 @@ export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
  *   back through the gap), AND the static pause afterward -- because that
  *   pause still sits directly under the label's x-column.
  * - worker-guided (3.0s): this is the phase that actually walks the worker
- *   OUT from under the label (x=50% -> x=39%). Fade-in holds at 0 until the
- *   worker has cleared the label's x-span with a real buffer, then fades
- *   in, finishing right as the phase ends.
+ *   OUT from under the label (x=50% -> x=41%, Rack A position 15's real
+ *   column). Fade-in holds at 0 until the worker has cleared the label's
+ *   x-span with a real buffer, then fades in, finishing right as the phase
+ *   ends.
  * - everything else: fully visible.
  */
 export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string {

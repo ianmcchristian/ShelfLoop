@@ -245,15 +245,16 @@ select {
    *
    * Real fix: this now runs during worker-guided (3.0s) instead, matched to
    * that phase's duration. worker-guided walks the worker from x=50% (under
-   * the label) to x=39% (standing at the item's column); the label's own
-   * horizontal footprint is roughly x=43%-57%, so the worker clears it
-   * around ~64% of the way through that walk. Fade-in holds at 0 through
-   * 80% (a real ~16pp/0.48s buffer past that clearing point, not a photo
-   * finish) then fades in over the remaining 20%, finishing exactly as
-   * worker-guided ends / worker-restock begins.
+   * the label) to x=41% (Rack A position 15's real column -- see that
+   * keyframe's comment); the label's own horizontal footprint is roughly
+   * x=43%-57%, so the worker clears it around 7/9 = ~78% of the way through
+   * this shorter 9-point walk. Fade-in holds at 0 through 88% (a real
+   * ~10pp/0.3s buffer past that clearing point, not a photo finish) then
+   * fades in over the remaining 12%, finishing right as worker-guided ends
+   * / worker-restock begins.
    */
   0%,
-  80% {
+  88% {
     opacity: 0;
   }
   100% {
@@ -275,19 +276,20 @@ select {
   /*
    * Purely horizontal -- NOT diagonal. FROM: the point worker-paused holds
    * (50% x, 53% y -- the SAME height the worker originally entered the map
-   * at). TO: lined up on the item's column (x=39%, slightly further left
-   * than Rack A position 15's dot itself sits, per feedback that the
-   * worker was landing a bit too far right for this spot), but still at
-   * the worker's own standing height (53% y), NOT the item's height. The
-   * reach up toward the item happens entirely in the nudge animation that
-   * follows -- this leg only ever moves left, never up.
+   * at). TO: lined up on Rack A position 15's actual dot column (x=41%,
+   * from the grid math: module 3 of 4, bottom-right dot). A prior round
+   * nudged this 2 points further left to 39% off a guess that it was
+   * landing too far right -- that overcorrected and ended up too far left
+   * instead. Back to the computed 41%. Still at the worker's own standing
+   * height (53% y), NOT the item's height -- the reach up toward the item
+   * happens entirely in the nudge animation that follows.
    */
   from {
     left: 50%;
     top: 53%;
   }
   to {
-    left: 39%;
+    left: 41%;
     top: 53%;
   }
 }
@@ -296,18 +298,19 @@ select {
   /*
    * The ONLY vertical motion in this whole outbound sequence. Worker stands
    * at their normal height (53%, same as showcase-worker-guided left them)
-   * and reaches UP toward the item then back DOWN -- same mechanic and
-   * timing as showcase-shopper-pick (0/35/70/100 split, 1.3s). The previous
-   * +10% bump (4pp -> 4.4pp) was too subtle to read as a real reach, so
-   * this is a much bigger jump to 8pp (53% - 8% = 45%), a clearly visible
-   * reach instead of an incremental nudge. complete-restock fires at the
-   * nudge peak (35% in = ~455ms).
+   * and reaches UP toward the item then back DOWN -- same mechanic AND
+   * same distance as showcase-shopper-pick (0/35/70/100 split, 1.3s, 4pp
+   * reach: shopper goes 52%->48%). A prior round doubled this to an 8pp
+   * reach (53%->45%) chasing a "too subtle" complaint with no way to
+   * actually see it, and it ended up reaching too far up. Back to the
+   * original matched 4pp offset (53% - 4% = 49%). complete-restock fires
+   * at the nudge peak (35% in = ~455ms).
    */
   0% {
     top: 53%;
   }
   35% {
-    top: 45%;
+    top: 49%;
   }
   70% {
     top: 53%;
@@ -320,13 +323,13 @@ select {
 @keyframes showcase-worker-exit {
   /*
    * Purely horizontal -- NOT diagonal. Walk right off the map from the
-   * item's column (39%, same as showcase-worker-guided's landing spot),
+   * item's column (41%, same as showcase-worker-guided's landing spot),
    * staying at the worker's normal standing height (53% y, same as they've
    * been at since worker-paused) the entire way. Once the nudge is done,
    * they just walk straight off-screen -- no vertical movement at all.
    */
   from {
-    left: 39%;
+    left: 41%;
     top: 53%;
   }
   to {

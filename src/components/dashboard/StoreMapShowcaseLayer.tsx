@@ -108,11 +108,12 @@ function WorkerActor({ phase }: { phase: ShowcasePhase }) {
     }
 
     if (phase === 'worker-restock') {
-      // left-[39%] anchors the horizontal position (slightly left of the
-      // missing item's own dot, per feedback that the worker was landing
-      // too far right here); animation handles top (nudge UP/DOWN,
-      // replenishing the item).
-      return 'left-[39%] animate-showcase-worker-restock-nudge';
+      // left-[41%] anchors the horizontal position -- Rack A position 15's
+      // real dot column (module 3 of 4, bottom-right dot). A prior round
+      // shifted this to 39% off an unverified guess; reverted back to the
+      // computed 41% after feedback that the worker was landing too far
+      // left. Animation handles top (nudge UP/DOWN, replenishing the item).
+      return 'left-[41%] animate-showcase-worker-restock-nudge';
     }
 
     if (phase === 'worker-exit') {
