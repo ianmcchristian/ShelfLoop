@@ -39,21 +39,25 @@ export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
 /**
  * CSS class for the "Backroom storage / Replenishment reserve" label.
  *
- * The fade-out/fade-in each span TWO phases now, both real CSS animations
- * (not a transition picking up after an animation ends -- that handoff is
- * unreliable across browsers, so every bit of this is driven by keyframes):
+ * Deliberately does NOT try to time the fade against the leg that actually
+ * crosses the label (worker-to-box's leg 2, worker-from-box's leg 3) -- both
+ * of those legs use ease-in-out easing, so predicting exactly where the
+ * worker visually is at a given keyframe % without a live browser is not
+ * reliable, and every previous attempt at threading that needle failed.
  *
- * - worker-to-box (4.5s): visible through the first leg, starts fading as
- *   the worker begins crossing, ends the phase only partway faded (0.2).
- * - worker-box-pause (1.0s): finishes that fade (0.2 -> 0) over its first
- *   0.5s, then holds hidden -- this is the "ends 0.5s later" half.
- * - worker-grab-box / worker-pick-box: worker is deep in the backroom,
- *   nothing to animate -- flat hidden.
- * - worker-from-box (4.0s): stays hidden through the retrace, starts
- *   reappearing as the worker begins rising back through the gap, ends the
- *   phase only partway visible (0.75).
- * - worker-paused (1.0s): finishes reappearing (0.75 -> 1) over its first
- *   0.5s, then holds fully visible.
+ * Instead:
+ * - worker-to-box (4.5s): fades out ENTIRELY within leg 1 (the walking-in
+ *   leg, 0%-75%), finishing with a comfortable buffer before leg 2 (the
+ *   crossing) even starts. By the time the worker is anywhere near the
+ *   label's height, it's already fully hidden.
+ * - worker-box-pause / worker-grab-box / worker-pick-box / worker-from-box:
+ *   flat hidden, no animation -- covers the entire time the worker is deep
+ *   in the backroom AND the entire retrace, including the rise back through
+ *   the gap (leg 3). No fading in until that's all the way done.
+ * - worker-paused (1.0s): worker is now DEFINITELY standing outside, fully
+ *   clear of the label (this phase only starts once worker-from-box's whole
+ *   retrace has finished) -- safe to fade back in here, fully self-contained
+ *   within this one phase.
  * - everything else: fully visible.
  */
 export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string {
@@ -61,20 +65,17 @@ export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string 
     return 'animate-showcase-label-fade-entry';
   }
 
-  if (phase === 'worker-box-pause') {
-    return 'animate-showcase-label-fade-entry-tail';
-  }
-
-  if (phase === 'worker-grab-box' || phase === 'worker-pick-box') {
+  if (
+    phase === 'worker-box-pause' ||
+    phase === 'worker-grab-box' ||
+    phase === 'worker-pick-box' ||
+    phase === 'worker-from-box'
+  ) {
     return 'opacity-0';
   }
 
-  if (phase === 'worker-from-box') {
-    return 'animate-showcase-label-fade-exit';
-  }
-
   if (phase === 'worker-paused') {
-    return 'animate-showcase-label-fade-exit-tail';
+    return 'animate-showcase-label-fade-exit';
   }
 
   return 'opacity-100';

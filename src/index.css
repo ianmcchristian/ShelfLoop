@@ -198,75 +198,49 @@ select {
 
 @keyframes showcase-label-fade-during-entry {
   /*
-   * Synced to showcase-worker-to-box's 4.5s timeline, but pushed 0.5s
-   * earlier on both ends versus the last pass:
-   *   - starts fading 0.5s sooner: 65% -> ~54% (0.5s / 4.5s ~= 11pp earlier).
-   *   - finishes 0.5s later: rather than hit opacity 0 by 100% (4.5s, right
-   *     at the phase boundary), the keyframe itself only gets partway there
-   *     (opacity 0.2 at 100%) and lets the wrapper's own
-   *     `transition-opacity duration-500` (see StoreMapFixtures.tsx) finish
-   *     the last stretch over the following 0.5s once the phase changes to
-   *     worker-box-pause's static opacity-0 class. That transition's exact
-   *     500ms duration is what gives us the extra half-second, for free.
+   * PREVIOUS ROUNDS ALL HAD THE SAME BUG: the fade was timed to finish AT or
+   * BLEED INTO the leg-2 crossing (75%-100% of showcase-worker-to-box's
+   * 4.5s, when the worker drops from 53% to 71% y, right past the label's
+   * ~59% y, on an ease-in-out curve) -- meaning the label was still
+   * mid-fade while the worker was physically in the only leg that ever
+   * brings it near the label at all. Whether that overlap actually reads as
+   * "still visible" depends on exactly where in that non-linear ease-in-out
+   * curve the worker is at a given moment, which isn't reliably predictable
+   * without watching it live -- exactly the kind of blind math that kept
+   * failing.
+   *
+   * Fixed by not touching the crossing leg's timing AT ALL: the fade now
+   * starts and FINISHES entirely within leg 1 (0%-75%, the walking-in leg),
+   * with a comfortable 10pp (~0.45s) buffer before leg 2 even begins. By
+   * the time the worker starts moving toward the label's height at all, the
+   * label is already fully at opacity 0 -- no easing-curve guesswork needed.
    */
   0%,
-  54% {
+  35% {
     opacity: 1;
   }
+  65%,
   100% {
-    opacity: 0.2;
+    opacity: 0;
   }
 }
 
 @keyframes showcase-label-fade-during-exit {
   /*
-   * Synced to showcase-worker-from-box's 4.0s timeline. Mirror of
-   * showcase-label-fade-during-entry, pushed 0.5s earlier/later the same way:
-   *   - starts reappearing 0.5s sooner: 75% -> 62.5% (0.5s / 4.0s = 12.5pp).
-   *   - finishes 0.5s later: only reaches opacity 0.75 by 100% (4.0s, the
-   *     phase boundary); the wrapper's `transition-opacity duration-500`
-   *     carries the rest of the way to fully visible once the phase changes
-   *     to worker-paused's static opacity-100 class.
-   */
-  0%,
-  62.5% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 0.75;
-  }
-}
-
-@keyframes showcase-label-fade-entry-tail {
-  /*
-   * The "extra 0.5s" from showcase-label-fade-during-entry's tail, made a
-   * real CSS animation instead of relying on a transition to pick up where
-   * a just-ended animation left off (that handoff is genuinely unreliable
-   * across browsers -- the "before" snapshot a transition needs isn't
-   * guaranteed to be the animation's frozen value in the same style recalc
-   * that removes it). Applied during worker-box-pause, which is exactly
-   * 1.0s long: finishes the fade (0.2 -> 0) over the first 0.5s (50%), then
-   * holds at 0 for the rest.
+   * Mirror fix. showcase-worker-from-box's leg 3 (65%-100% of its 4.0s)
+   * rises the worker back UP through the same gap, past the label's height
+   * again, also on an ease-in-out curve -- so this keyframe no longer runs
+   * during worker-from-box at all (see getShowcaseBackroomLabelClassName:
+   * that whole phase is just flat opacity-0 now). Instead this runs during
+   * worker-paused (1.0s), which only STARTS once the entire retrace --
+   * including leg 3 -- has fully finished and the worker is confirmed
+   * standing still outside, clear of the label. Fades in over the first
+   * 0.6s, then holds fully visible for the remaining 0.4s.
    */
   0% {
-    opacity: 0.2;
-  }
-  50%,
-  100% {
     opacity: 0;
   }
-}
-
-@keyframes showcase-label-fade-exit-tail {
-  /*
-   * Mirror of showcase-label-fade-entry-tail. Applied during worker-paused,
-   * also exactly 1.0s long: finishes the reappear (0.75 -> 1) over the
-   * first 0.5s (50%), then holds fully visible for the rest.
-   */
-  0% {
-    opacity: 0.75;
-  }
-  50%,
+  60%,
   100% {
     opacity: 1;
   }
@@ -538,23 +512,13 @@ select {
   }
 
   .animate-showcase-label-fade-entry {
-    /* Same 4.5s duration as .animate-showcase-worker-to-box -- stays in sync */
+    /* Runs during worker-to-box; same 4.5s duration so the percentages line up */
     animation: showcase-label-fade-during-entry 4.5s linear forwards;
   }
 
   .animate-showcase-label-fade-exit {
-    /* Same 4.0s duration as .animate-showcase-worker-from-box -- stays in sync */
-    animation: showcase-label-fade-during-exit 4s linear forwards;
-  }
-
-  .animate-showcase-label-fade-entry-tail {
-    /* Same 1.0s duration as worker-box-pause itself */
-    animation: showcase-label-fade-entry-tail 1s linear forwards;
-  }
-
-  .animate-showcase-label-fade-exit-tail {
-    /* Same 1.0s duration as worker-paused itself */
-    animation: showcase-label-fade-exit-tail 1s linear forwards;
+    /* Runs during worker-paused now (not worker-from-box) -- same 1.0s duration */
+    animation: showcase-label-fade-during-exit 1s linear forwards;
   }
 
   .animate-showcase-backroom-ttl {
