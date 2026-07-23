@@ -97,10 +97,10 @@ function WorkerActor({ phase }: { phase: ShowcasePhase }) {
 
     if (phase === 'worker-paused') {
       // Static hold just outside the backroom entrance -- same spot
-      // worker-from-box ends at, already matched to the item's own height
-      // (46%) so the rest of the trip to the item is pure horizontal.
-      // Tap-to-light starts pulsing here.
-      return 'left-[50%] top-[46%]';
+      // worker-from-box ends at, matched to the SAME height the worker
+      // originally entered the map at (53%). Tap-to-light starts pulsing
+      // here; the reach up toward the item happens later, in the nudge.
+      return 'left-[50%] top-[53%]';
     }
 
     if (phase === 'worker-guided') {

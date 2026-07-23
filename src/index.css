@@ -164,15 +164,16 @@ select {
    * itself is already retracted by the end of worker-pick-box, so there's
    * no separate "pull out of box" leg here): rise up the aisle, shift right
    * to the gap column, then rise back up through the entrance gap. Ends at
-   * (50%, 46%) -- NOT the entrance corridor height (53%) -- because this is
-   * where worker-paused now holds: matching the exact item's height so the
-   * rest of the outbound trip (pause -> guided -> restock -> exit) is a
-   * single flat horizontal line, no vertical movement at all.
+   * (50%, 53%) -- the SAME height the worker originally entered the map at
+   * (see showcase-worker-to-box's 0% keyframe). worker-paused holds here,
+   * and everything after it (guided walk, nudge, exit) treats this as the
+   * worker's one standing height -- the reach toward the item is handled
+   * entirely by the nudge animation itself, not by relocating the worker.
    *
    * Keyframe split (4.0s total):
    *   0   - 45%  Leg 1: rise UP the aisle from the box to pause height (71% y)
    *   45% - 65%  Leg 2: shift RIGHT out of aisle 1-2 to the gap column (x=50%)
-   *   65% - 100% Leg 3: rise UP through the gap to the item's height (46% y)
+   *   65% - 100% Leg 3: rise UP through the gap back to entry height (53% y)
    */
   0% {
     left: 41%;
@@ -191,20 +192,19 @@ select {
   }
   100% {
     left: 50%;
-    top: 46%;
+    top: 53%;
   }
 }
 
 @keyframes showcase-label-fade-during-entry {
   /*
-   * Synced to showcase-worker-to-box's 4.5s timeline. Stays fully visible
-   * through the ENTIRE first leg (walking the corridor, 0-75%) and only
-   * starts fading right as the worker begins crossing over (the
-   * drop-through-the-gap leg, 75%-100%), finishing hidden by the time
-   * they've fully crossed.
+   * Synced to showcase-worker-to-box's 4.5s timeline. Fades slightly EARLIER
+   * than the leg boundary itself (65% instead of 75%) so it's clearly out of
+   * the way before the worker visually reaches the crossing point, not right
+   * as they get there. Finishes hidden by 100%.
    */
   0%,
-  75% {
+  65% {
     opacity: 1;
   }
   100% {
@@ -215,13 +215,12 @@ select {
 @keyframes showcase-label-fade-during-exit {
   /*
    * Synced to showcase-worker-from-box's 4.0s timeline. Mirror of
-   * showcase-label-fade-during-entry: stays hidden through the walk back up
-   * the aisle and the shift to the gap column (0%-65%), then starts
-   * reappearing right as the worker begins rising back up through the gap
-   * (65%-100%), finishing fully visible by the time they've cleared it.
+   * showcase-label-fade-during-entry, but reappearing slightly LATER than
+   * the leg boundary (75% instead of 65%) so it doesn't pop back in until
+   * the worker has clearly cleared the gap. Fully visible by 100%.
    */
   0%,
-  65% {
+  75% {
     opacity: 0;
   }
   100% {
@@ -242,60 +241,61 @@ select {
 @keyframes showcase-worker-guided {
   /*
    * Purely horizontal -- NOT diagonal. FROM: the point worker-paused holds
-   * (50% x, 46% y -- already matched to the item's height, see
-   * showcase-worker-from-box). TO: the EXACT missing item's dot (position 15
-   * on Rack A -- module 3 of 4, bottom-right position within that module),
-   * not just "somewhere in front of the rack". Rack A occupies full-map x
-   * 10%-44%, y 23%-50% (mapClassName). 4 equal modules across that width
-   * puts module 3's right-leaning dot (right-32% of its own module) at
-   * roughly x=41%. Since worker-paused already sits at the item's own
-   * height, no vertical movement is needed here at all.
+   * (50% x, 53% y -- the SAME height the worker originally entered the map
+   * at). TO: lined up on the item's column (x=41%, position 15 on Rack A --
+   * module 3 of 4, bottom-right position within that module), but still at
+   * the worker's own standing height (53% y), NOT the item's height. The
+   * reach up toward the item happens entirely in the nudge animation that
+   * follows -- this leg only ever moves left, never up.
    */
   from {
     left: 50%;
-    top: 46%;
+    top: 53%;
   }
   to {
     left: 41%;
-    top: 46%;
+    top: 53%;
   }
 }
 
 @keyframes showcase-worker-restock-nudge {
   /*
-   * Worker replenishes the exact item position -- UP then DOWN, deliberately
-   * the SAME mechanic and timing as showcase-shopper-pick (0/35/70/100
-   * split, 4% offset, 1.3s), just placing an item back instead of picking
-   * one up. complete-restock fires at the nudge peak (35% in = ~455ms).
+   * The ONLY vertical motion in this whole outbound sequence. Worker stands
+   * at their normal height (53%, same as showcase-worker-guided left them)
+   * and reaches UP toward the item then back DOWN -- deliberately the SAME
+   * mechanic and timing as showcase-shopper-pick (0/35/70/100 split, 1.3s),
+   * and the SAME 4-point reach offset used there too. complete-restock fires
+   * at the nudge peak (35% in = ~455ms).
    */
   0% {
-    top: 46%;
+    top: 53%;
   }
   35% {
-    top: 42%;
+    top: 49%;
   }
   70% {
-    top: 46%;
+    top: 53%;
   }
   100% {
-    top: 46%;
+    top: 53%;
   }
 }
 
 @keyframes showcase-worker-exit {
   /*
-   * Purely horizontal -- NOT diagonal. Walk right off the map from the exact
-   * item position, staying at the item's own height (46% y) the entire way.
-   * No rise back to the entrance corridor height -- once the worker's done
-   * with the rack, they just walk straight off-screen.
+   * Purely horizontal -- NOT diagonal. Walk right off the map from the
+   * item's column, staying at the worker's normal standing height (53% y,
+   * same as they've been at since worker-paused) the entire way. Once the
+   * nudge is done, they just walk straight off-screen -- no vertical
+   * movement at all.
    */
   from {
     left: 41%;
-    top: 46%;
+    top: 53%;
   }
   to {
     left: 110%;
-    top: 46%;
+    top: 53%;
   }
 }
 
