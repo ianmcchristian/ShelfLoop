@@ -97,8 +97,10 @@ function WorkerActor({ phase }: { phase: ShowcasePhase }) {
 
     if (phase === 'worker-paused') {
       // Static hold just outside the backroom entrance -- same spot
-      // worker-from-box ends at. Tap-to-light starts pulsing here.
-      return 'left-[50%] top-[53%]';
+      // worker-from-box ends at, already matched to the item's own height
+      // (46%) so the rest of the trip to the item is pure horizontal.
+      // Tap-to-light starts pulsing here.
+      return 'left-[50%] top-[46%]';
     }
 
     if (phase === 'worker-guided') {

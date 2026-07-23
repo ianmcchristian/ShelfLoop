@@ -36,25 +36,33 @@ export function shouldShowcaseGlowBackroomBox(phase: ShowcasePhase): boolean {
   return ['worker-box-pause', 'worker-grab-box', 'worker-pick-box'].includes(phase);
 }
 
-/** Every phase where the worker is physically anywhere in the backroom. */
-const PHASES_WORKER_IN_BACKROOM: ShowcasePhase[] = [
-  'worker-to-box',
-  'worker-box-pause',
-  'worker-grab-box',
-  'worker-pick-box',
-  'worker-from-box',
-];
-
 /**
- * CSS class for the "Backroom storage / Replenishment reserve" label --
- * hidden for the worker's entire time in the backroom (entry through
- * retrace) and visible otherwise. A plain opacity toggle plus a persistent
- * `transition-opacity` class on the label itself (see StoreMapFixtures.tsx)
- * gives a smooth fade without needing to hand-time it to the worker's
- * movement keyframes.
+ * CSS class for the "Backroom storage / Replenishment reserve" label.
+ *
+ * - worker-to-box (entry): stays fully visible through the whole first leg
+ *   (walking the corridor toward the gap) and only starts fading right as
+ *   the worker begins crossing over (the drop-through-the-gap leg).
+ * - worker-box-pause / worker-grab-box / worker-pick-box: worker is fully
+ *   inside the backroom -- label stays flat-out hidden, no animation needed.
+ * - worker-from-box (retrace): stays hidden through the walk back up the
+ *   aisle and only starts reappearing once the worker begins rising back
+ *   up through the gap (mirrors the entry fade-out timing).
+ * - everything else: fully visible.
  */
 export function getShowcaseBackroomLabelClassName(phase: ShowcasePhase): string {
-  return PHASES_WORKER_IN_BACKROOM.includes(phase) ? 'opacity-0' : 'opacity-100';
+  if (phase === 'worker-to-box') {
+    return 'animate-showcase-label-fade-entry';
+  }
+
+  if (phase === 'worker-box-pause' || phase === 'worker-grab-box' || phase === 'worker-pick-box') {
+    return 'opacity-0';
+  }
+
+  if (phase === 'worker-from-box') {
+    return 'animate-showcase-label-fade-exit';
+  }
+
+  return 'opacity-100';
 }
 
 export type ShowcaseAction =

@@ -163,14 +163,16 @@ select {
    * backward -- 3 legs, purely axis-aligned throughout (the box-reach
    * itself is already retracted by the end of worker-pick-box, so there's
    * no separate "pull out of box" leg here): rise up the aisle, shift right
-   * to the gap column, then rise back up through the entrance gap to the
-   * corridor. Ends at the same (50%, 53%) entrance point worker-to-box's
-   * leg 1 used, where worker-paused takes over and holds.
+   * to the gap column, then rise back up through the entrance gap. Ends at
+   * (50%, 46%) -- NOT the entrance corridor height (53%) -- because this is
+   * where worker-paused now holds: matching the exact item's height so the
+   * rest of the outbound trip (pause -> guided -> restock -> exit) is a
+   * single flat horizontal line, no vertical movement at all.
    *
    * Keyframe split (4.0s total):
    *   0   - 45%  Leg 1: rise UP the aisle from the box to pause height (71% y)
    *   45% - 65%  Leg 2: shift RIGHT out of aisle 1-2 to the gap column (x=50%)
-   *   65% - 100% Leg 3: rise UP through the gap to the corridor (53% y)
+   *   65% - 100% Leg 3: rise UP through the gap to the item's height (46% y)
    */
   0% {
     left: 41%;
@@ -189,7 +191,41 @@ select {
   }
   100% {
     left: 50%;
-    top: 53%;
+    top: 46%;
+  }
+}
+
+@keyframes showcase-label-fade-during-entry {
+  /*
+   * Synced to showcase-worker-to-box's 4.5s timeline. Stays fully visible
+   * through the ENTIRE first leg (walking the corridor, 0-75%) and only
+   * starts fading right as the worker begins crossing over (the
+   * drop-through-the-gap leg, 75%-100%), finishing hidden by the time
+   * they've fully crossed.
+   */
+  0%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes showcase-label-fade-during-exit {
+  /*
+   * Synced to showcase-worker-from-box's 4.0s timeline. Mirror of
+   * showcase-label-fade-during-entry: stays hidden through the walk back up
+   * the aisle and the shift to the gap column (0%-65%), then starts
+   * reappearing right as the worker begins rising back up through the gap
+   * (65%-100%), finishing fully visible by the time they've cleared it.
+   */
+  0%,
+  65% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }
 
@@ -205,19 +241,19 @@ select {
 
 @keyframes showcase-worker-guided {
   /*
-   * FROM: the entrance point where worker-paused holds (50% x, 53% y).
-   * TO: the EXACT missing item's dot (position 15 on Rack A -- module 3 of 4,
-   * bottom-right position within that module), not just "somewhere in front
-   * of the rack". Rack A occupies full-map x 10%-44%, y 23%-50%
-   * (mapClassName). 4 equal modules across that width puts module 3's
-   * right-leaning dot (right-32% of its own module) at roughly x=41%; the
-   * merchandise grid sits in the lower portion of the rack box below its
-   * label header, and the dot's own "bottom-29%" offset within that grid
-   * lands it around y=46%.
+   * Purely horizontal -- NOT diagonal. FROM: the point worker-paused holds
+   * (50% x, 46% y -- already matched to the item's height, see
+   * showcase-worker-from-box). TO: the EXACT missing item's dot (position 15
+   * on Rack A -- module 3 of 4, bottom-right position within that module),
+   * not just "somewhere in front of the rack". Rack A occupies full-map x
+   * 10%-44%, y 23%-50% (mapClassName). 4 equal modules across that width
+   * puts module 3's right-leaning dot (right-32% of its own module) at
+   * roughly x=41%. Since worker-paused already sits at the item's own
+   * height, no vertical movement is needed here at all.
    */
   from {
     left: 50%;
-    top: 53%;
+    top: 46%;
   }
   to {
     left: 41%;
@@ -248,9 +284,10 @@ select {
 
 @keyframes showcase-worker-exit {
   /*
-   * Walk right off the map from the exact item position back to the
-   * employee corridor, at the same 53% corridor height used on the way in --
-   * a clean mirror of entry.
+   * Purely horizontal -- NOT diagonal. Walk right off the map from the exact
+   * item position, staying at the item's own height (46% y) the entire way.
+   * No rise back to the entrance corridor height -- once the worker's done
+   * with the rack, they just walk straight off-screen.
    */
   from {
     left: 41%;
@@ -258,7 +295,7 @@ select {
   }
   to {
     left: 110%;
-    top: 53%;
+    top: 46%;
   }
 }
 
